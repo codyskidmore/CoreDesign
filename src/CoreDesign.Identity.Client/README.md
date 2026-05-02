@@ -6,7 +6,7 @@ An ASP.NET Core library for APIs that need to validate tokens issued by `CoreDes
 
 | Type | Description |
 | --- | --- |
-| `IdentityClientExtensions.AddLocalIdentityAuthentication` | Registers JWT Bearer auth and the `IdentityApiClient` HTTP client |
+| `IdentityClientExtensions.AddIdentityClient` | Registers JWT Bearer auth and the `IdentityApiClient` HTTP client |
 | `IdentityClientExtensions.UseLocalBearerTokenInjection` | Mounts the bearer token injection middleware (development only) |
 | `IdentityApiClient` | Fetches and caches access tokens from the identity server |
 | `BearerSecurityTransformer` | OpenAPI transformer that adds a Bearer security scheme to all operations |
@@ -15,11 +15,11 @@ An ASP.NET Core library for APIs that need to validate tokens issued by `CoreDes
 
 ### 1. Register services
 
-Call `AddLocalIdentityAuthentication` during service registration, passing the app's `IConfiguration`. This is typically done conditionally so that production environments use a different auth provider (such as Azure Entra):
+Call `AddIdentityClient` during service registration, passing the app's `IConfiguration`. This is typically done conditionally so that production environments use a different auth provider (such as Azure Entra):
 
 ```csharp
 if (builder.Environment.IsDevelopment())
-    builder.Services.AddLocalIdentityAuthentication(builder.Configuration);
+    builder.Services.AddIdentityClient(builder.Configuration);
 else
     builder.Services.AddProductionAuthentication(...);
 ```

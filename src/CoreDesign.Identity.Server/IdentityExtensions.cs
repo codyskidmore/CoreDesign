@@ -10,7 +10,7 @@ namespace CoreDesign.Identity.Server;
 
 public static class IdentityExtensions
 {
-    public static IServiceCollection AddDcneIdentity(
+    public static IServiceCollection AddIdentityServer(
         this IServiceCollection services,
         IConfiguration configuration,
         string sectionName = "CoreDesign:Identity",
@@ -37,7 +37,7 @@ public static class IdentityExtensions
         return services;
     }
 
-    public static IEndpointRouteBuilder MapDcneIdentityEndpoints(this IEndpointRouteBuilder app)
+    public static IEndpointRouteBuilder MapIdentityEndpoints(this IEndpointRouteBuilder app)
     {
         OidcDiscoveryEndpoint.Map(app);
         JwksEndpoint.Map(app);

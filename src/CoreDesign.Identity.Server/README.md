@@ -31,12 +31,12 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
     ContentRootPath = AppContext.BaseDirectory
 });
 
-builder.Services.AddDcneIdentity(builder.Configuration);
+builder.Services.AddIdentityServer(builder.Configuration);
 builder.Services.AddJsonFileIdentityStore("identities.json");
 
 var app = builder.Build();
 
-app.MapDcneIdentityEndpoints();
+app.MapIdentityEndpoints();
 
 app.Run();
 ```
@@ -120,10 +120,10 @@ builder.Services.AddSingleton<IIdentityStore, MyIdentityStore>();
 
 ## Advanced registration
 
-`AddDcneIdentity` accepts an optional `Action<IdentityOptions>` to override individual values after configuration binding:
+`AddIdentityServer` accepts an optional `Action<IdentityOptions>` to override individual values after configuration binding:
 
 ```csharp
-builder.Services.AddDcneIdentity(builder.Configuration, configure: opts =>
+builder.Services.AddIdentityServer(builder.Configuration, configure: opts =>
 {
     opts.TokenLifetimeHours = 1;
 });
@@ -132,5 +132,5 @@ builder.Services.AddDcneIdentity(builder.Configuration, configure: opts =>
 The `sectionName` parameter controls which configuration section is bound (default: `"CoreDesign:Identity"`):
 
 ```csharp
-builder.Services.AddDcneIdentity(builder.Configuration, sectionName: "MyApp:Auth");
+builder.Services.AddIdentityServer(builder.Configuration, sectionName: "MyApp:Auth");
 ```

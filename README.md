@@ -28,11 +28,11 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
     ContentRootPath = AppContext.BaseDirectory
 });
 
-builder.Services.AddDcneIdentity(builder.Configuration);
+builder.Services.AddIdentityServer(builder.Configuration);
 builder.Services.AddJsonFileIdentityStore("identities.json");
 
 var app = builder.Build();
-app.MapDcneIdentityEndpoints();
+app.MapIdentityEndpoints();
 app.Run();
 ```
 
@@ -66,7 +66,7 @@ Register authentication in `Program.cs`:
 
 ```csharp
 if (builder.Environment.IsDevelopment())
-    builder.Services.AddLocalIdentityAuthentication(builder.Configuration);
+    builder.Services.AddIdentityClient(builder.Configuration);
 else
     builder.Services.AddProductionAuthentication(...); // wire your real provider here
 
@@ -163,7 +163,7 @@ Swagger UI, Scalar, and health check endpoints continue to work without authenti
 
 ## Switching to a Real Provider
 
-When the project is ready to connect to a production identity provider, replace `AddLocalIdentityAuthentication` with your provider's configuration. The client package validates tokens using standard OIDC metadata discovery, so any provider that publishes a `/.well-known/openid-configuration` document is compatible. The `Issuer` and `Audience` values in configuration are the only values that need to change.
+When the project is ready to connect to a production identity provider, replace `AddIdentityClient` with your provider's configuration. The client package validates tokens using standard OIDC metadata discovery, so any provider that publishes a `/.well-known/openid-configuration` document is compatible. The `Issuer` and `Audience` values in configuration are the only values that need to change.
 
 ## Important Notes
 

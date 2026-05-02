@@ -10,11 +10,11 @@ namespace CoreDesign.Identity.Client;
 
 public static class IdentityClientExtensions
 {
-    public static IServiceCollection AddLocalIdentityAuthentication(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddIdentityClient(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<IdentityApiOptions>(configuration.GetSection("IdentityApi"));
 
-        services.AddHttpClient("dcne-identity", (sp, client) =>
+        services.AddHttpClient("coredesign-identity", (sp, client) =>
         {
             var opts = sp.GetRequiredService<IOptions<IdentityApiOptions>>().Value;
             client.BaseAddress = new Uri(opts.BaseUrl);
