@@ -40,7 +40,7 @@ public sealed class IdentityApiClient
 
             _logger?.LogInformation("Fetching new bearer token from Identity API at {BaseUrl}/connect/token", _options.BaseUrl);
 
-            var client = _httpClientFactory.CreateClient("dcne-identity");
+            var client = _httpClientFactory.CreateClient("coredesign-identity");
             var response = await client.PostAsync("/connect/token", new FormUrlEncodedContent(
             [
                 new KeyValuePair<string, string>("grant_type", "password"),
