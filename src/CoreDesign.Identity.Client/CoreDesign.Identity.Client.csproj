@@ -7,6 +7,7 @@
         <Description>ASP.NET Core client library for CoreDesign Identity. Provides bearer token authentication, OpenAPI security transformers, and development middleware for consuming a CoreDesign.Identity.Server instance.</Description>
         <PackageTags>identity;authentication;jwt;bearer;aspnetcore;openapi;coredesign</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign.Identity</PackageProjectUrl>
     </PropertyGroup>
 
     <ItemGroup>

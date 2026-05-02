@@ -7,6 +7,7 @@
         <Description>ASP.NET Core server library for CoreDesign Identity. Provides OAuth 2.0 and OIDC-compatible endpoints including token issuance, JWKS, and OpenID Connect discovery for embedding a lightweight identity server into an ASP.NET Core application.</Description>
         <PackageTags>identity;authentication;jwt;oauth2;oidc;aspnetcore;coredesign</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign.Identity</PackageProjectUrl>
     </PropertyGroup>
 
     <ItemGroup>
