@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <PackageId>CoreDesign.Identity.Client</PackageId>
+        <Version>1.0.0</Version>
+        <Description>ASP.NET Core client library for CoreDesign Identity. Provides bearer token authentication, OpenAPI security transformers, and development middleware for consuming a CoreDesign.Identity.Server instance.</Description>
+        <PackageTags>identity;authentication;jwt;bearer;aspnetcore;openapi;coredesign</PackageTags>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.6" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.7" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,109 @@
+# CoreDesign.Identity.Client
+
+An ASP.NET Core library for APIs that need to validate tokens issued by `CoreDesign.Identity.Server`. It configures JWT Bearer authentication, provides a development-only middleware that auto-injects bearer tokens on local requests, and includes an OpenAPI document transformer that advertises the Bearer security scheme.
+
+## What it provides
+
+| Type | Description |
+| --- | --- |
+| `IdentityClientExtensions.AddLocalIdentityAuthentication` | Registers JWT Bearer auth and the `IdentityApiClient` HTTP client |
+| `IdentityClientExtensions.UseLocalBearerTokenInjection` | Mounts the bearer token injection middleware (development only) |
+| `IdentityApiClient` | Fetches and caches access tokens from the identity server |
+| `BearerSecurityTransformer` | OpenAPI transformer that adds a Bearer security scheme to all operations |
+
+## Setup
+
+### 1. Register services
+
+Call `AddLocalIdentityAuthentication` during service registration, passing the app's `IConfiguration`. This is typically done conditionally so that production environments use a different auth provider (such as Azure Entra):
+
+```csharp
+if (builder.Environment.IsDevelopment())
+    builder.Services.AddLocalIdentityAuthentication(builder.Configuration);
+else
+    builder.Services.AddProductionAuthentication(...);
+```
+
+### 2. Add middleware
+
+Call `UseLocalBearerTokenInjection` in the middleware pipeline after `UseCors` and before `UseAuthentication`. The middleware only activates in the Development environment and only injects tokens on requests that have no existing `Authorization` header and originate from localhost:
+
+```csharp
+app.UseCors();
+app.UseLocalBearerTokenInjection();
+app.UseAuthentication();
+app.UseAuthorization();
+```
+
+### 3. Add configuration
+
+Two configuration sections are required.
+
+**`IdentityApi`** configures the HTTP client used to fetch tokens:
+
+```json
+{
+  "IdentityApi": {
+    "BaseUrl": "https://localhost:5003",
+    "Username": "admin@example.local",
+    "Password": "Password1!"
+  }
+}
+```
+
+**`CoreDesign:Identity`** provides the issuer and audience used to validate incoming JWTs. These must match the values configured in `CoreDesign.Identity.Server`:
+
+```json
+{
+  "CoreDesign": {
+    "Identity": {
+      "Issuer": "https://identity.example.local",
+      "Audience": "https://api.example.local"
+    }
+  }
+}
+```
+
+| Key | Description |
+| --- | --- |
+| `IdentityApi:BaseUrl` | Base URL of the running identity server |
+| `IdentityApi:Username` | Credential used by the token injection middleware to obtain a token |
+| `IdentityApi:Password` | Credential used by the token injection middleware to obtain a token |
+| `CoreDesign:Identity:Issuer` | Expected `iss` claim on incoming tokens |
+| `CoreDesign:Identity:Audience` | Expected `aud` claim on incoming tokens |
+
+### 4. Add the OpenAPI security transformer (optional)
+
+Register `BearerSecurityTransformer` with the OpenAPI document to annotate all endpoints with the Bearer security requirement. This enables the Authorize button in Scalar and Swagger UI:
+
+```csharp
+builder.Services.AddOpenApi(options =>
+    options.AddDocumentTransformer<BearerSecurityTransformer>());
+```
+
+## Token injection middleware
+
+`BearerTokenInjectionMiddleware` runs only when:
+
+- The environment is `Development`
+- The request has no `Authorization` header
+- The request originates from localhost (`127.0.0.1`, `::1`, or `::ffff:127.x`)
+- The path is not a public endpoint (`/openapi`, `/swagger`, `/scalar`, `/health`, `/`)
+
+When all conditions are met it calls `IdentityApiClient.GetAccessTokenAsync()`, which fetches a token from `/connect/token` on the identity server and caches it until 60 seconds before expiry. The token is set as the `Authorization: Bearer` header on the current request before passing it to the next middleware.
+
+If token acquisition fails (for example, the identity server is not running) the middleware logs a warning and continues without a token.
+
+## Token validation
+
+JWT Bearer validation is configured with the following parameters:
+
+| Parameter | Value |
+| --- | --- |
+| Issuer validation | Enabled, matched against `CoreDesign:Identity:Issuer` |
+| Audience validation | Enabled, matched against `CoreDesign:Identity:Audience` |
+| Lifetime validation | Enabled |
+| Signing key discovery | Automatic via `/.well-known/openid-configuration` on the identity server |
+| Role claim type | `roles` |
+| Name claim type | `email` |
+| Inbound claim mapping | Disabled (`MapInboundClaims = false`) |
