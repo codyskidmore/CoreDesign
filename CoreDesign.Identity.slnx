@@ -1,6 +1,0 @@
-<Solution>
-  <Folder Name="/src/">
-    <Project Path="src/CoreDesign.Identity.Client/CoreDesign.Identity.Client.csproj" />
-    <Project Path="src/CoreDesign.Identity.Server/CoreDesign.Identity.Server.csproj" />
-  </Folder>
-</Solution>

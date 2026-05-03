@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CoreDesign.Data/CoreDesign.Data.csproj" />
+    <Project Path="src/CoreDesign.Shared/CoreDesign.Shared.csproj" />
+  </Folder>
+  <Folder Name="/src/CoreDesign.Identity/">
+    <File Path="src/CoreDesign.Identity/README.AzureEntra.md" />
+    <File Path="src/CoreDesign.Identity/README.md" />
+    <Project Path="src/CoreDesign.Identity/CoreDesign.Identity.Client/CoreDesign.Identity.Client.csproj" />
+    <Project Path="src/CoreDesign.Identity/CoreDesign.Identity.Server/CoreDesign.Identity.Server.csproj" />
+  </Folder>
+</Solution>
