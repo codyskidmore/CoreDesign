@@ -3,11 +3,11 @@
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <PackageId>CoreDesign.Identity.Client</PackageId>
-        <Version>1.0.4</Version>
+        <Version>1.0.5</Version>
         <Description>ASP.NET Core client library for CoreDesign Identity. Provides bearer token authentication, OpenAPI security transformers, and development middleware for consuming a CoreDesign.Identity.Server instance.</Description>
         <PackageTags>identity;authentication;jwt;bearer;aspnetcore;openapi;coredesign</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign</PackageProjectUrl>
+        <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.Identity/CoreDesign.Identity.Client</PackageProjectUrl>
         <RepositoryUrl>https://github.com/codyskidmore/CoreDesign</RepositoryUrl>
     </PropertyGroup>
 
