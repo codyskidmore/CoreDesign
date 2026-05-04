@@ -481,6 +481,8 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 
+*.docx
+
 # AI tool settings folders
 .claude/
 .cursor/
