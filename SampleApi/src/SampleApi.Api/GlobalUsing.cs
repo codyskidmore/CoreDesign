@@ -1,0 +1,14 @@
+global using SampleApi.Api.Data;
+global using SampleApi.Api.WeatherForecasts.Models;
+global using SampleApi.Api.WeatherForecasts.Services;
+global using SampleApi.Api.WeatherForecasts.Endpoints;
+global using SampleApi.Api.Infrastructure;
+global using CoreDesign.Data.Infrastructure;
+global using CoreDesign.Data.Interfaces;
+global using CoreDesign.Data.Repositories;
+global using CoreDesign.Shared.Infrastructure;
+global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.AspNetCore.OutputCaching;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.EntityFrameworkCore.Metadata.Builders;
+global using OneOf;
