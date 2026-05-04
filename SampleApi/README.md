@@ -210,4 +210,35 @@ Services then declare their repository dependencies in the constructor and call 
 
 ## Project Configuration
 
-Shared `appsettings.json` files live in `src/Shared/` and are linked into each project. Environment-specific overrides follow the standard `appsettings.{Environment}.json` convention. Secrets (passwords, connection string credentials) are always supplied via user secrets or environment variables and never committed to source control.
+### Shared App Settings
+
+`appsettings.json` and `appsettings.Development.json` live in `src/Shared/` and are the single source of truth for configuration that applies across services. Instead of duplicating or copying these files, each project links them directly using MSBuild `<Content>` items in the `.csproj` file:
+
+```xml
+<ItemGroup>
+    <Content Include="..\Shared\appsettings.json">
+        <Link>appsettings.json</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Shared\appsettings.Development.json">
+        <Link>appsettings.Development.json</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+</ItemGroup>
+```
+
+The `Include` path points to the physical file in `src/Shared/`. The `<Link>` element gives the file a virtual name within the project so it appears as `appsettings.json` at the project root in Solution Explorer and is treated by the runtime exactly like a local file. `PreserveNewest` ensures the file is copied to the build output directory on each build without overwriting a newer copy.
+
+The following projects use this linking pattern:
+
+| Project | Links shared settings |
+|---|---|
+| SampleApi.Api | Yes |
+| SampleApi.Identity.Api | Yes |
+| SampleApi.Data.MigrationService | Yes |
+| SampleApi.Aspire.AppHost | Yes |
+| SampleApi.Api.Tests | No (unit tests use mocked repositories and do not load app settings) |
+
+To change a setting that applies to all services, edit the file in `src/Shared/`. The change is immediately reflected in every linked project on the next build without touching any individual project file.
+
+Environment-specific overrides follow the standard `appsettings.{Environment}.json` convention. Secrets (passwords, connection string credentials) are always supplied via user secrets or environment variables and never committed to source control.
