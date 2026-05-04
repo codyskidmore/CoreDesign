@@ -1,0 +1,122 @@
+[
+  {
+    "Id": "01HXKP0000000000000000001A",
+    "CreatedAt": "2026-01-01T00:00:00Z",
+    "UpdatedAt": "2026-01-01T00:00:00Z",
+    "CreatedBy": "00000000-0000-0000-0000-000000000001",
+    "UpdatedBy": "00000000-0000-0000-0000-000000000001",
+    "IsDeleted": false,
+    "Location": "New York, NY",
+    "Date": "2026-06-01",
+    "TemperatureC": 22,
+    "Summary": "Warm"
+  },
+  {
+    "Id": "01HXKP0000000000000000002B",
+    "CreatedAt": "2026-01-01T00:00:00Z",
+    "UpdatedAt": "2026-01-01T00:00:00Z",
+    "CreatedBy": "00000000-0000-0000-0000-000000000001",
+    "UpdatedBy": "00000000-0000-0000-0000-000000000001",
+    "IsDeleted": false,
+    "Location": "Los Angeles, CA",
+    "Date": "2026-06-01",
+    "TemperatureC": 28,
+    "Summary": "Balmy"
+  },
+  {
+    "Id": "01HXKP0000000000000000003C",
+    "CreatedAt": "2026-01-01T00:00:00Z",
+    "UpdatedAt": "2026-01-01T00:00:00Z",
+    "CreatedBy": "00000000-0000-0000-0000-000000000001",
+    "UpdatedBy": "00000000-0000-0000-0000-000000000001",
+    "IsDeleted": false,
+    "Location": "Chicago, IL",
+    "Date": "2026-06-01",
+    "TemperatureC": 18,
+    "Summary": "Mild"
+  },
+  {
+    "Id": "01HXKP0000000000000000004D",
+    "CreatedAt": "2026-01-01T00:00:00Z",
+    "UpdatedAt": "2026-01-01T00:00:00Z",
+    "CreatedBy": "00000000-0000-0000-0000-000000000001",
+    "UpdatedBy": "00000000-0000-0000-0000-000000000001",
+    "IsDeleted": false,
+    "Location": "Miami, FL",
+    "Date": "2026-06-01",
+    "TemperatureC": 34,
+    "Summary": "Sweltering"
+  },
+  {
+    "Id": "01HXKP0000000000000000005E",
+    "CreatedAt": "2026-01-01T00:00:00Z",
+    "UpdatedAt": "2026-01-01T00:00:00Z",
+    "CreatedBy": "00000000-0000-0000-0000-000000000001",
+    "UpdatedBy": "00000000-0000-0000-0000-000000000001",
+    "IsDeleted": false,
+    "Location": "Seattle, WA",
+    "Date": "2026-06-01",
+    "TemperatureC": 14,
+    "Summary": "Cool"
+  },
+  {
+    "Id": "01HXKP0000000000000000006F",
+    "CreatedAt": "2026-01-01T00:00:00Z",
+    "UpdatedAt": "2026-01-01T00:00:00Z",
+    "CreatedBy": "00000000-0000-0000-0000-000000000001",
+    "UpdatedBy": "00000000-0000-0000-0000-000000000001",
+    "IsDeleted": false,
+    "Location": "Denver, CO",
+    "Date": "2026-06-01",
+    "TemperatureC": 20,
+    "Summary": "Mild"
+  },
+  {
+    "Id": "01HXKP0000000000000000007G",
+    "CreatedAt": "2026-01-01T00:00:00Z",
+    "UpdatedAt": "2026-01-01T00:00:00Z",
+    "CreatedBy": "00000000-0000-0000-0000-000000000001",
+    "UpdatedBy": "00000000-0000-0000-0000-000000000001",
+    "IsDeleted": false,
+    "Location": "Phoenix, AZ",
+    "Date": "2026-06-01",
+    "TemperatureC": 41,
+    "Summary": "Scorching"
+  },
+  {
+    "Id": "01HXKP0000000000000000008H",
+    "CreatedAt": "2026-01-01T00:00:00Z",
+    "UpdatedAt": "2026-01-01T00:00:00Z",
+    "CreatedBy": "00000000-0000-0000-0000-000000000001",
+    "UpdatedBy": "00000000-0000-0000-0000-000000000001",
+    "IsDeleted": false,
+    "Location": "Boston, MA",
+    "Date": "2026-06-01",
+    "TemperatureC": 19,
+    "Summary": "Mild"
+  },
+  {
+    "Id": "01HXKP0000000000000000009J",
+    "CreatedAt": "2026-01-01T00:00:00Z",
+    "UpdatedAt": "2026-01-01T00:00:00Z",
+    "CreatedBy": "00000000-0000-0000-0000-000000000001",
+    "UpdatedBy": "00000000-0000-0000-0000-000000000001",
+    "IsDeleted": false,
+    "Location": "Minneapolis, MN",
+    "Date": "2026-06-01",
+    "TemperatureC": 8,
+    "Summary": "Chilly"
+  },
+  {
+    "Id": "01HXKP000000000000000000AK",
+    "CreatedAt": "2026-01-01T00:00:00Z",
+    "UpdatedAt": "2026-01-01T00:00:00Z",
+    "CreatedBy": "00000000-0000-0000-0000-000000000001",
+    "UpdatedBy": "00000000-0000-0000-0000-000000000001",
+    "IsDeleted": false,
+    "Location": "Anchorage, AK",
+    "Date": "2026-06-01",
+    "TemperatureC": -3,
+    "Summary": "Freezing"
+  }
+]
