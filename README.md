@@ -1,6 +1,6 @@
 # CoreDesign
 
-A collection of reusable .NET 10 libraries for data access, shared infrastructure, and identity. Each package is independent and can be referenced on its own.
+A collection of reusable .NET 10 libraries for data access, shared infrastructure, logging, and identity. Each package is independent and can be referenced on its own.
 
 ## Projects
 
@@ -21,6 +21,22 @@ Full details: [src/CoreDesign.Shared/README.md](src/CoreDesign.Shared/README.md)
 A generic, reusable Entity Framework Core data access layer. Provides a `BaseEntity` base class with ULID primary keys and audit fields, a corresponding `BaseEntityConfiguration<T>` for EF Core model configuration, and `IReadRepository` / `ICudRepository` interfaces with concrete implementations that include soft-delete support.
 
 Full details: [src/CoreDesign.Data/README.md](src/CoreDesign.Data/README.md)
+
+### CoreDesign.Logging
+
+`src/CoreDesign.Logging/`
+
+A `DispatchProxy`-based logging middleware that wraps any service interface and automatically logs every method invocation, return value, and exception. Service classes stay free of log statements while still producing structured, consistent log output for every operation.
+
+Register a service using `AddWithLogging` in place of the standard `AddTransient` or `AddScoped` call:
+
+```csharp
+services.AddWithLogging<IWeatherForecastService, WeatherForecastService>();
+```
+
+The DI container resolves the interface as a proxy-wrapped instance. Successful calls log at Information, `NotFoundMessage` and `BadRequestMessage` results log at Warning, and exceptions log at Error. Both synchronous and async methods are fully supported.
+
+Full details: [src/CoreDesign.Logging/README.md](src/CoreDesign.Logging/README.md)
 
 ### CoreDesign.Identity
 

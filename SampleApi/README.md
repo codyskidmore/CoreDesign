@@ -222,26 +222,26 @@ Log.Logger = new LoggerConfiguration()
     .CreateBootstrapLogger();
 ```
 
-### Service Logging Proxy
+### Service Logging Middleware
 
-Service classes in this project contain no log statements. All invocation logging is handled centrally by a `DispatchProxy`-based logging middleware in `Infrastructure/LoggingProxy.cs`.
+Service classes in this project contain no log statements. All invocation logging is handled centrally by a `DispatchProxy`-based logging middleware in `CoreDesign.Logging`.
 
-`LoggingProxy<T>` wraps any interface and intercepts every method call. On each call it logs:
+`LoggingMiddleware<T>` wraps any interface and intercepts every method call. On each call it logs:
 
 - The method name and serialized parameters before invocation (Information)
 - The serialized return value after successful completion (Information)
 - A warning when the return value indicates a not-found or bad-request outcome
 - The exception and method name if the call throws (Error)
 
-Both synchronous and asynchronous methods are fully supported. For `Task<T>` returns the proxy awaits the result before deciding which log level to use.
+Both synchronous and asynchronous methods are fully supported. For `Task<T>` returns the middleware awaits the result before deciding which log level to use.
 
-Register a service with the proxy using the `AddWithLogging` extension in place of the standard `AddTransient`/`AddScoped` registration:
+Register a service with the middleware using the `AddWithLogging` extension in place of the standard `AddTransient`/`AddScoped` registration:
 
 ```csharp
 services.AddWithLogging<IWeatherForecastService, WeatherForecastService>();
 ```
 
-The DI container resolves the interface as the proxy-wrapped version. The concrete service class remains a plain implementation with no logging code. Every operation gets a consistent, structured log record automatically without scattering log calls across the codebase.
+The DI container resolves the interface as the middleware-wrapped version. The concrete service class remains a plain implementation with no logging code. Every operation gets a consistent, structured log record automatically without scattering log calls across the codebase.
 
 ---
 

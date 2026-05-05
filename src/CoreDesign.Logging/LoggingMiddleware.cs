@@ -1,18 +1,16 @@
-using System.Reflection;
+namespace CoreDesign.Logging;
 
-namespace SampleApi.Api.Infrastructure;
-
-public class LoggingProxy<T> : DispatchProxy where T : class
+public class LoggingMiddleware<T> : DispatchProxy where T : class
 {
     private T _service = null!;
     private ILogger _logger = null!;
 
     public static T Create(T service, ILogger logger)
     {
-        var proxy = Create<T, LoggingProxy<T>>();
-        var loggingProxy = (LoggingProxy<T>)(object)proxy;
-        loggingProxy._service = service;
-        loggingProxy._logger = logger;
+        var proxy = Create<T, LoggingMiddleware<T>>();
+        var loggingMiddleware = (LoggingMiddleware<T>)(object)proxy;
+        loggingMiddleware._service = service;
+        loggingMiddleware._logger = logger;
         return proxy;
     }
 
@@ -51,7 +49,7 @@ public class LoggingProxy<T> : DispatchProxy where T : class
             return WrapVoidTaskAsync(task, method);
 
         var resultType = returnType.GetGenericArguments()[0];
-        var wrapMethod = typeof(LoggingProxy<T>)
+        var wrapMethod = typeof(LoggingMiddleware<T>)
             .GetMethod(nameof(WrapGenericTaskAsync), BindingFlags.NonPublic | BindingFlags.Instance)!
             .MakeGenericMethod(resultType);
 
@@ -89,7 +87,7 @@ public class LoggingProxy<T> : DispatchProxy where T : class
             }
 
             _logger.LogInformation("{ServiceType}.{Method} returned {@Result}",
-                    typeof(T).Name, method.Name, result);
+                typeof(T).Name, method.Name, result);
 
             return result;
         }
@@ -102,7 +100,7 @@ public class LoggingProxy<T> : DispatchProxy where T : class
     }
 }
 
-public static class LoggingProxyExtensions
+public static class LoggingMiddlewareExtensions
 {
     public static IServiceCollection AddWithLogging<TInterface, TImplementation>(
         this IServiceCollection services,
@@ -115,7 +113,7 @@ public static class LoggingProxyExtensions
         {
             var implementation = provider.GetRequiredService<TImplementation>();
             var logger = provider.GetRequiredService<ILogger<TImplementation>>();
-            return LoggingProxy<TInterface>.Create(implementation, logger);
+            return LoggingMiddleware<TInterface>.Create(implementation, logger);
         }, lifetime));
 
         return services;
