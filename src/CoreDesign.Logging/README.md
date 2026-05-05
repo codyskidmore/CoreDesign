@@ -39,6 +39,37 @@ Both synchronous and `Task`/`Task<T>` methods are fully supported.
 services.AddWithLogging<IMyService, MyService>(ServiceLifetime.Scoped);
 ```
 
+## Sensitive Data
+
+By default, `LoggingMiddleware` serializes all method parameters and return values into the log output. Two attributes give you control over methods that handle passwords, tokens, or other sensitive information.
+
+### `[SensitiveParameter]`
+
+Apply `[SensitiveParameter]` to any parameter on the interface method that should not appear in logs. The middleware replaces that argument with `"[REDACTED]"` while still logging all other parameters normally.
+
+```csharp
+public interface IAuthService
+{
+    Task<LoginResult> LoginAsync(string username, [SensitiveParameter] string password);
+}
+```
+
+The log entry for the example above will include the `username` value and show `"[REDACTED]"` in place of `password`.
+
+### `[NoLog]`
+
+Apply `[NoLog]` to a method on the interface to skip all logging for that method. No invocation, result, or exception entries are written.
+
+```csharp
+public interface ITokenService
+{
+    [NoLog]
+    Task<string> IssueTokenAsync(string userId);
+}
+```
+
+Use `[NoLog]` when the method name or parameter shape itself would be too revealing, or when call volume is high enough that logging every invocation creates more noise than value.
+
 ## Dependencies
 
 - `CoreDesign.Shared` for `NotFoundMessage` and `BadRequestMessage` result types
