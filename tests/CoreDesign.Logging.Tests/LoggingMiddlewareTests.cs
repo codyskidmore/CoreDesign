@@ -189,4 +189,84 @@ public class LoggingMiddlewareTests
         Assert.True(_logger.HasEntry(LogLevel.Information, "returned"));
         Assert.False(_logger.HasEntry(LogLevel.Warning, "returned"));
     }
+
+    [Fact]
+    public void Invoke_SensitiveParameter_RedactsValueInLog()
+    {
+        _serviceMock.Setup(s => s.Login("alice", "s3cr3t")).Returns("alice");
+
+        _proxy.Login("alice", "s3cr3t");
+
+        Assert.True(_logger.HasEntry(LogLevel.Information, "[REDACTED]"));
+        Assert.False(_logger.Entries.Any(e => e.Message.Contains("s3cr3t")));
+    }
+
+    [Fact]
+    public void Invoke_SensitiveParameter_NonSensitiveParamStillLogged()
+    {
+        _serviceMock.Setup(s => s.Login("alice", "s3cr3t")).Returns("alice");
+
+        _proxy.Login("alice", "s3cr3t");
+
+        Assert.True(_logger.Entries.Any(e => e.Message.Contains("alice")));
+    }
+
+    [Fact]
+    public void Invoke_SensitiveParameter_ReturnsValueFromInnerService()
+    {
+        _serviceMock.Setup(s => s.Login("alice", "s3cr3t")).Returns("alice");
+
+        var result = _proxy.Login("alice", "s3cr3t");
+
+        Assert.Equal("alice", result);
+    }
+
+    [Fact]
+    public void Invoke_NoLog_ProducesNoLogEntries()
+    {
+        _serviceMock.Setup(s => s.GetSecret("x")).Returns("secret");
+
+        _proxy.GetSecret("x");
+
+        Assert.Empty(_logger.Entries);
+    }
+
+    [Fact]
+    public void Invoke_NoLog_ReturnsValueFromInnerService()
+    {
+        _serviceMock.Setup(s => s.GetSecret("x")).Returns("secret");
+
+        var result = _proxy.GetSecret("x");
+
+        Assert.Equal("secret", result);
+    }
+
+    [Fact]
+    public void Invoke_NoLog_WhenThrows_RethrowsException()
+    {
+        _serviceMock.Setup(s => s.GetSecret(It.IsAny<string>()))
+            .Throws(new InvalidOperationException("secret error"));
+
+        Assert.Throws<InvalidOperationException>(() => _proxy.GetSecret("x"));
+    }
+
+    [Fact]
+    public async Task Invoke_NoLog_AsyncMethod_ProducesNoLogEntries()
+    {
+        _serviceMock.Setup(s => s.FetchSecretAsync("x")).ReturnsAsync("secret");
+
+        await _proxy.FetchSecretAsync("x");
+
+        Assert.Empty(_logger.Entries);
+    }
+
+    [Fact]
+    public async Task Invoke_NoLog_AsyncMethod_ReturnsValueFromInnerService()
+    {
+        _serviceMock.Setup(s => s.FetchSecretAsync("x")).ReturnsAsync("secret");
+
+        var result = await _proxy.FetchSecretAsync("x");
+
+        Assert.Equal("secret", result);
+    }
 }

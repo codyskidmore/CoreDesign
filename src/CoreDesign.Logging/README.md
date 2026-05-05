@@ -54,7 +54,7 @@ public interface IAuthService
 }
 ```
 
-The log entry for the example above will include the `username` value and show `"[REDACTED]"` in place of `password`.
+The log entry for the example above will include the `username` value and show `"[REDACTED]"` in place of `password`. The actual value is passed to the implementation unchanged.
 
 ### `[NoLog]`
 
