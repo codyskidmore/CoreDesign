@@ -18,8 +18,20 @@ public class LoggingMiddleware<T> : DispatchProxy where T : class
     {
         ArgumentNullException.ThrowIfNull(targetMethod);
 
+        if (targetMethod.IsDefined(typeof(NoLogAttribute), false))
+        {
+            try
+            {
+                return targetMethod.Invoke(_service, args);
+            }
+            catch (TargetInvocationException ex) when (ex.InnerException is not null)
+            {
+                throw ex.InnerException;
+            }
+        }
+
         _logger.LogInformation("Invoking {ServiceType}.{Method} with parameters {@Parameters}",
-            typeof(T).Name, targetMethod.Name, args);
+            typeof(T).Name, targetMethod.Name, SanitizeArgs(targetMethod, args));
 
         try
         {
@@ -39,6 +51,21 @@ public class LoggingMiddleware<T> : DispatchProxy where T : class
                 typeof(T).Name, targetMethod.Name);
             throw ex.InnerException;
         }
+    }
+
+    private static object?[] SanitizeArgs(MethodInfo method, object?[]? args)
+    {
+        if (args is null || args.Length == 0) return [];
+
+        var parameters = method.GetParameters();
+        var sanitized = new object?[args.Length];
+        for (var i = 0; i < args.Length; i++)
+        {
+            sanitized[i] = parameters[i].IsDefined(typeof(SensitiveParameterAttribute), false)
+                ? "[REDACTED]"
+                : args[i];
+        }
+        return sanitized;
     }
 
     private object WrapTask(Task task, MethodInfo method)

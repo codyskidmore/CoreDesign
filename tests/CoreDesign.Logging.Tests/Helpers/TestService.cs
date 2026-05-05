@@ -8,6 +8,9 @@ public interface ITestService
     Task<string> FetchAsync(string input);
     Task<OneOf<string, NotFoundMessage>> FindAsync(string id);
     Task<OneOf<string, BadRequestMessage>> ValidateAsync(string input);
+    string Login(string username, [SensitiveParameter] string password);
+    [NoLog] string GetSecret(string input);
+    [NoLog] Task<string> FetchSecretAsync(string input);
 }
 
 public class TestService : ITestService
@@ -20,4 +23,7 @@ public class TestService : ITestService
         Task.FromResult<OneOf<string, NotFoundMessage>>(id);
     public Task<OneOf<string, BadRequestMessage>> ValidateAsync(string input) =>
         Task.FromResult<OneOf<string, BadRequestMessage>>(input);
+    public string Login(string username, string password) => username;
+    public string GetSecret(string input) => input;
+    public Task<string> FetchSecretAsync(string input) => Task.FromResult(input);
 }
