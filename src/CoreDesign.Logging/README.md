@@ -70,6 +70,10 @@ public interface ITokenService
 
 Use `[NoLog]` when the method name or parameter shape itself would be too revealing, or when call volume is high enough that logging every invocation creates more noise than value.
 
+## Further Reading
+
+Design rationale and comparison with Serilog and Serilog.Enrichers.Sensitive: [SerilogVsMiddleware.md](SerilogVsMiddleware.md)
+
 ## Dependencies
 
 - `CoreDesign.Shared` for `NotFoundMessage` and `BadRequestMessage` result types

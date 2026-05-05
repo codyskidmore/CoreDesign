@@ -38,6 +38,8 @@ The DI container resolves the interface as a proxy-wrapped instance. Successful 
 
 Full details: [src/CoreDesign.Logging/README.md](src/CoreDesign.Logging/README.md)
 
+Design rationale and comparison with Serilog and Serilog.Enrichers.Sensitive: [src/CoreDesign.Logging/SerilogVsMiddleware.md](src/CoreDesign.Logging/SerilogVsMiddleware.md)
+
 ### CoreDesign.Identity
 
 `src/CoreDesign.Identity/`
