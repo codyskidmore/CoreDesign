@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/CoreDesign.Data/CoreDesign.Data.csproj" />
+    <Project Path="src/CoreDesign.Logging/CoreDesign.Logging.csproj" />
     <Project Path="src/CoreDesign.Shared/CoreDesign.Shared.csproj" />
   </Folder>
   <Folder Name="/src/CoreDesign.Identity/">
@@ -11,6 +12,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/CoreDesign.Data.Tests/CoreDesign.Data.Tests.csproj" />
+    <Project Path="tests/CoreDesign.Logging.Tests/CoreDesign.Logging.Tests.csproj" />
     <Project Path="tests/CoreDesign.Shared.Tests/CoreDesign.Shared.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/CoreDesign.Identity/">
