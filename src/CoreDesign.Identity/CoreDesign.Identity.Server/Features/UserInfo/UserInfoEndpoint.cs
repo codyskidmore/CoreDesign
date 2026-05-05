@@ -36,7 +36,7 @@ public static class UserInfoEndpoint
 
         try
         {
-            var handler = new JwtSecurityTokenHandler();
+            var handler = new JwtSecurityTokenHandler { MapInboundClaims = false };
             var principal = handler.ValidateToken(token, validationParams, out _);
             var sub = principal.FindFirstValue(JwtRegisteredClaimNames.Sub);
             var identity = await identityStore.FindByIdAsync(sub!);

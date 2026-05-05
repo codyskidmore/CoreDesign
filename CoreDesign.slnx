@@ -9,4 +9,12 @@
     <Project Path="src/CoreDesign.Identity/CoreDesign.Identity.Client/CoreDesign.Identity.Client.csproj" />
     <Project Path="src/CoreDesign.Identity/CoreDesign.Identity.Server/CoreDesign.Identity.Server.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CoreDesign.Data.Tests/CoreDesign.Data.Tests.csproj" />
+    <Project Path="tests/CoreDesign.Shared.Tests/CoreDesign.Shared.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/CoreDesign.Identity/">
+    <Project Path="tests/CoreDesign.Identity.Server.Tests/CoreDesign.Identity.Server.Tests.csproj" />
+    <Project Path="tests/CoreDesign.Identity.Client.Tests/CoreDesign.Identity.Client.Tests.csproj" />
+  </Folder>
 </Solution>
