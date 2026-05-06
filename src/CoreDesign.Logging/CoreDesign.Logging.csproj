@@ -9,6 +9,13 @@
         <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.Logging</PackageProjectUrl>
         <RepositoryUrl>https://github.com/codyskidmore/CoreDesign</RepositoryUrl>
         <PackageTags>logging;proxy;dispatchproxy;middleware;coredesign</PackageTags>
+        <PackageReleaseNotes>
+1.0.2
+- Renamed [SensitiveParameter] attribute to [Redact] and renamed [NoLog] to [Suppress] for clarity and consistency with other CoreDesign libraries.
+
+1.0.1
+- Initial release
+        </PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>

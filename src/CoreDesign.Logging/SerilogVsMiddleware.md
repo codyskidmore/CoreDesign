@@ -14,9 +14,9 @@ Serilog.Enrichers.Sensitive works inside that pipeline. It scans already-formed 
 
 LoggingMiddleware operates one layer up, at the point where your application code calls your services. It intercepts every method invocation before it happens, which gives it three things the others cannot offer:
 
-**Structural awareness.** It knows the method name, the parameter names, and the call site. `[SensitiveParameter]` is declared on the interface alongside the parameter it protects, which is the most precise place to express that intent.
+**Structural awareness.** It knows the method name, the parameter names, and the call site. `[Redact]` is declared on the interface alongside the parameter it protects, which is the most precise place to express that intent.
 
-**Intentional suppression.** `[NoLog]` removes a method from logging entirely. A regex enricher cannot suppress a log entry that was already written; it can only mask values within it.
+**Intentional suppression.** `[Suppress]` removes a method from logging entirely. A regex enricher cannot suppress a log entry that was already written; it can only mask values within it.
 
 **Zero instrumentation in service classes.** Services contain no log statements and no awareness of observability at all. The proxy handles it uniformly.
 
