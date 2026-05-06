@@ -8,6 +8,7 @@ public class SampleApiDbContext(DbContextOptions<SampleApiDbContext> options) : 
     {
         modelBuilder.HasDefaultSchema(nameof(Schemas.SampleApi));
 
-        modelBuilder.ApplyConfiguration(new WeatherForecastConfig());
+        // Load all BaseEntityConfiguration<T> implementations from the assembly and apply them.
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(SampleApiDbContext).Assembly);
     }
 }
