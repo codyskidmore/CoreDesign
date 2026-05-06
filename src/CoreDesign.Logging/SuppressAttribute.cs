@@ -5,4 +5,4 @@ namespace CoreDesign.Logging;
 /// No invocation, result, or exception entries are written.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
-public sealed class NoLogAttribute : Attribute { }
+public sealed class SuppressAttribute : Attribute { }

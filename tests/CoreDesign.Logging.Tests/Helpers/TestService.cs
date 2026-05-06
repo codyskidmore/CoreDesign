@@ -8,9 +8,9 @@ public interface ITestService
     Task<string> FetchAsync(string input);
     Task<OneOf<string, NotFoundMessage>> FindAsync(string id);
     Task<OneOf<string, BadRequestMessage>> ValidateAsync(string input);
-    string Login(string username, [SensitiveParameter] string password);
-    [NoLog] string GetSecret(string input);
-    [NoLog] Task<string> FetchSecretAsync(string input);
+    string Login(string username, [Redact] string password);
+    [Suppress] string GetSecret(string input);
+    [Suppress] Task<string> FetchSecretAsync(string input);
 }
 
 public class TestService : ITestService

@@ -18,7 +18,7 @@ public class LoggingMiddleware<T> : DispatchProxy where T : class
     {
         ArgumentNullException.ThrowIfNull(targetMethod);
 
-        if (targetMethod.IsDefined(typeof(NoLogAttribute), false))
+        if (targetMethod.IsDefined(typeof(SuppressAttribute), false))
         {
             try
             {
@@ -61,7 +61,7 @@ public class LoggingMiddleware<T> : DispatchProxy where T : class
         var sanitized = new object?[args.Length];
         for (var i = 0; i < args.Length; i++)
         {
-            sanitized[i] = parameters[i].IsDefined(typeof(SensitiveParameterAttribute), false)
+            sanitized[i] = parameters[i].IsDefined(typeof(RedactAttribute), false)
                 ? "[REDACTED]"
                 : args[i];
         }

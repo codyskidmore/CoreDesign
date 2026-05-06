@@ -191,7 +191,7 @@ public class LoggingMiddlewareTests
     }
 
     [Fact]
-    public void Invoke_SensitiveParameter_RedactsValueInLog()
+    public void Invoke_Redact_RedactsValueInLog()
     {
         _serviceMock.Setup(s => s.Login("alice", "s3cr3t")).Returns("alice");
 
@@ -202,7 +202,7 @@ public class LoggingMiddlewareTests
     }
 
     [Fact]
-    public void Invoke_SensitiveParameter_NonSensitiveParamStillLogged()
+    public void Invoke_Redact_NonSensitiveParamStillLogged()
     {
         _serviceMock.Setup(s => s.Login("alice", "s3cr3t")).Returns("alice");
 
@@ -212,7 +212,7 @@ public class LoggingMiddlewareTests
     }
 
     [Fact]
-    public void Invoke_SensitiveParameter_ReturnsValueFromInnerService()
+    public void Invoke_Redact_ReturnsValueFromInnerService()
     {
         _serviceMock.Setup(s => s.Login("alice", "s3cr3t")).Returns("alice");
 
@@ -222,7 +222,7 @@ public class LoggingMiddlewareTests
     }
 
     [Fact]
-    public void Invoke_NoLog_ProducesNoLogEntries()
+    public void Invoke_Suppress_ProducesNoLogEntries()
     {
         _serviceMock.Setup(s => s.GetSecret("x")).Returns("secret");
 
@@ -232,7 +232,7 @@ public class LoggingMiddlewareTests
     }
 
     [Fact]
-    public void Invoke_NoLog_ReturnsValueFromInnerService()
+    public void Invoke_Suppress_ReturnsValueFromInnerService()
     {
         _serviceMock.Setup(s => s.GetSecret("x")).Returns("secret");
 
@@ -242,7 +242,7 @@ public class LoggingMiddlewareTests
     }
 
     [Fact]
-    public void Invoke_NoLog_WhenThrows_RethrowsException()
+    public void Invoke_Suppress_WhenThrows_RethrowsException()
     {
         _serviceMock.Setup(s => s.GetSecret(It.IsAny<string>()))
             .Throws(new InvalidOperationException("secret error"));
@@ -251,7 +251,7 @@ public class LoggingMiddlewareTests
     }
 
     [Fact]
-    public async Task Invoke_NoLog_AsyncMethod_ProducesNoLogEntries()
+    public async Task Invoke_Suppress_AsyncMethod_ProducesNoLogEntries()
     {
         _serviceMock.Setup(s => s.FetchSecretAsync("x")).ReturnsAsync("secret");
 
@@ -261,7 +261,7 @@ public class LoggingMiddlewareTests
     }
 
     [Fact]
-    public async Task Invoke_NoLog_AsyncMethod_ReturnsValueFromInnerService()
+    public async Task Invoke_Suppress_AsyncMethod_ReturnsValueFromInnerService()
     {
         _serviceMock.Setup(s => s.FetchSecretAsync("x")).ReturnsAsync("secret");
 

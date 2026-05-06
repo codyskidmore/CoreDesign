@@ -3,12 +3,19 @@
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <PackageId>CoreDesign.Logging</PackageId>
-        <Version>1.0.1</Version>
+        <Version>1.0.2</Version>
         <Description>DispatchProxy-based logging middleware for .NET services. Wraps any service interface to automatically log invocations, results, warnings, and exceptions without adding log statements to service code.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.Logging</PackageProjectUrl>
         <RepositoryUrl>https://github.com/codyskidmore/CoreDesign</RepositoryUrl>
         <PackageTags>logging;proxy;dispatchproxy;middleware;coredesign</PackageTags>
+        <PackageReleaseNotes>
+1.0.2
+- Renamed [SensitiveParameter] attribute to [Redact] and renamed [NoLog] to [Suppress] for clarity and consistency with other CoreDesign libraries.
+
+1.0.1
+- Initial release
+        </PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>

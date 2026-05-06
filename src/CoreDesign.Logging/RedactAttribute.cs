@@ -5,4 +5,4 @@ namespace CoreDesign.Logging;
 /// "[REDACTED]" in place of the actual value.
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter)]
-public sealed class SensitiveParameterAttribute : Attribute { }
+public sealed class RedactAttribute : Attribute { }
