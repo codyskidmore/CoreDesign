@@ -8,24 +8,7 @@ public static class CreateWeatherForecastEndpoint
 
     public static IEndpointRouteBuilder MapCreateWeatherForecast(this IEndpointRouteBuilder app)
     {
-        app.MapPost(Paths.WeatherForecasts.Create, async (
-                [FromBody] WeatherForecastRequest request,
-                IWeatherForecastService service,
-                HttpContext context,
-                IOutputCacheStore outputCacheStore,
-                CancellationToken ct) =>
-            {
-                var result = await service.CreateAsync(context.GetUserId(), request, ct);
-                return result.Match<IResult>(
-                    forecast =>
-                    {
-                        var response = forecast.ToResponse();
-                        outputCacheStore.EvictByTagAsync(nameof(CacheConfig.WeatherForecastCache), ct);
-                        return Results.CreatedAtRoute(GetWeatherForecastEndpoint.Name,
-                            new { id = response.Id }, response);
-                    },
-                    error => Results.BadRequest(error));
-            })
+        app.MapPost(Paths.WeatherForecasts.Create, CreateWeatherForecastHandler.HandleAsync)
             .WithName(Name)
             .Produces<WeatherForecastResponse>()
             .Produces<BadRequest<string>>()

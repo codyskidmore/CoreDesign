@@ -6,17 +6,7 @@ public static class GetWeatherForecastEndpoint
 
     public static IEndpointRouteBuilder MapGetWeatherForecast(this IEndpointRouteBuilder app)
     {
-        app.MapGet(Paths.WeatherForecasts.GetById, async (
-                Ulid id,
-                IWeatherForecastService service,
-                HttpContext context,
-                CancellationToken ct) =>
-            {
-                var result = await service.GetAsync(id, context.GetUserId(), ct);
-                return result.Match<IResult>(
-                    forecast => TypedResults.Ok(forecast.ToResponse()),
-                    notFound => TypedResults.NotFound(notFound.Message));
-            })
+        app.MapGet(Paths.WeatherForecasts.GetById, GetWeatherForecastHandler.HandleAsync)
             .WithName(Name)
             .Produces<WeatherForecastResponse>()
             .Produces<string>(StatusCodes.Status404NotFound)
