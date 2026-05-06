@@ -16,6 +16,47 @@ Intended for **development and testing only**. Passwords are stored in plaintext
 
 Tokens are RS256-signed JWTs containing `sub`, `email`, `name`, `given_name`, `family_name`, `oid`, `roles`, and any custom claims defined on the identity record.
 
+## Generating a token manually
+
+`POST /get-token` accepts JSON credentials and returns a signed JWT immediately. Use it during development to obtain a bearer token for tools such as Scalar, Postman, or curl without going through a browser or an OAuth client flow.
+
+**Request**
+
+```http
+POST /get-token
+Content-Type: application/json
+
+{
+  "username": "admin@example.local",
+  "password": "Password1!"
+}
+```
+
+**Response**
+
+```json
+{
+  "access_token": "<jwt>",
+  "id_token": "<jwt>",
+  "token_type": "Bearer",
+  "expires_in": 28800,
+  "scope": "openid profile email"
+}
+```
+
+Use the `access_token` value as the `Authorization: Bearer <token>` header on subsequent requests.
+
+If the credentials are invalid the endpoint returns `400 Bad Request`:
+
+```json
+{
+  "error": "invalid_grant",
+  "error_description": "Invalid username or password"
+}
+```
+
+This endpoint is a non-standard convenience route. For standard OAuth 2.0 password grant (form-encoded), use `POST /connect/token` instead.
+
 ## Setup
 
 ### 1. Create the host project
