@@ -12,13 +12,46 @@ Intended for **development and testing only**. Passwords are stored in plaintext
 | `GET /.well-known/jwks.json` | Public signing key (JWKS) |
 | `POST /connect/token` | Token issuance via password grant (`application/x-www-form-urlencoded`) |
 | `GET /connect/userinfo` | Returns claims for a valid bearer token |
-| `POST /get-token` | Convenience JSON token endpoint (non-standard) |
+| `POST /get-token` | Convenience JSON token endpoint for tooling (non-standard) |
+| `POST /auth/login` | Frontend login endpoint — accepts JSON credentials, returns a token |
 
-Tokens are RS256-signed JWTs containing `sub`, `email`, `name`, `given_name`, `family_name`, `oid`, `roles`, and any custom claims defined on the identity record.
+Tokens are RS256-signed JWTs containing `sub`, `email`, `preferred_username`, `name`, `given_name`, `family_name`, `oid`, `roles`, and any custom claims defined on the identity record.
+
+## Frontend login
+
+`POST /auth/login` is the entry point for browser-based frontends. It accepts JSON credentials and returns a signed JWT that the frontend stores and attaches to API requests as `Authorization: Bearer <token>`.
+
+**Request**
+
+```http
+POST /auth/login
+Content-Type: application/json
+
+{
+  "username": "alice@example.local",
+  "password": "Password1!"
+}
+```
+
+**Response (200)**
+
+```json
+{
+  "access_token": "<jwt>",
+  "id_token": "<jwt>",
+  "token_type": "Bearer",
+  "expires_in": 28800,
+  "scope": "openid profile email"
+}
+```
+
+**Response (401)** on invalid credentials.
+
+The identity server must have CORS enabled for browsers to reach this endpoint. Call `UseIdentityServerCors()` in the server host's `Program.cs` (see [Setup](#setup)).
 
 ## Generating a token manually
 
-`POST /get-token` accepts JSON credentials and returns a signed JWT immediately. Use it during development to obtain a bearer token for tools such as Scalar, Postman, or curl without going through a browser or an OAuth client flow.
+`POST /get-token` accepts the same JSON credentials and returns the same response as `/auth/login`. Use it for tooling such as Scalar, Postman, or curl.
 
 **Request**
 
@@ -77,6 +110,7 @@ builder.Services.AddJsonFileIdentityStore("identities.json");
 
 var app = builder.Build();
 
+app.UseIdentityServerCors(); // required for browser-based frontends calling /auth/login
 app.MapIdentityEndpoints();
 
 app.Run();

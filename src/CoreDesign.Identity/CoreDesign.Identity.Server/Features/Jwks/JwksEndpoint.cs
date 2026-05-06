@@ -1,6 +1,3 @@
-using System.Text.Json.Serialization;
-using Microsoft.IdentityModel.Tokens;
-
 namespace CoreDesign.Identity.Server.Features.Jwks;
 
 public static class JwksEndpoint

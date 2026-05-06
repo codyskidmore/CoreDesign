@@ -1,7 +1,5 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace CoreDesign.Identity.Client;
 
@@ -80,3 +78,4 @@ file record IdentityTokenPayload(
     [property: JsonPropertyName("access_token")] string AccessToken,
     [property: JsonPropertyName("expires_in")] int ExpiresIn
 );
+
