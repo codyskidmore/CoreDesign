@@ -6,17 +6,7 @@ public static class GetAllWeatherForecastsEndpoint
 
     public static IEndpointRouteBuilder MapGetAllWeatherForecasts(this IEndpointRouteBuilder app)
     {
-        app.MapGet(Paths.WeatherForecasts.GetAll, async (
-                IWeatherForecastService service,
-                HttpContext context,
-                CancellationToken ct) =>
-            {
-                var result = await service.GetAllAsync(context.GetUserId(), ct);
-                return result.Match<IResult>(
-                    forecasts => Results.Ok(forecasts.Select(f => f.ToResponse()).ToList()),
-                    _ => Results.NotFound("No weather forecasts found.")
-                );
-            })
+        app.MapGet(Paths.WeatherForecasts.GetAll, GetAllWeatherForecastsHandler.HandleAsync)
             .WithName(Name)
             .Produces<IEnumerable<WeatherForecastResponse>>()
             .Produces(StatusCodes.Status404NotFound)

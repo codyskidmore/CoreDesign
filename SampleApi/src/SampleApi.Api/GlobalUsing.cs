@@ -1,4 +1,5 @@
 global using SampleApi.Api.Data;
+global using SampleApi.Api.WeatherForecasts.Handlers;
 global using SampleApi.Api.WeatherForecasts.Models;
 global using SampleApi.Api.WeatherForecasts.Services;
 global using SampleApi.Api.WeatherForecasts.Endpoints;
