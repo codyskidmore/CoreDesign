@@ -1,5 +1,3 @@
-using Microsoft.IdentityModel.Tokens;
-
 namespace CoreDesign.Identity.Server.Features.Token;
 
 public static class TokenEndpoint

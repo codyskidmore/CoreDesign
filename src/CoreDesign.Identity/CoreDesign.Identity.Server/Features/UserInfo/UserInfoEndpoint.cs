@@ -1,8 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text.Json.Serialization;
-using Microsoft.IdentityModel.Tokens;
-
 namespace CoreDesign.Identity.Server.Features.UserInfo;
 
 public static class UserInfoEndpoint

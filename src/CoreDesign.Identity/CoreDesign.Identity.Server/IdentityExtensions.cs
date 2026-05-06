@@ -1,15 +1,17 @@
 using System.Security.Cryptography;
+using CoreDesign.Identity.Server.Features.AuthLogin;
 using CoreDesign.Identity.Server.Features.GetToken;
 using CoreDesign.Identity.Server.Features.Jwks;
 using CoreDesign.Identity.Server.Features.OidcDiscovery;
 using CoreDesign.Identity.Server.Features.Token;
 using CoreDesign.Identity.Server.Features.UserInfo;
-using Microsoft.IdentityModel.Tokens;
 
 namespace CoreDesign.Identity.Server;
 
 public static class IdentityExtensions
 {
+    private const string CorsPolicyName = "coredesign-identity";
+
     public static IServiceCollection AddIdentityServer(
         this IServiceCollection services,
         IConfiguration configuration,
@@ -26,6 +28,10 @@ public static class IdentityExtensions
         services.AddSingleton(rsaKey);
         services.AddSingleton(new SigningCredentials(rsaKey, SecurityAlgorithms.RsaSha256));
 
+        services.AddCors(cors =>
+            cors.AddPolicy(CorsPolicyName, policy =>
+                policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+
         return services;
     }
 
@@ -37,6 +43,12 @@ public static class IdentityExtensions
         return services;
     }
 
+    public static WebApplication UseIdentityServerCors(this WebApplication app)
+    {
+        app.UseCors(CorsPolicyName);
+        return app;
+    }
+
     public static IEndpointRouteBuilder MapIdentityEndpoints(this IEndpointRouteBuilder app)
     {
         OidcDiscoveryEndpoint.Map(app);
@@ -44,6 +56,7 @@ public static class IdentityExtensions
         TokenEndpoint.Map(app);
         UserInfoEndpoint.Map(app);
         GetTokenEndpoint.Map(app);
+        AuthLoginEndpoint.Map(app);
         return app;
     }
 }

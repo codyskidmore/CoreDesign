@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace CoreDesign.Identity.Server.Features.OidcDiscovery;
 
 public static class OidcDiscoveryEndpoint
@@ -25,7 +23,7 @@ public static class OidcDiscoveryEndpoint
             ScopesSupported = ["openid", "profile", "email"],
             TokenEndpointAuthMethodsSupported = ["none"],
             GrantTypesSupported = ["password"],
-            ClaimsSupported = ["sub", "iss", "aud", "exp", "iat", "jti", "email", "name", "given_name", "family_name", "roles"]
+            ClaimsSupported = ["sub", "iss", "aud", "exp", "iat", "jti", "email", "preferred_username", "name", "given_name", "family_name", "oid", "roles"]
         });
     }
 }
