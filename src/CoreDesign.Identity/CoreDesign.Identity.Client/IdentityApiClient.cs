@@ -42,6 +42,7 @@ public sealed class IdentityApiClient
             var response = await client.PostAsync("/connect/token", new FormUrlEncodedContent(
             [
                 new KeyValuePair<string, string>("grant_type", "password"),
+                new KeyValuePair<string, string>("client_id", _options.ClientId),
                 new KeyValuePair<string, string>("username", _options.Username),
                 new KeyValuePair<string, string>("password", _options.Password)
             ]));

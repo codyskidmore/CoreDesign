@@ -3,7 +3,8 @@
 **Project:** CoreDesign.Identity.Server  
 **Target:** OpenID Connect Core 1.0 certification (Basic OP, Config OP, Dynamic OP profiles)  
 **Date:** 2026-05-06  
-**Author:** Cody Skidmore
+**Author:** Cody Skidmore  
+**Status:** Milestone 1 complete (branch: `oidc/milestone-1-client-store`). Next: Milestone 2 (Token Separation).
 
 ---
 
