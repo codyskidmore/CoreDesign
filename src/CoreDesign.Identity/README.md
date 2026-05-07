@@ -30,11 +30,28 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 
 builder.Services.AddIdentityServer(builder.Configuration);
 builder.Services.AddJsonFileIdentityStore("identities.json");
+builder.Services.AddJsonFileClientStore("clients.json");
 
 var app = builder.Build();
 app.UseIdentityServerCors(); // required for browser-based frontends calling /auth/login
 app.MapIdentityEndpoints();
 app.Run();
+```
+
+Add a `clients.json` file to define the registered Relying Parties (client applications):
+
+```json
+[
+  {
+    "clientId": "myapp-api-dev",
+    "tokenEndpointAuthMethod": "none",
+    "allowedGrantTypes": [ "password" ],
+    "allowedRedirectUris": [],
+    "allowedPostLogoutRedirectUris": [],
+    "allowedScopes": [ "openid", "profile", "email" ],
+    "requirePkce": false
+  }
+]
 ```
 
 Add an `identities.json` file to the project, set it to copy to the output directory, and define at least one user:
@@ -111,6 +128,7 @@ Both packages share a common `CoreDesign:Identity` section. When multiple projec
 {
   "IdentityApi": {
     "BaseUrl": "https://localhost:5003",
+    "ClientId": "myapp-api-dev",
     "Username": "admin@example.local",
     "Password": "Password1!"
   },
@@ -133,10 +151,10 @@ The server package registers five endpoints:
 |---|---|---|
 | `/.well-known/openid-configuration` | GET | OIDC discovery document |
 | `/.well-known/jwks.json` | GET | RSA public signing key in JWKS format |
-| `/connect/token` | POST | Issues tokens via the OAuth 2.0 password grant (form-encoded) |
+| `/connect/token` | POST | Issues tokens via the OAuth 2.0 password grant (form-encoded). Requires a registered `client_id`. |
 | `/connect/userinfo` | GET | Returns claims for a valid Bearer token |
-| `/get-token` | POST | Convenience JSON endpoint for tooling (Postman, Scalar, curl) |
-| `/auth/login` | POST | Frontend login endpoint — accepts JSON credentials, returns a token |
+| `/get-token` | POST | Convenience JSON endpoint for tooling (Postman, Scalar, curl). No `client_id` required. |
+| `/auth/login` | POST | Frontend login endpoint — accepts JSON credentials, returns a token. No `client_id` required. |
 
 ## Frontend Login Flow
 

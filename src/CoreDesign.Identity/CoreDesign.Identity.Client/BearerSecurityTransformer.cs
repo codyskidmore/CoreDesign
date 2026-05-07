@@ -18,12 +18,16 @@ public sealed class BearerSecurityTransformer : IOpenApiDocumentTransformer
             BearerFormat = "JWT"
         };
 
-        var endpointDataSource = context.ApplicationServices.GetRequiredService<EndpointDataSource>();
-        var anonymousPaths = endpointDataSource.Endpoints
-            .OfType<RouteEndpoint>()
-            .Where(e => e.Metadata.GetMetadata<IAllowAnonymous>() is not null)
-            .Select(e => "/" + (e.RoutePattern.RawText ?? "").TrimStart('/'))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        HashSet<string> anonymousPaths = [];
+        if (context is not null)
+        {
+            var endpointDataSource = context.ApplicationServices.GetRequiredService<EndpointDataSource>();
+            anonymousPaths = endpointDataSource.Endpoints
+                .OfType<RouteEndpoint>()
+                .Where(e => e.Metadata.GetMetadata<IAllowAnonymous>() is not null)
+                .Select(e => "/" + (e.RoutePattern.RawText ?? "").TrimStart('/'))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
 
         var requirement = new OpenApiSecurityRequirement
         {
