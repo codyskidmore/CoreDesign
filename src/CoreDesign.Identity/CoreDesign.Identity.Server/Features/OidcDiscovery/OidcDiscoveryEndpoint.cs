@@ -21,7 +21,7 @@ public static class OidcDiscoveryEndpoint
             SubjectTypesSupported = ["public"],
             IdTokenSigningAlgValuesSupported = ["RS256"],
             ScopesSupported = ["openid", "profile", "email"],
-            TokenEndpointAuthMethodsSupported = ["none"],
+            TokenEndpointAuthMethodsSupported = ["none", "client_secret_post"],
             GrantTypesSupported = ["password"],
             ClaimsSupported = ["sub", "iss", "aud", "exp", "iat", "jti", "email", "preferred_username", "name", "given_name", "family_name", "oid", "roles"]
         });

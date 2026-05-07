@@ -43,6 +43,14 @@ public static class IdentityExtensions
         return services;
     }
 
+    public static IServiceCollection AddJsonFileClientStore(
+        this IServiceCollection services,
+        string filePath)
+    {
+        services.AddSingleton<IClientStore>(new JsonFileClientStore(filePath));
+        return services;
+    }
+
     public static WebApplication UseIdentityServerCors(this WebApplication app)
     {
         app.UseCors(CorsPolicyName);

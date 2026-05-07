@@ -1,0 +1,11 @@
+[
+  {
+    "clientId": "sampleapi-api-dev",
+    "tokenEndpointAuthMethod": "none",
+    "allowedGrantTypes": [ "password" ],
+    "allowedRedirectUris": [],
+    "allowedPostLogoutRedirectUris": [],
+    "allowedScopes": [ "openid", "profile", "email" ],
+    "requirePkce": false
+  }
+]

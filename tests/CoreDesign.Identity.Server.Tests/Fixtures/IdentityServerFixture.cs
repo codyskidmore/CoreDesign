@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using CoreDesign.Identity.Server;
+using CoreDesign.Identity.Server.Clients;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,7 @@ public class IdentityServerFixture : IAsyncLifetime
 
     public HttpClient Client { get; private set; } = null!;
     public Mock<IIdentityStore> IdentityStoreMock { get; } = new();
+    public Mock<IClientStore> ClientStoreMock { get; } = new();
     public IdentityOptions Options { get; } = new()
     {
         Issuer = "https://identity.test",
@@ -37,6 +39,7 @@ public class IdentityServerFixture : IAsyncLifetime
         builder.Services.AddSingleton(RsaKey);
         builder.Services.AddSingleton(SigningCredentials);
         builder.Services.AddSingleton<IIdentityStore>(IdentityStoreMock.Object);
+        builder.Services.AddSingleton<IClientStore>(ClientStoreMock.Object);
 
         _app = builder.Build();
         _app.MapIdentityEndpoints();
