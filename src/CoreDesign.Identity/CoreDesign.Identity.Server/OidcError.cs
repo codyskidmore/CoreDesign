@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace CoreDesign.Identity.Server;
 
 public class OidcError

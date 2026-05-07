@@ -45,13 +45,13 @@ Cross-cutting configuration that applies to the whole application rather than an
 | File | Purpose |
 |------|---------|
 | `App.cs` | Configures the middleware pipeline: HTTPS, CORS, authentication, authorization, output caching, and endpoint mapping. |
-| `Configuration.cs` | Registers services during builder setup: database, identity, authorization policies, CORS, output caching, and telemetry. |
+| `Configuration.cs` | Registers services during builder setup: database, identity, authorization policies, CORS, output caching, and telemetry. Also registers `BearerSecurityTransformer`, which annotates the OpenAPI document with the Bearer security scheme and automatically excludes anonymous endpoints. |
 | `AuthorizationPolicyConfiguration.cs` | Defines role-based authorization policies with environment-specific role mappings (Development, UAT, Production). |
 | `AuthorizationRoles.cs` | Constants for role names and policy names referenced across the application. |
 | `Endpoints.cs` | Top-level endpoint registration. Delegates to each feature module's endpoint mapper. |
 | `Cache.cs` | Output cache policy configuration and the `CacheConfig` enum used for tag-based cache invalidation. |
 | `Identity.cs` | Extension method on `HttpContext` that extracts the authenticated user's ID from the `oid` claim. |
-| `Scalar.cs` | Registers the Scalar OpenAPI UI, available in development only. |
+| `Scalar.cs` | Registers the OpenAPI and Scalar UI routes in development only. Both routes are marked `AllowAnonymous()` so they are excluded from the Bearer security requirement in the OpenAPI document and accessible without a token. |
 | `Serilog.cs` | Configures Serilog enrichment and the Application Insights sink. |
 
 ## Feature Modules

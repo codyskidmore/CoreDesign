@@ -1,9 +1,9 @@
-using Microsoft.IdentityModel.Tokens;
-
 namespace CoreDesign.Identity.Server.Features.Token;
 
 public static class TokenEndpoint
 {
+    private static readonly string[] ServerSupportedGrants = ["password"];
+
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapPost("/connect/token", Handle)
            .WithName("Token")
@@ -13,6 +13,7 @@ public static class TokenEndpoint
         HttpContext ctx,
         SigningCredentials creds,
         IIdentityStore identityStore,
+        IClientStore clientStore,
         IdentityOptions options)
     {
         if (!ctx.Request.HasFormContentType)
@@ -20,9 +21,22 @@ public static class TokenEndpoint
 
         var form = await ctx.Request.ReadFormAsync();
         var grantType = form["grant_type"].ToString();
+        var clientId = form["client_id"].ToString();
 
-        if (grantType != "password")
+        if (string.IsNullOrEmpty(clientId))
+            return Results.Json(new OidcError("invalid_client", "client_id is required"),
+                statusCode: StatusCodes.Status401Unauthorized);
+
+        var client = await clientStore.FindByClientIdAsync(clientId);
+        if (client is null)
+            return Results.Json(new OidcError("invalid_client", "Unknown client_id"),
+                statusCode: StatusCodes.Status401Unauthorized);
+
+        if (!ServerSupportedGrants.Contains(grantType))
             return Results.BadRequest(new OidcError("unsupported_grant_type", $"Grant type '{grantType}' is not supported"));
+
+        if (!client.AllowedGrantTypes.Contains(grantType))
+            return Results.BadRequest(new OidcError("unauthorized_client", $"Client is not authorized for grant type '{grantType}'"));
 
         var username = form["username"].ToString();
         var password = form["password"].ToString();

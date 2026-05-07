@@ -1,21 +1,22 @@
-namespace CoreDesign.Identity.Server.Features.GetToken;
+namespace CoreDesign.Identity.Server.Features.AuthLogin;
 
-public static class GetTokenEndpoint
+public static class AuthLoginEndpoint
 {
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapPost("/get-token", Handle)
-           .WithName("GetToken")
-           .WithTags("OIDC");
+        app.MapPost("/auth/login", Handle)
+           .WithName("AuthLogin")
+           .WithTags("Auth")
+           .AllowAnonymous();
 
     private static async Task<IResult> Handle(
-        TokenGenerationRequest request,
+        AuthLoginRequest request,
         IIdentityStore identityStore,
         SigningCredentials creds,
         IdentityOptions options)
     {
         var identity = await identityStore.FindByCredentialsAsync(request.Username, request.Password);
         if (identity is null)
-            return Results.BadRequest(new OidcError("invalid_grant", "Invalid username or password"));
+            return Results.Problem("Invalid username or password", statusCode: StatusCodes.Status401Unauthorized);
 
         var jwt = TokenBuilder.Build(identity, creds, options);
         return Results.Ok(new TokenResponse
@@ -29,4 +30,4 @@ public static class GetTokenEndpoint
     }
 }
 
-public record TokenGenerationRequest(string Username, string Password);
+public record AuthLoginRequest(string Username, string Password);

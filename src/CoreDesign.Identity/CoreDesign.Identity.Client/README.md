@@ -9,7 +9,7 @@ An ASP.NET Core library for APIs that need to validate tokens issued by `CoreDes
 | `IdentityClientExtensions.AddIdentityClient` | Registers JWT Bearer auth and the `IdentityApiClient` HTTP client |
 | `IdentityClientExtensions.UseLocalBearerTokenInjection` | Mounts the bearer token injection middleware (development only) |
 | `IdentityApiClient` | Fetches and caches access tokens from the identity server |
-| `BearerSecurityTransformer` | OpenAPI transformer that adds a Bearer security scheme to all operations |
+| `BearerSecurityTransformer` | OpenAPI transformer that adds a Bearer security scheme to authenticated operations |
 
 ## Setup
 
@@ -74,7 +74,7 @@ Two configuration sections are required.
 
 ### 4. Add the OpenAPI security transformer (optional)
 
-Register `BearerSecurityTransformer` with the OpenAPI document to annotate all endpoints with the Bearer security requirement. This enables the Authorize button in Scalar and Swagger UI:
+Register `BearerSecurityTransformer` with the OpenAPI document to annotate authenticated endpoints with the Bearer security requirement and enable the Authorize button in Scalar and Swagger UI. Anonymous endpoints are excluded automatically:
 
 ```csharp
 builder.Services.AddOpenApi(options =>

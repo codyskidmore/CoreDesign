@@ -12,6 +12,7 @@ builder.Services.AddCors(opts =>
 
 builder.Services.AddIdentityServer(builder.Configuration);
 builder.Services.AddJsonFileIdentityStore("identities.json");
+builder.Services.AddJsonFileClientStore("clients.json");
 
 var app = builder.Build();
 

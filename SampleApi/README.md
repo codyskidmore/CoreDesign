@@ -111,20 +111,22 @@ This solution is a working example of how to integrate the CoreDesign library su
 
 **Used in**: SampleApi.Identity.Api
 
-Provides a ready-made identity server that issues JWTs for development. Registration requires two calls in `Program.cs`:
+Provides a ready-made identity server that issues JWTs for development. Registration requires three calls in `Program.cs`:
 
 ```csharp
 builder.Services.AddIdentityServer(builder.Configuration);
 builder.Services.AddJsonFileIdentityStore("identities.json");
+builder.Services.AddJsonFileClientStore("clients.json");
 ```
 
-Then map the endpoints:
+Then enable CORS and map the endpoints:
 
 ```csharp
+app.UseIdentityServerCors();
 app.MapIdentityEndpoints();
 ```
 
-The `identities.json` file in the project root defines users with their passwords, email addresses, and role claims. This replaces the need for a full identity provider during local development.
+The `identities.json` file in the project root defines users with their passwords, email addresses, and role claims. The `clients.json` file defines the registered client applications (Relying Parties) that are allowed to request tokens. The `/connect/token` endpoint requires a valid `client_id` that matches a registered client. Both files replace the need for a full identity provider during local development.
 
 Configuration lives under `CoreDesign:Identity` in `appsettings.Development.json`:
 
@@ -133,7 +135,7 @@ Configuration lives under `CoreDesign:Identity` in `appsettings.Development.json
   "Identity": {
     "Issuer": "https://identity.sampleapi.local",
     "Audience": "https://api.sampleapi.local",
-    "TokenLifetime": "08:00:00"
+    "TokenLifetimeHours": 8
   }
 }
 ```
@@ -161,7 +163,20 @@ app.UseAuthentication();
 app.UseAuthorization();
 ```
 
-The identity API base URL and default credentials are read from `appsettings.Development.json` under `IdentityApi`.
+The identity API base URL, client ID, and default credentials are read from `appsettings.Development.json` under `IdentityApi`:
+
+```json
+"IdentityApi": {
+  "BaseUrl": "https://localhost:5003",
+  "ClientId": "sampleapi-api-dev",
+  "Username": "admin@sampleapi.local",
+  "Password": "Password1!"
+}
+```
+
+`ClientId` must match an entry in the identity server's `clients.json`.
+
+`BearerSecurityTransformer` is registered in `Configuration.cs` to annotate the OpenAPI document with the Bearer security scheme. It automatically excludes any endpoint marked `AllowAnonymous()` — the OpenAPI and Scalar routes in `Scalar.cs` are marked that way, so they appear without a lock icon in Scalar while all protected endpoints show the Authorize button correctly.
 
 ### CoreDesign.Data
 
@@ -242,6 +257,20 @@ services.AddWithLogging<IWeatherForecastService, WeatherForecastService>();
 ```
 
 The DI container resolves the interface as the middleware-wrapped version. The concrete service class remains a plain implementation with no logging code. Every operation gets a consistent, structured log record automatically without scattering log calls across the codebase.
+
+Two attributes on the interface give fine-grained control when needed:
+
+| Attribute | Target | Effect |
+|---|---|---|
+| `[Redact]` | Parameter | Logs `[REDACTED]` in place of the actual value |
+| `[Suppress]` | Method | Suppresses all log output for that method |
+
+```csharp
+Task<LoginResult> LoginAsync(string username, [Redact] string password);
+
+[Suppress]
+Task<string> IssueTokenAsync(string userId);
+```
 
 ---
 
