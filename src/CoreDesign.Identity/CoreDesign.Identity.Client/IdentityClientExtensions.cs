@@ -22,8 +22,12 @@ public static class IdentityClientExtensions
         services.AddSingleton<IdentityApiClient>();
 
         var identityBaseUrl = configuration["IdentityApi:BaseUrl"]!;
-        var jwtIssuer = configuration["CoreDesign:Identity:Issuer"]!;
-        var jwtAudience = configuration["CoreDesign:Identity:Audience"]!;
+        var jwtIssuer = configuration["CoreDesign:IdentityWebHost:Issuer"]
+                        ?? configuration["CoreDesign:Identity:Issuer"]
+                        ?? throw new InvalidOperationException("Identity issuer configuration is missing. Set CoreDesign:IdentityWebHost:Issuer.");
+        var jwtAudience = configuration["CoreDesign:IdentityWebHost:Audience"]
+                          ?? configuration["CoreDesign:Identity:Audience"]
+                          ?? throw new InvalidOperationException("Identity audience configuration is missing. Set CoreDesign:IdentityWebHost:Audience.");
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>

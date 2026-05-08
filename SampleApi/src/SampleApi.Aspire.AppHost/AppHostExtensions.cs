@@ -24,24 +24,20 @@ internal static class AppHostExtensions
         return dbServer.AddDatabase(dbOptions.DatabaseName);
     }
 
-    internal static IDistributedApplicationBuilder AddIdentityApi(
+    internal static IResourceBuilder<ProjectResource> AddIdentityWeb(
         this IDistributedApplicationBuilder builder)
     {
-        builder.AddProject<SampleApi_Identity_Api>("SampleApiIdentityApi")
-            .WithUrlForEndpoint("https", u => u.DisplayText = "SampleApi Identity (Dev)");
-
-        return builder;
+        return builder.AddProject<SampleApi_Identity_Web>("SampleApiIdentityApi")
+            .WithUrlForEndpoint("https", u => u.DisplayText = "SampleApi Identity Web (Dev)");
     }
 
-    internal static IDistributedApplicationBuilder AddSampleApi(
+    internal static IResourceBuilder<ProjectResource> AddSampleApi(
         this IDistributedApplicationBuilder builder,
         IResourceBuilder<SqlServerDatabaseResource> database)
     {
-        builder.AddProject<SampleApi_Api>("SampleApiApi")
+        return builder.AddProject<SampleApi_Api>("SampleApiApi")
             .WithUrlForEndpoint("https", u => u.DisplayText = "SampleApi API")
             .WithReference(database);
-
-        return builder;
     }
 
     internal static IDistributedApplicationBuilder AddMigrationService(
@@ -50,6 +46,21 @@ internal static class AppHostExtensions
     {
         builder.AddProject<SampleApi_Data_MigrationService>("SampleApiMigrations")
             .WithReference(database);
+
+        return builder;
+    }
+
+    internal static IDistributedApplicationBuilder AddSampleBlazor(
+        this IDistributedApplicationBuilder builder,
+        IResourceBuilder<ProjectResource> identityApi,
+        IResourceBuilder<ProjectResource> sampleApi)
+    {
+        builder.AddProject<Sample_Blazor>("SampleApiBlazor")
+            .WithUrlForEndpoint("https", u => u.DisplayText = "Sample Blazor UI")
+            .WithReference(identityApi)
+            .WithReference(sampleApi)
+            .WaitFor(identityApi)
+            .WaitFor(sampleApi);
 
         return builder;
     }

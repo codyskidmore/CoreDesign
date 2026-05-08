@@ -1,0 +1,14 @@
+[
+  {
+    "userId": "11111111-1111-1111-1111-111111111111",
+    "username": "admin@sampleapi.local",
+    "password": "Password1!",
+    "email": "admin@sampleapi.local",
+    "name": "Admin User",
+    "givenName": "Admin",
+    "familyName": "User",
+    "roles": [ "Admin", "AppUser" ],
+    "customClaims": {}
+  }
+]
+

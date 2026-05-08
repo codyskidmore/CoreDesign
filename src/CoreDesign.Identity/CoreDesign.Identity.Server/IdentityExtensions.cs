@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using CoreDesign.Identity.Server.Features.Authorize;
 using CoreDesign.Identity.Server.Features.AuthLogin;
 using CoreDesign.Identity.Server.Features.GetToken;
 using CoreDesign.Identity.Server.Features.Jwks;
@@ -61,6 +62,7 @@ public static class IdentityExtensions
     {
         OidcDiscoveryEndpoint.Map(app);
         JwksEndpoint.Map(app);
+        AuthorizeEndpoint.Map(app);
         TokenEndpoint.Map(app);
         UserInfoEndpoint.Map(app);
         GetTokenEndpoint.Map(app);

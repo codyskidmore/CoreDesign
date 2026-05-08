@@ -8,8 +8,10 @@ builder.AddAppSettings();
 
 var database = builder.AddSqlDatabase();
 
-builder.AddIdentityApi();
-builder.AddSampleApi(database);
+var identityApi = builder.AddIdentityWeb();
+var sampleApi   = builder.AddSampleApi(database);
+
 builder.AddMigrationService(database);
+builder.AddSampleBlazor(identityApi, sampleApi);
 
 builder.Build().Run();

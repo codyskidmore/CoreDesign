@@ -18,7 +18,8 @@
     <ItemGroup>
         <ProjectReference Include="..\SampleApi.Data.MigrationService\SampleApi.Data.MigrationService.csproj" />
         <ProjectReference Include="..\SampleApi.Api\SampleApi.Api.csproj" />
-        <ProjectReference Include="..\SampleApi.Identity.Api\SampleApi.Identity.Api.csproj" />
+        <ProjectReference Include="..\SampleApi.Identity.Web\SampleApi.Identity.Web.csproj" />
+        <ProjectReference Include="..\Sample.Blazor\Sample.Blazor.csproj" />
     </ItemGroup>
 
     <ItemGroup>

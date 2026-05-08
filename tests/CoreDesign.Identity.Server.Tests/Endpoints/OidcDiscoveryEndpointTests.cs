@@ -58,7 +58,30 @@ public class OidcDiscoveryEndpointTests : IClassFixture<IdentityServerFixture>
             .EnumerateArray().Select(e => e.GetString()).ToArray();
 
         Assert.Contains("code", types);
-        Assert.Contains("token", types);
+        Assert.DoesNotContain("token", types);
+    }
+
+    [Fact]
+    public async Task GetOidcDiscovery_ReturnsSupportedGrantTypes()
+    {
+        var response = await _fixture.Client.GetAsync("/.well-known/openid-configuration");
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var grantTypes = json.GetProperty("grant_types_supported")
+            .EnumerateArray().Select(e => e.GetString()).ToArray();
+
+        Assert.Contains("authorization_code", grantTypes);
+        Assert.Contains("password", grantTypes);
+    }
+
+    [Fact]
+    public async Task GetOidcDiscovery_ReturnsPkceChallengeMethods()
+    {
+        var response = await _fixture.Client.GetAsync("/.well-known/openid-configuration");
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var methods = json.GetProperty("code_challenge_methods_supported")
+            .EnumerateArray().Select(e => e.GetString()).ToArray();
+
+        Assert.Contains("S256", methods);
     }
 
     [Fact]

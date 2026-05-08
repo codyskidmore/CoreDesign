@@ -1,0 +1,25 @@
+@inject IAuthProviderConfigurator AuthProvider
+
+<nav class="navbar navbar-dark flex-column align-items-start px-2 py-3">
+    <a class="navbar-brand mb-3 fs-6 fw-semibold" href="/">
+        Sample Blazor
+    </a>
+    <ul class="navbar-nav w-100">
+        <li class="nav-item">
+            <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+                <span aria-hidden="true">Home</span>
+            </NavLink>
+        </li>
+        <li class="nav-item">
+            <NavLink class="nav-link" href="/weather">
+                <span aria-hidden="true">Weather Forecasts</span>
+            </NavLink>
+        </li>
+    </ul>
+
+    <div class="mt-auto pt-3 border-top border-secondary w-100">
+        <small class="text-secondary d-block">Auth provider:</small>
+        <small class="text-white">@AuthProvider.ProviderName</small>
+    </div>
+</nav>
+
