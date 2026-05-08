@@ -1,0 +1,5 @@
+{
+  "appHost": {
+    "path": "SampleApi.Aspire.AppHost/SampleApi.Aspire.AppHost.csproj"
+  }
+}
