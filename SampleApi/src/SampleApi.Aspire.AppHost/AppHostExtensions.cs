@@ -28,6 +28,10 @@ internal static class AppHostExtensions
         this IDistributedApplicationBuilder builder)
     {
         return builder.AddProject<SampleApi_Identity_Web>("SampleApiIdentityApi")
+            // Pin to port 5003 so the issuer in appsettings.Development.json
+            // ("https://localhost:5003") always matches the Aspire service URL
+            // injected into the Blazor app via service discovery.
+            .WithHttpsEndpoint(port: 5003, name: "https", isProxied: false)
             .WithUrlForEndpoint("https", u => u.DisplayText = "SampleApi Identity Web (Dev)");
     }
 
@@ -56,6 +60,9 @@ internal static class AppHostExtensions
         IResourceBuilder<ProjectResource> sampleApi)
     {
         builder.AddProject<Sample_Blazor>("SampleApiBlazor")
+            // Pin to port 7070 so redirect URIs registered in Identity.Web's
+            // clients.json ("https://localhost:7070/...") always match.
+            .WithHttpsEndpoint(port: 7070, name: "https", isProxied: false)
             .WithUrlForEndpoint("https", u => u.DisplayText = "Sample Blazor UI")
             .WithReference(identityApi)
             .WithReference(sampleApi)

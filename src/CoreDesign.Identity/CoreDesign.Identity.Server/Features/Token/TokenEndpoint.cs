@@ -46,7 +46,7 @@ public static class TokenEndpoint
 
         return grantType switch
         {
-            "password" => await HandlePasswordGrant(form, identityStore, creds, options),
+            "password" => await HandlePasswordGrant(form, identityStore, creds, options, client.ClientId),
             "authorization_code" => await HandleAuthorizationCodeGrant(form, client, identityStore, creds, options),
             _ => Results.BadRequest(new OidcError("unsupported_grant_type", $"Grant type '{grantType}' is not supported"))
         };
@@ -56,7 +56,8 @@ public static class TokenEndpoint
         IFormCollection form,
         IIdentityStore identityStore,
         SigningCredentials creds,
-        IdentityOptions options)
+        IdentityOptions options,
+        string clientId)
     {
         var username = form["username"].ToString();
         var password = form["password"].ToString();
@@ -68,7 +69,7 @@ public static class TokenEndpoint
         if (identity is null)
             return Results.BadRequest(new OidcError("invalid_grant", "Invalid username or password"));
 
-        return BuildTokenResponse(identity, creds, options);
+        return BuildTokenResponse(identity, creds, options, clientId);
     }
 
     private static async Task<IResult> HandleAuthorizationCodeGrant(
@@ -105,16 +106,17 @@ public static class TokenEndpoint
         if (identity is null)
             return Results.BadRequest(new OidcError("invalid_grant", "User no longer exists"));
 
-        return BuildTokenResponse(identity, creds, options);
+        return BuildTokenResponse(identity, creds, options, client.ClientId, ticket.Nonce);
     }
 
-    private static IResult BuildTokenResponse(IdentityRecord identity, SigningCredentials creds, IdentityOptions options)
+    private static IResult BuildTokenResponse(IdentityRecord identity, SigningCredentials creds, IdentityOptions options, string clientId, string? nonce = null)
     {
-        var jwt = TokenBuilder.Build(identity, creds, options);
+        var accessToken = TokenBuilder.Build(identity, creds, options);
+        var idToken = TokenBuilder.Build(identity, creds, options, clientId, nonce);
         return Results.Ok(new TokenResponse
         {
-            AccessToken = jwt,
-            IdToken = jwt,
+            AccessToken = accessToken,
+            IdToken = idToken,
             TokenType = "Bearer",
             ExpiresIn = options.TokenLifetimeHours * 3600,
             Scope = "openid profile email"

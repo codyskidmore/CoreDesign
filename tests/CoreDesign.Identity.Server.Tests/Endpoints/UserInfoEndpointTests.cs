@@ -121,4 +121,56 @@ public class UserInfoEndpointTests : IClassFixture<IdentityServerFixture>
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [Fact]
+    public async Task GetUserInfo_WithTokenForWrongAudience_ReturnsUnauthorized()
+    {
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+        var descriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(claims),
+            Expires = DateTime.UtcNow.AddHours(1),
+            Issuer = _fixture.Options.Issuer,
+            Audience = "some-other-client-id",
+            SigningCredentials = _fixture.SigningCredentials
+        };
+        var handler = new JwtSecurityTokenHandler();
+        var token = handler.WriteToken(handler.CreateToken(descriptor));
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/connect/userinfo");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        var response = await _fixture.Client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetUserInfo_WithTokenFromWrongIssuer_ReturnsUnauthorized()
+    {
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+        var descriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(claims),
+            Expires = DateTime.UtcNow.AddHours(1),
+            Issuer = "https://rogue-identity-server.example",
+            Audience = _fixture.Options.Audience,
+            SigningCredentials = _fixture.SigningCredentials
+        };
+        var handler = new JwtSecurityTokenHandler();
+        var token = handler.WriteToken(handler.CreateToken(descriptor));
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/connect/userinfo");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        var response = await _fixture.Client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
 }

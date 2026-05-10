@@ -11,8 +11,11 @@ public static class UserInfoEndpoint
         HttpContext ctx,
         RsaSecurityKey rsaKey,
         IdentityOptions options,
-        IIdentityStore identityStore)
+        IIdentityStore identityStore,
+        ILoggerFactory loggerFactory)
     {
+        var logger = loggerFactory.CreateLogger("CoreDesign.Identity.Server.UserInfo");
+
         var auth = ctx.Request.Headers.Authorization.ToString();
         if (!auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             return Results.Unauthorized();
@@ -49,8 +52,10 @@ public static class UserInfoEndpoint
                 Roles = identity.Roles
             });
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogWarning(ex, "Bearer token validation failed for userinfo request from {RemoteIp}",
+                ctx.Connection.RemoteIpAddress);
             return Results.Unauthorized();
         }
     }

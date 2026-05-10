@@ -2,7 +2,7 @@ namespace CoreDesign.Identity.Server;
 
 internal static class TokenBuilder
 {
-    internal static string Build(IdentityRecord identity, SigningCredentials creds, IdentityOptions options)
+    internal static string Build(IdentityRecord identity, SigningCredentials creds, IdentityOptions options, string? audience = null, string? nonce = null)
     {
         var now = DateTime.UtcNow;
         var claims = new List<Claim>
@@ -18,6 +18,9 @@ internal static class TokenBuilder
             new("oid", identity.UserId)
         };
 
+        if (!string.IsNullOrEmpty(nonce))
+            claims.Add(new Claim(JwtRegisteredClaimNames.Nonce, nonce));
+
         foreach (var role in identity.Roles)
             claims.Add(new Claim("roles", role));
 
@@ -29,7 +32,7 @@ internal static class TokenBuilder
             Subject = new ClaimsIdentity(claims),
             Expires = now.AddHours(options.TokenLifetimeHours),
             Issuer = options.Issuer,
-            Audience = options.Audience,
+            Audience = audience ?? options.Audience,
             SigningCredentials = creds
         };
 

@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
@@ -82,10 +83,11 @@ public class TokenEndpointTests : IClassFixture<IdentityServerFixture>
         return (verifier, challenge);
     }
 
-    private async Task<string> CreateAuthorizationCodeAsync(IdentityRecord user, string redirectUri, string codeChallenge)
+    private async Task<string> CreateAuthorizationCodeAsync(IdentityRecord user, string redirectUri, string codeChallenge, string? nonce = null)
     {
+        var nonceParam = nonce is not null ? $"&nonce={Uri.EscapeDataString(nonce)}" : string.Empty;
         var response = await _fixture.Client.GetAsync(
-            $"/connect/authorize?response_type=code&client_id={TestClientId}&redirect_uri={Uri.EscapeDataString(redirectUri)}&scope=openid%20profile%20email&state=test-state&code_challenge={codeChallenge}&code_challenge_method=S256&username={Uri.EscapeDataString(user.Username)}&password={Uri.EscapeDataString(user.Password)}");
+            $"/connect/authorize?response_type=code&client_id={TestClientId}&redirect_uri={Uri.EscapeDataString(redirectUri)}&scope=openid%20profile%20email&state=test-state&code_challenge={codeChallenge}&code_challenge_method=S256&username={Uri.EscapeDataString(user.Username)}&password={Uri.EscapeDataString(user.Password)}{nonceParam}");
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         var location = response.Headers.Location;
@@ -294,5 +296,155 @@ public class TokenEndpointTests : IClassFixture<IdentityServerFixture>
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("invalid_grant", json.GetProperty("error").GetString());
+    }
+
+    // --- Token audience verification ---
+
+    [Fact]
+    public async Task PostToken_AuthorizationCodeGrant_AccessTokenAudienceIsApiResource()
+    {
+        var redirectUri = "https://localhost:7070/signin-oidc";
+        SetupAuthorizationCodeClient(redirectUri);
+
+        var user = IdentityFakers.IdentityRecord().Generate();
+        _fixture.IdentityStoreMock
+            .Setup(s => s.FindByCredentialsAsync(user.Username, user.Password))
+            .ReturnsAsync(user);
+        _fixture.IdentityStoreMock
+            .Setup(s => s.FindByIdAsync(user.UserId))
+            .ReturnsAsync(user);
+
+        var (verifier, challenge) = BuildPkce();
+        var code = await CreateAuthorizationCodeAsync(user, redirectUri, challenge);
+
+        var response = await _fixture.Client.PostAsync(
+            "/connect/token",
+            AuthorizationCodeGrantForm(code, redirectUri, verifier));
+
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var accessToken = json.GetProperty("access_token").GetString()!;
+
+        var handler = new JwtSecurityTokenHandler();
+        var parsed = handler.ReadJwtToken(accessToken);
+
+        Assert.Contains(_fixture.Options.Audience, parsed.Audiences);
+    }
+
+    [Fact]
+    public async Task PostToken_AuthorizationCodeGrant_IdTokenAudienceIsClientId()
+    {
+        var redirectUri = "https://localhost:7070/signin-oidc";
+        SetupAuthorizationCodeClient(redirectUri);
+
+        var user = IdentityFakers.IdentityRecord().Generate();
+        _fixture.IdentityStoreMock
+            .Setup(s => s.FindByCredentialsAsync(user.Username, user.Password))
+            .ReturnsAsync(user);
+        _fixture.IdentityStoreMock
+            .Setup(s => s.FindByIdAsync(user.UserId))
+            .ReturnsAsync(user);
+
+        var (verifier, challenge) = BuildPkce();
+        var code = await CreateAuthorizationCodeAsync(user, redirectUri, challenge);
+
+        var response = await _fixture.Client.PostAsync(
+            "/connect/token",
+            AuthorizationCodeGrantForm(code, redirectUri, verifier));
+
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var idToken = json.GetProperty("id_token").GetString()!;
+
+        var handler = new JwtSecurityTokenHandler();
+        var parsed = handler.ReadJwtToken(idToken);
+
+        Assert.Contains(TestClientId, parsed.Audiences);
+    }
+
+    [Fact]
+    public async Task PostToken_AuthorizationCodeGrant_IdTokenContainsNonceFromAuthorizeRequest()
+    {
+        var redirectUri = "https://localhost:7070/signin-oidc";
+        SetupAuthorizationCodeClient(redirectUri);
+
+        var user = IdentityFakers.IdentityRecord().Generate();
+        _fixture.IdentityStoreMock
+            .Setup(s => s.FindByCredentialsAsync(user.Username, user.Password))
+            .ReturnsAsync(user);
+        _fixture.IdentityStoreMock
+            .Setup(s => s.FindByIdAsync(user.UserId))
+            .ReturnsAsync(user);
+
+        var (verifier, challenge) = BuildPkce();
+        var expectedNonce = Guid.NewGuid().ToString("N");
+        var code = await CreateAuthorizationCodeAsync(user, redirectUri, challenge, nonce: expectedNonce);
+
+        var response = await _fixture.Client.PostAsync(
+            "/connect/token",
+            AuthorizationCodeGrantForm(code, redirectUri, verifier));
+
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var idToken = new JwtSecurityTokenHandler().ReadJwtToken(json.GetProperty("id_token").GetString()!);
+
+        Assert.Equal(expectedNonce, idToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Nonce)?.Value);
+    }
+
+    [Fact]
+    public async Task PostToken_AuthorizationCodeGrant_AccessTokenDoesNotContainNonce()
+    {
+        var redirectUri = "https://localhost:7070/signin-oidc";
+        SetupAuthorizationCodeClient(redirectUri);
+
+        var user = IdentityFakers.IdentityRecord().Generate();
+        _fixture.IdentityStoreMock
+            .Setup(s => s.FindByCredentialsAsync(user.Username, user.Password))
+            .ReturnsAsync(user);
+        _fixture.IdentityStoreMock
+            .Setup(s => s.FindByIdAsync(user.UserId))
+            .ReturnsAsync(user);
+
+        var (verifier, challenge) = BuildPkce();
+        var code = await CreateAuthorizationCodeAsync(user, redirectUri, challenge, nonce: Guid.NewGuid().ToString("N"));
+
+        var response = await _fixture.Client.PostAsync(
+            "/connect/token",
+            AuthorizationCodeGrantForm(code, redirectUri, verifier));
+
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var accessToken = new JwtSecurityTokenHandler().ReadJwtToken(json.GetProperty("access_token").GetString()!);
+
+        Assert.Null(accessToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Nonce));
+    }
+
+    [Fact]
+    public async Task PostToken_AuthorizationCodeGrant_AccessTokenAndIdTokenHaveDifferentAudiences()
+    {
+        var redirectUri = "https://localhost:7070/signin-oidc";
+        SetupAuthorizationCodeClient(redirectUri);
+
+        var user = IdentityFakers.IdentityRecord().Generate();
+        _fixture.IdentityStoreMock
+            .Setup(s => s.FindByCredentialsAsync(user.Username, user.Password))
+            .ReturnsAsync(user);
+        _fixture.IdentityStoreMock
+            .Setup(s => s.FindByIdAsync(user.UserId))
+            .ReturnsAsync(user);
+
+        var (verifier, challenge) = BuildPkce();
+        var code = await CreateAuthorizationCodeAsync(user, redirectUri, challenge);
+
+        var response = await _fixture.Client.PostAsync(
+            "/connect/token",
+            AuthorizationCodeGrantForm(code, redirectUri, verifier));
+
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var handler = new JwtSecurityTokenHandler();
+
+        var accessToken = handler.ReadJwtToken(json.GetProperty("access_token").GetString()!);
+        var idToken = handler.ReadJwtToken(json.GetProperty("id_token").GetString()!);
+
+        Assert.Contains(_fixture.Options.Audience, accessToken.Audiences);
+        Assert.Contains(TestClientId, idToken.Audiences);
+        Assert.DoesNotContain(TestClientId, accessToken.Audiences);
+        Assert.DoesNotContain(_fixture.Options.Audience, idToken.Audiences);
     }
 }

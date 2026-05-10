@@ -39,7 +39,8 @@ public static class AuthorizeEndpoint
             UserId = identity.UserId,
             Scope = request.Scope,
             CodeChallenge = request.CodeChallenge,
-            CodeChallengeMethod = request.CodeChallengeMethod
+            CodeChallengeMethod = request.CodeChallengeMethod,
+            Nonce = request.Nonce
         });
 
         var redirectUri = BuildRedirect(request.RedirectUri, code, request.State);
@@ -211,6 +212,7 @@ internal sealed class AuthorizationCodeTicket
     public string Scope { get; init; } = string.Empty;
     public string? CodeChallenge { get; init; }
     public string? CodeChallengeMethod { get; init; }
+    public string? Nonce { get; init; }
     public DateTime ExpiresAtUtc { get; set; }
 }
 
