@@ -180,6 +180,8 @@ The source templates in `CoreDesign.Identity.Server/Templates/` are the recommen
 
 Both `login.html` and `login-error.html` support `{{placeholder}}` token substitution. See `src/CoreDesign.Identity/CoreDesign.Identity.Server/README.md` for the full placeholder reference and theming guidance.
 
+For the complete endpoint list, all configuration keys, custom store implementation, and advanced registration options, see [CoreDesign.Identity.Server/README.md](../src/CoreDesign.Identity/CoreDesign.Identity.Server/README.md).
+
 ### CoreDesign.Identity.Client
 
 **Used in**: Sample.Api
@@ -217,6 +219,8 @@ The identity server base URL, client ID, and default credentials are read from `
 `ClientId` must match an entry in the identity server's `clients.json`.
 
 `BearerSecurityTransformer` is registered in `Configuration.cs` to annotate the OpenAPI document with the Bearer security scheme. It automatically excludes any endpoint marked `AllowAnonymous()` so the OpenAPI and Scalar routes appear without a lock icon while all protected endpoints show the Authorize button correctly.
+
+For the full configuration reference, token injection middleware details, and validation parameters, see [CoreDesign.Identity.Client/README.md](../src/CoreDesign.Identity/CoreDesign.Identity.Client/README.md).
 
 ### Sample.Blazor OIDC Authentication
 
@@ -301,6 +305,25 @@ public class WeatherForecastConfig : BaseEntityConfiguration<WeatherForecast>
 }
 ```
 
+**DbContext setup** ties everything together. The `DbContext` inherits from EF Core's `DbContext` and overrides `OnModelCreating` with two lines:
+
+```csharp
+public class SampleDbContext(DbContextOptions<SampleDbContext> options) : DbContext(options)
+{
+    public DbSet<WeatherForecast> WeatherForecasts { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.HasDefaultSchema(nameof(Schemas.Sample));
+
+        // Load all BaseEntityConfiguration<T> implementations from the assembly and apply them.
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(SampleDbContext).Assembly);
+    }
+}
+```
+
+`HasDefaultSchema` scopes all tables to a named database schema (defined in `Data/Schemas.cs` as an enum so the string is never hard-coded). `ApplyConfigurationsFromAssembly` is an EF Core built-in that scans the assembly for every class that implements `IEntityTypeConfiguration<T>` and calls `Configure` on each one. Because `BaseEntityConfiguration<T>` implements that interface, every concrete configuration class in the project is discovered and applied automatically. No manual registration is required when a new entity and its configuration class are added.
+
 **IReadRepository\<TContext, TEntity\>** and **ICudRepository\<TContext, TEntity\>** are registered in the DI container and injected into services:
 
 ```csharp
@@ -311,6 +334,8 @@ services.AddTransient<ICudRepository<SampleDbContext, WeatherForecast>,
 ```
 
 Services then declare their repository dependencies in the constructor and call the async CRUD methods. The repository interfaces are also easy to mock in unit tests using Moq, as shown in `WeatherForecastServiceTests.cs`.
+
+For the full repository API, query options, soft-delete behaviour, and value converter reference, see [CoreDesign.Data/README.md](../src/CoreDesign.Data/README.md).
 
 ## Logging
 
@@ -360,6 +385,8 @@ Task<LoginResult> LoginAsync(string username, [Redact] string password);
 [Suppress]
 Task<string> IssueTokenAsync(string userId);
 ```
+
+For the full attribute reference, lifetime options, and design rationale, see [CoreDesign.Logging/README.md](../src/CoreDesign.Logging/README.md).
 
 ## Project Configuration
 
