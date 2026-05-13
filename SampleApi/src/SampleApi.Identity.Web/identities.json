@@ -7,7 +7,7 @@
     "name": "Admin User",
     "givenName": "Admin",
     "familyName": "User",
-    "roles": [ "Admin", "AppUser" ],
+    "roles": [ "DevAdmin", "DevAppUsers" ],
     "customClaims": {}
   }
 ]
