@@ -449,10 +449,48 @@ The embedded default is a good starting point. Copy it from `CoreDesign.Identity
 | `{{nonce}}` | OIDC `nonce` parameter (HTML-encoded) |
 | `{{code_challenge}}` | PKCE `code_challenge` (HTML-encoded) |
 | `{{code_challenge_method}}` | PKCE `code_challenge_method`, e.g. `S256` (HTML-encoded) |
-| `{{error_message}}` | Error text after a failed login attempt; empty string when no error |
-| `{{error_hidden}}` | Resolves to `hidden` when there is no error, empty string when there is one |
+| `{{error_alert}}` | The fully rendered error banner HTML (see below); empty string when there is no error |
 
 All eight OIDC parameters must appear as hidden `<input>` fields in the form. The form must POST to `/connect/authorize`.
+
+### Overriding the error banner
+
+The error banner shown after a failed login attempt is rendered from its own template, `login-error.html`. This keeps the error markup separate from the login form so each can be customized independently.
+
+When a login attempt fails, the library renders `login-error.html` with the error message substituted, then inserts the resulting HTML into `{{error_alert}}` in `login.html`. When login succeeds or the form is shown for the first time, `{{error_alert}}` is replaced with an empty string and nothing is emitted.
+
+`login-error.html` supports one placeholder:
+
+| Placeholder | Value |
+| --- | --- |
+| `{{error_message}}` | The HTML-encoded error text, e.g. `Invalid username or password` |
+
+To override it:
+
+1. Create `identity-templates/login-error.html` in your host project.
+2. Set it to copy to the output directory:
+
+```xml
+<None Update="identity-templates\login-error.html">
+  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+</None>
+```
+
+The default markup (from `CoreDesign.Identity.Server/Templates/login-error.html`) is:
+
+```html
+<div class="id-error" role="alert">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+       aria-hidden="true">
+    <path fill-rule="evenodd"
+          d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"
+          clip-rule="evenodd"/>
+  </svg>
+  <span>{{error_message}}</span>
+</div>
+```
+
+You can replace this with any markup you like. The `.id-error` CSS class is defined in `login.html`'s stylesheet, so if you rename the class in your custom error template you will also need to add the corresponding style to your custom `login.html`.
 
 ### Overriding the landing page
 
