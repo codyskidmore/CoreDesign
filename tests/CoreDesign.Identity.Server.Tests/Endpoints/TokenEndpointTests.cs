@@ -447,4 +447,108 @@ public class TokenEndpointTests : IClassFixture<IdentityServerFixture>
         Assert.DoesNotContain(TestClientId, accessToken.Audiences);
         Assert.DoesNotContain(_fixture.Options.Audience, idToken.Audiences);
     }
+
+    // --- Authorization code edge cases ---
+
+    [Fact]
+    public async Task PostToken_AuthorizationCodeGrant_WithMismatchedRedirectUri_ReturnsBadRequest()
+    {
+        var redirectUri = "https://localhost:7070/signin-oidc";
+        SetupAuthorizationCodeClient(redirectUri);
+
+        var user = IdentityFakers.IdentityRecord().Generate();
+        _fixture.IdentityStoreMock
+            .Setup(s => s.FindByCredentialsAsync(user.Username, user.Password))
+            .ReturnsAsync(user);
+
+        var (verifier, challenge) = BuildPkce();
+        var code = await CreateAuthorizationCodeAsync(user, redirectUri, challenge);
+
+        var response = await _fixture.Client.PostAsync(
+            "/connect/token",
+            AuthorizationCodeGrantForm(code, "https://localhost:7070/different-callback", verifier));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("invalid_grant", json.GetProperty("error").GetString());
+    }
+
+    [Fact]
+    public async Task PostToken_AuthorizationCodeGrant_WithConsumedCode_ReturnsBadRequest()
+    {
+        var redirectUri = "https://localhost:7070/signin-oidc";
+        SetupAuthorizationCodeClient(redirectUri);
+
+        var user = IdentityFakers.IdentityRecord().Generate();
+        _fixture.IdentityStoreMock
+            .Setup(s => s.FindByCredentialsAsync(user.Username, user.Password))
+            .ReturnsAsync(user);
+        _fixture.IdentityStoreMock
+            .Setup(s => s.FindByIdAsync(user.UserId))
+            .ReturnsAsync(user);
+
+        var (verifier, challenge) = BuildPkce();
+        var code = await CreateAuthorizationCodeAsync(user, redirectUri, challenge);
+
+        var firstResponse = await _fixture.Client.PostAsync(
+            "/connect/token",
+            AuthorizationCodeGrantForm(code, redirectUri, verifier));
+        Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+
+        var secondResponse = await _fixture.Client.PostAsync(
+            "/connect/token",
+            AuthorizationCodeGrantForm(code, redirectUri, verifier));
+
+        Assert.Equal(HttpStatusCode.BadRequest, secondResponse.StatusCode);
+        var json = await secondResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("invalid_grant", json.GetProperty("error").GetString());
+    }
+
+    [Fact]
+    public async Task PostToken_AuthorizationCodeGrant_WithMissingCode_ReturnsBadRequest()
+    {
+        var redirectUri = "https://localhost:7070/signin-oidc";
+        SetupAuthorizationCodeClient(redirectUri);
+
+        var form = new FormUrlEncodedContent([
+            new KeyValuePair<string, string>("grant_type", "authorization_code"),
+            new KeyValuePair<string, string>("client_id", TestClientId),
+            new KeyValuePair<string, string>("redirect_uri", redirectUri),
+            new KeyValuePair<string, string>("code_verifier", "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~abcd")
+        ]);
+
+        var response = await _fixture.Client.PostAsync("/connect/token", form);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("invalid_request", json.GetProperty("error").GetString());
+    }
+
+    [Fact]
+    public async Task PostToken_AuthorizationCodeGrant_WithMissingCodeVerifier_WhenPkceRequired_ReturnsBadRequest()
+    {
+        var redirectUri = "https://localhost:7070/signin-oidc";
+        SetupAuthorizationCodeClient(redirectUri, requirePkce: true);
+
+        var user = IdentityFakers.IdentityRecord().Generate();
+        _fixture.IdentityStoreMock
+            .Setup(s => s.FindByCredentialsAsync(user.Username, user.Password))
+            .ReturnsAsync(user);
+
+        var (_, challenge) = BuildPkce();
+        var code = await CreateAuthorizationCodeAsync(user, redirectUri, challenge);
+
+        var form = new FormUrlEncodedContent([
+            new KeyValuePair<string, string>("grant_type", "authorization_code"),
+            new KeyValuePair<string, string>("client_id", TestClientId),
+            new KeyValuePair<string, string>("code", code),
+            new KeyValuePair<string, string>("redirect_uri", redirectUri)
+        ]);
+
+        var response = await _fixture.Client.PostAsync("/connect/token", form);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("invalid_grant", json.GetProperty("error").GetString());
+    }
 }

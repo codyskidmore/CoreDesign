@@ -1,6 +1,8 @@
 # CoreDesign.Identity.Client
 
-An ASP.NET Core library for APIs that need to validate tokens issued by `CoreDesign.Identity.Server`. It configures JWT Bearer authentication, provides a development-only middleware that auto-injects bearer tokens on local requests, and includes an OpenAPI document transformer that advertises the Bearer security scheme.
+An ASP.NET Core library for **API servers** that need to validate tokens issued by `CoreDesign.Identity.Server`. It configures JWT Bearer authentication, provides a development-only middleware that auto-injects bearer tokens on local requests, and includes an OpenAPI document transformer that advertises the Bearer security scheme.
+
+For Blazor or other browser-based apps, use the OIDC middleware directly (see the server library's README, "Blazor app integration").
 
 ## What it provides
 
@@ -51,13 +53,13 @@ Two configuration sections are required.
 }
 ```
 
-**`CoreDesign:Identity`** provides the issuer and audience used to validate incoming JWTs. These must match the values configured in `CoreDesign.Identity.Server`:
+**`CoreDesign:Identity`** (or `CoreDesign:IdentityWebHost`) provides the issuer and audience used to validate incoming JWTs. These must match the values configured in `CoreDesign.Identity.Server`. The client reads from both section names, with `CoreDesign:IdentityWebHost` taking precedence when present:
 
 ```json
 {
   "CoreDesign": {
-    "Identity": {
-      "Issuer": "https://identity.example.local",
+    "IdentityWebHost": {
+      "Issuer": "https://localhost:5003",
       "Audience": "https://api.example.local"
     }
   }
@@ -69,8 +71,8 @@ Two configuration sections are required.
 | `IdentityApi:BaseUrl` | Base URL of the running identity server |
 | `IdentityApi:Username` | Credential used by the token injection middleware to obtain a token |
 | `IdentityApi:Password` | Credential used by the token injection middleware to obtain a token |
-| `CoreDesign:Identity:Issuer` | Expected `iss` claim on incoming tokens |
-| `CoreDesign:Identity:Audience` | Expected `aud` claim on incoming tokens |
+| `CoreDesign:IdentityWebHost:Issuer` (or `CoreDesign:Identity:Issuer`) | Expected `iss` claim on incoming tokens |
+| `CoreDesign:IdentityWebHost:Audience` (or `CoreDesign:Identity:Audience`) | Expected `aud` claim on incoming tokens |
 
 ### 4. Add the OpenAPI security transformer (optional)
 
@@ -100,8 +102,8 @@ JWT Bearer validation is configured with the following parameters:
 
 | Parameter | Value |
 | --- | --- |
-| Issuer validation | Enabled, matched against `CoreDesign:Identity:Issuer` |
-| Audience validation | Enabled, matched against `CoreDesign:Identity:Audience` |
+| Issuer validation | Enabled, matched against the configured issuer |
+| Audience validation | Enabled, matched against the configured audience |
 | Lifetime validation | Enabled |
 | Signing key discovery | Automatic via `/.well-known/openid-configuration` on the identity server |
 | Role claim type | `roles` |

@@ -20,21 +20,43 @@ public class AuthorizeEndpointTests : IClassFixture<IdentityServerFixture>
         _fixture.ClientStoreMock.Reset();
     }
 
+    // --- Login page rendering ---
+
     [Fact]
     public async Task GetAuthorize_WithoutCredentials_ReturnsLoginPage()
     {
         SetupAuthCodeClient();
         var (_, challenge) = BuildPkce();
 
-        var response = await _fixture.Client.GetAsync($"/connect/authorize?response_type=code&client_id=sample-blazor&redirect_uri={Uri.EscapeDataString("https://localhost:7070/signin-oidc")}&scope=openid%20profile%20email&state=abc&code_challenge={challenge}&code_challenge_method=S256");
+        var response = await _fixture.Client.GetAsync(
+            $"/connect/authorize?response_type=code&client_id=sample-blazor&redirect_uri={Uri.EscapeDataString("https://localhost:7070/signin-oidc")}&scope=openid%20profile%20email&state=abc&code_challenge={challenge}&code_challenge_method=S256");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var contentType = response.Content.Headers.ContentType?.MediaType;
-        Assert.Equal("text/html", contentType);
-
+        Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
         var html = await response.Content.ReadAsStringAsync();
         Assert.Contains("<form", html, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task GetAuthorize_LoginPage_ContainsHiddenOidcParameters()
+    {
+        SetupAuthCodeClient();
+        var (_, challenge) = BuildPkce();
+
+        var response = await _fixture.Client.GetAsync(
+            $"/connect/authorize?response_type=code&client_id=sample-blazor&redirect_uri={Uri.EscapeDataString("https://localhost:7070/signin-oidc")}&scope=openid%20profile%20email&state=test-state&code_challenge={challenge}&code_challenge_method=S256");
+
+        var html = await response.Content.ReadAsStringAsync();
+        Assert.Contains("name=\"response_type\"", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("name=\"client_id\"", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("name=\"redirect_uri\"", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("name=\"scope\"", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("name=\"state\"", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("name=\"code_challenge\"", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("name=\"code_challenge_method\"", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // --- Successful redirects ---
 
     [Fact]
     public async Task GetAuthorize_WithValidCredentials_RedirectsWithCodeAndState()
@@ -53,11 +75,184 @@ public class AuthorizeEndpointTests : IClassFixture<IdentityServerFixture>
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         Assert.NotNull(response.Headers.Location);
-
-        var uri = response.Headers.Location!;
-        var query = HttpUtility.ParseQueryString(uri.Query);
+        var query = HttpUtility.ParseQueryString(response.Headers.Location!.Query);
         Assert.False(string.IsNullOrWhiteSpace(query["code"]));
         Assert.Equal("test-state", query["state"]);
+    }
+
+    [Fact]
+    public async Task PostAuthorize_WithValidCredentials_RedirectsWithCode()
+    {
+        SetupAuthCodeClient();
+        var user = IdentityFakers.IdentityRecord().Generate();
+        _fixture.IdentityStoreMock
+            .Setup(s => s.FindByCredentialsAsync(user.Username, user.Password))
+            .ReturnsAsync(user);
+
+        var (_, challenge) = BuildPkce();
+
+        var form = new FormUrlEncodedContent([
+            new KeyValuePair<string, string>("response_type", "code"),
+            new KeyValuePair<string, string>("client_id", "sample-blazor"),
+            new KeyValuePair<string, string>("redirect_uri", "https://localhost:7070/signin-oidc"),
+            new KeyValuePair<string, string>("scope", "openid profile email"),
+            new KeyValuePair<string, string>("state", "test-state"),
+            new KeyValuePair<string, string>("code_challenge", challenge),
+            new KeyValuePair<string, string>("code_challenge_method", "S256"),
+            new KeyValuePair<string, string>("username", user.Username),
+            new KeyValuePair<string, string>("password", user.Password)
+        ]);
+
+        var response = await _fixture.Client.PostAsync("/connect/authorize", form);
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.NotNull(response.Headers.Location);
+        var query = HttpUtility.ParseQueryString(response.Headers.Location!.Query);
+        Assert.False(string.IsNullOrWhiteSpace(query["code"]));
+        Assert.Equal("test-state", query["state"]);
+    }
+
+    // --- Invalid credentials ---
+
+    [Fact]
+    public async Task PostAuthorize_WithInvalidCredentials_Returns401WithErrorMessage()
+    {
+        SetupAuthCodeClient();
+        _fixture.IdentityStoreMock
+            .Setup(s => s.FindByCredentialsAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync((IdentityRecord?)null);
+
+        var (_, challenge) = BuildPkce();
+
+        var form = new FormUrlEncodedContent([
+            new KeyValuePair<string, string>("response_type", "code"),
+            new KeyValuePair<string, string>("client_id", "sample-blazor"),
+            new KeyValuePair<string, string>("redirect_uri", "https://localhost:7070/signin-oidc"),
+            new KeyValuePair<string, string>("scope", "openid profile email"),
+            new KeyValuePair<string, string>("state", "test-state"),
+            new KeyValuePair<string, string>("code_challenge", challenge),
+            new KeyValuePair<string, string>("code_challenge_method", "S256"),
+            new KeyValuePair<string, string>("username", "wrong@example.com"),
+            new KeyValuePair<string, string>("password", "BadPassword")
+        ]);
+
+        var response = await _fixture.Client.PostAsync("/connect/authorize", form);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
+        var html = await response.Content.ReadAsStringAsync();
+        Assert.Contains("Invalid username or password", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // --- Request validation ---
+
+    [Fact]
+    public async Task GetAuthorize_WithWrongResponseType_ReturnsBadRequest()
+    {
+        SetupAuthCodeClient();
+        var (_, challenge) = BuildPkce();
+
+        var response = await _fixture.Client.GetAsync(
+            $"/connect/authorize?response_type=token&client_id=sample-blazor&redirect_uri={Uri.EscapeDataString("https://localhost:7070/signin-oidc")}&scope=openid&code_challenge={challenge}&code_challenge_method=S256");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WithMissingClientId_ReturnsBadRequest()
+    {
+        var (_, challenge) = BuildPkce();
+
+        var response = await _fixture.Client.GetAsync(
+            $"/connect/authorize?response_type=code&redirect_uri={Uri.EscapeDataString("https://localhost:7070/signin-oidc")}&scope=openid&code_challenge={challenge}&code_challenge_method=S256");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WithUnknownClientId_ReturnsBadRequest()
+    {
+        _fixture.ClientStoreMock
+            .Setup(s => s.FindByClientIdAsync(It.IsAny<string>()))
+            .ReturnsAsync((ClientRecord?)null);
+
+        var (_, challenge) = BuildPkce();
+
+        var response = await _fixture.Client.GetAsync(
+            $"/connect/authorize?response_type=code&client_id=no-such-client&redirect_uri={Uri.EscapeDataString("https://localhost:7070/signin-oidc")}&scope=openid&code_challenge={challenge}&code_challenge_method=S256");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WithMissingRedirectUri_ReturnsBadRequest()
+    {
+        SetupAuthCodeClient();
+        var (_, challenge) = BuildPkce();
+
+        var response = await _fixture.Client.GetAsync(
+            $"/connect/authorize?response_type=code&client_id=sample-blazor&scope=openid&code_challenge={challenge}&code_challenge_method=S256");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WithUnregisteredRedirectUri_ReturnsBadRequest()
+    {
+        SetupAuthCodeClient();
+        var (_, challenge) = BuildPkce();
+
+        var response = await _fixture.Client.GetAsync(
+            $"/connect/authorize?response_type=code&client_id=sample-blazor&redirect_uri={Uri.EscapeDataString("https://evil.example.com/callback")}&scope=openid&code_challenge={challenge}&code_challenge_method=S256");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WithMissingScope_ReturnsBadRequest()
+    {
+        SetupAuthCodeClient();
+        var (_, challenge) = BuildPkce();
+
+        var response = await _fixture.Client.GetAsync(
+            $"/connect/authorize?response_type=code&client_id=sample-blazor&redirect_uri={Uri.EscapeDataString("https://localhost:7070/signin-oidc")}&code_challenge={challenge}&code_challenge_method=S256");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WithoutOpenIdScope_ReturnsBadRequest()
+    {
+        SetupAuthCodeClient();
+        var (_, challenge) = BuildPkce();
+
+        var response = await _fixture.Client.GetAsync(
+            $"/connect/authorize?response_type=code&client_id=sample-blazor&redirect_uri={Uri.EscapeDataString("https://localhost:7070/signin-oidc")}&scope=profile%20email&code_challenge={challenge}&code_challenge_method=S256");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WhenPkceRequiredAndCodeChallengeMissing_ReturnsBadRequest()
+    {
+        SetupAuthCodeClient(); // RequirePkce = true
+
+        var response = await _fixture.Client.GetAsync(
+            $"/connect/authorize?response_type=code&client_id=sample-blazor&redirect_uri={Uri.EscapeDataString("https://localhost:7070/signin-oidc")}&scope=openid%20profile%20email");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WithUnsupportedCodeChallengeMethod_ReturnsBadRequest()
+    {
+        SetupAuthCodeClient();
+        var challenge = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes("some-plain-challenge"));
+
+        var response = await _fixture.Client.GetAsync(
+            $"/connect/authorize?response_type=code&client_id=sample-blazor&redirect_uri={Uri.EscapeDataString("https://localhost:7070/signin-oidc")}&scope=openid%20profile%20email&code_challenge={challenge}&code_challenge_method=plain");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     private void SetupAuthCodeClient()
@@ -84,7 +279,3 @@ public class AuthorizeEndpointTests : IClassFixture<IdentityServerFixture>
         return (verifier, challenge);
     }
 }
-
-
-
-
