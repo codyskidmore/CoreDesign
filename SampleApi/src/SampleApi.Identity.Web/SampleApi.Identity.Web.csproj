@@ -19,12 +19,14 @@
             <Link>appsettings.Development.json</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <None Update="identities.json">
+        <Content Include="..\Shared\identities.json">
+            <Link>identities.json</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="clients.json">
+        </Content>
+        <Content Include="..\Shared\clients.json">
+            <Link>clients.json</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
+        </Content>
     </ItemGroup>
 
 </Project>
