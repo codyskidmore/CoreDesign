@@ -418,6 +418,50 @@ public class MyClientStore : IClientStore
 builder.Services.AddSingleton<IClientStore, MyClientStore>();
 ```
 
+## Template customization
+
+The login form and the identity web host landing page are rendered from HTML template files shipped as embedded resources inside the library. Both pages can be restyled or restructured without modifying the library by placing override files in an `identity-templates` folder at your host project's content root.
+
+### How overrides work
+
+When the library renders a page it checks `{ContentRoot}/identity-templates/{filename}` first. If the file exists it is used as-is. If not, the embedded default is loaded. No configuration is required.
+
+### Overriding the login form
+
+1. Create `identity-templates/login.html` in your host project.
+2. Set it to copy to the output directory:
+
+```xml
+<None Update="identity-templates\login.html">
+  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+</None>
+```
+
+The embedded default is a good starting point. Copy it from `CoreDesign.Identity.Server/Templates/login.html` in the library source. The following `{{placeholder}}` tokens are substituted at render time:
+
+| Placeholder | Value |
+| --- | --- |
+| `{{response_type}}` | OIDC `response_type` parameter (HTML-encoded) |
+| `{{client_id}}` | OIDC `client_id` parameter (HTML-encoded) |
+| `{{redirect_uri}}` | OIDC `redirect_uri` parameter (HTML-encoded) |
+| `{{scope}}` | OIDC `scope` parameter (HTML-encoded) |
+| `{{state}}` | OIDC `state` parameter (HTML-encoded) |
+| `{{nonce}}` | OIDC `nonce` parameter (HTML-encoded) |
+| `{{code_challenge}}` | PKCE `code_challenge` (HTML-encoded) |
+| `{{code_challenge_method}}` | PKCE `code_challenge_method`, e.g. `S256` (HTML-encoded) |
+| `{{error_message}}` | Error text after a failed login attempt; empty string when no error |
+| `{{error_hidden}}` | Resolves to `hidden` when there is no error, empty string when there is one |
+
+All eight OIDC parameters must appear as hidden `<input>` fields in the form. The form must POST to `/connect/authorize`.
+
+### Overriding the landing page
+
+Create `identity-templates/landing.html` using the same copy and CopyToOutputDirectory steps. The landing page has no dynamic placeholders; it is rendered as a static file.
+
+### Theming without replacing the template
+
+Both default templates define all colors as CSS custom properties inside `:root`. You can restyle them by injecting a small `<style>` block that overrides the `--id-*` variables, or by replacing the entire stylesheet section in your copy of the file. The variable names are documented in comments inside each template.
+
 ## Advanced registration
 
 `AddIdentityServer` accepts an optional `Action<IdentityOptions>` to override individual values after configuration binding:

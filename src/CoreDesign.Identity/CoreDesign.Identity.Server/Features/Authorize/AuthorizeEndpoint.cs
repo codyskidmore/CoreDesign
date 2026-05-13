@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
+using Microsoft.AspNetCore.Hosting;
 
 namespace CoreDesign.Identity.Server.Features.Authorize;
 
@@ -18,7 +19,8 @@ public static class AuthorizeEndpoint
     private static async Task<IResult> Handle(
         HttpContext ctx,
         IClientStore clientStore,
-        IIdentityStore identityStore)
+        IIdentityStore identityStore,
+        IWebHostEnvironment env)
     {
         var request = await AuthorizeRequest.FromHttpAsync(ctx);
         var validationError = await ValidateRequestAsync(request, clientStore);
@@ -26,11 +28,11 @@ public static class AuthorizeEndpoint
             return validationError;
 
         if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
-            return Results.Content(BuildLoginPage(request), "text/html; charset=utf-8");
+            return LoginPage(request, env);
 
         var identity = await identityStore.FindByCredentialsAsync(request.Username, request.Password);
         if (identity is null)
-            return Results.Content(BuildLoginPage(request, "Invalid username or password"), "text/html; charset=utf-8", Encoding.UTF8, StatusCodes.Status401Unauthorized);
+            return LoginPage(request, env, "Invalid username or password", StatusCodes.Status401Unauthorized);
 
         var code = AuthorizationCodeStore.Issue(new AuthorizationCodeTicket
         {
@@ -45,6 +47,31 @@ public static class AuthorizeEndpoint
 
         var redirectUri = BuildRedirect(request.RedirectUri, code, request.State);
         return Results.Redirect(redirectUri);
+    }
+
+    private static IResult LoginPage(
+        AuthorizeRequest request,
+        IWebHostEnvironment env,
+        string? error = null,
+        int statusCode = StatusCodes.Status200OK)
+    {
+        var enc = HtmlEncoder.Default;
+        var template = TemplateLoader.Load("login.html", env);
+        var html = TemplateLoader.Render(template, new Dictionary<string, string>
+        {
+            ["response_type"]        = enc.Encode(request.ResponseType),
+            ["client_id"]            = enc.Encode(request.ClientId),
+            ["redirect_uri"]         = enc.Encode(request.RedirectUri),
+            ["scope"]                = enc.Encode(request.Scope),
+            ["state"]                = enc.Encode(request.State ?? string.Empty),
+            ["nonce"]                = enc.Encode(request.Nonce ?? string.Empty),
+            ["code_challenge"]       = enc.Encode(request.CodeChallenge ?? string.Empty),
+            ["code_challenge_method"]= enc.Encode(request.CodeChallengeMethod ?? string.Empty),
+            ["error_message"]        = error is null ? string.Empty : enc.Encode(error),
+            ["error_hidden"]         = error is null ? "hidden" : string.Empty
+        });
+
+        return Results.Content(html, "text/html; charset=utf-8", Encoding.UTF8, statusCode);
     }
 
     private static async Task<IResult?> ValidateRequestAsync(AuthorizeRequest request, IClientStore clientStore)
@@ -91,58 +118,6 @@ public static class AuthorizeEndpoint
         var separator = redirectUri.Contains('?') ? "&" : "?";
         var statePart = string.IsNullOrEmpty(state) ? string.Empty : $"&state={Uri.EscapeDataString(state)}";
         return $"{redirectUri}{separator}code={Uri.EscapeDataString(code)}{statePart}";
-    }
-
-    private static string BuildLoginPage(AuthorizeRequest request, string? error = null)
-    {
-        var encoder = HtmlEncoder.Default;
-        var responseType = encoder.Encode(request.ResponseType);
-        var clientId = encoder.Encode(request.ClientId);
-        var redirectUri = encoder.Encode(request.RedirectUri);
-        var scope = encoder.Encode(request.Scope);
-        var state = encoder.Encode(request.State ?? string.Empty);
-        var nonce = encoder.Encode(request.Nonce ?? string.Empty);
-        var codeChallenge = encoder.Encode(request.CodeChallenge ?? string.Empty);
-        var codeChallengeMethod = encoder.Encode(request.CodeChallengeMethod ?? string.Empty);
-        var errorHtml = string.IsNullOrEmpty(error)
-            ? string.Empty
-            : $"<p style='color:#b91c1c'>{encoder.Encode(error)}</p>";
-
-        return $"""
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CoreDesign Identity Sign In</title>
-</head>
-<body>
-  <h1>Sign in</h1>
-  {errorHtml}
-  <form method="post" action="/connect/authorize">
-    <input type="hidden" name="response_type" value="{responseType}" />
-    <input type="hidden" name="client_id" value="{clientId}" />
-    <input type="hidden" name="redirect_uri" value="{redirectUri}" />
-    <input type="hidden" name="scope" value="{scope}" />
-    <input type="hidden" name="state" value="{state}" />
-    <input type="hidden" name="nonce" value="{nonce}" />
-    <input type="hidden" name="code_challenge" value="{codeChallenge}" />
-    <input type="hidden" name="code_challenge_method" value="{codeChallengeMethod}" />
-    <label>
-      Username
-      <input type="text" name="username" required />
-    </label>
-    <br />
-    <label>
-      Password
-      <input type="password" name="password" required />
-    </label>
-    <br />
-    <button type="submit">Sign in</button>
-  </form>
-</body>
-</html>
-""";
     }
 }
 
@@ -255,16 +230,16 @@ internal sealed class AuthorizeRequest
 
         return new AuthorizeRequest
         {
-            ResponseType = Read("response_type"),
-            ClientId = Read("client_id"),
-            RedirectUri = Read("redirect_uri"),
-            Scope = Read("scope"),
-            State = ReadOptional("state"),
-            Nonce = ReadOptional("nonce"),
-            CodeChallenge = ReadOptional("code_challenge"),
+            ResponseType     = Read("response_type"),
+            ClientId         = Read("client_id"),
+            RedirectUri      = Read("redirect_uri"),
+            Scope            = Read("scope"),
+            State            = ReadOptional("state"),
+            Nonce            = ReadOptional("nonce"),
+            CodeChallenge    = ReadOptional("code_challenge"),
             CodeChallengeMethod = ReadOptional("code_challenge_method"),
-            Username = ReadOptional("username"),
-            Password = ReadOptional("password")
+            Username         = ReadOptional("username"),
+            Password         = ReadOptional("password")
         };
     }
 }

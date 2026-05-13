@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Hosting;
+
 namespace CoreDesign.Identity.Server;
 
 public static class IdentityWebHostExtensions
@@ -37,29 +39,12 @@ public static class IdentityWebHostExtensions
         app.UseIdentityServerCors();
         app.MapIdentityEndpoints();
 
-        app.MapGet("/", () =>
-            Results.Content(
-                """
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CoreDesign Identity Web Host</title>
-</head>
-<body>
-  <h1>CoreDesign Identity Web Host</h1>
-  <p>Development identity provider is running.</p>
-  <ul>
-    <li><a href="/.well-known/openid-configuration">OpenID Connect discovery</a></li>
-    <li><a href="/.well-known/jwks.json">JWKS</a></li>
-  </ul>
-</body>
-</html>
-""",
-                "text/html; charset=utf-8"));
+        app.MapGet("/", (IWebHostEnvironment env) =>
+        {
+            var html = TemplateLoader.Load("landing.html", env);
+            return Results.Content(html, "text/html; charset=utf-8");
+        }).AllowAnonymous();
 
         return app;
     }
 }
-
