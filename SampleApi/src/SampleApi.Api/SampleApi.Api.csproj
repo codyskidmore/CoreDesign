@@ -11,7 +11,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.3.0" />
+        <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.3.1" />
         <PackageReference Include="CoreDesign.Data" Version="1.0.1" />
         <PackageReference Include="CoreDesign.Identity.Client" Version="1.0.6" />
         <PackageReference Include="CoreDesign.Logging" Version="1.0.3" />
