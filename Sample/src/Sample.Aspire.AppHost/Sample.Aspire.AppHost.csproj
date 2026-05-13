@@ -1,0 +1,37 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.3.1">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <UserSecretsId>a1b2c3d4-e5f6-7890-abcd-ef1234567890</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Aspire.Hosting.Docker" Version="13.3.1" />
+        <PackageReference Include="Aspire.Hosting.SqlServer" Version="13.3.1" />
+        <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.3.1" />
+        <PackageReference Include="CoreDesign.Shared" Version="1.0.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Sample.Data.MigrationService\Sample.Data.MigrationService.csproj" />
+        <ProjectReference Include="..\Sample.Api\Sample.Api.csproj" />
+        <ProjectReference Include="..\Sample.Identity.Api\Sample.Identity.Api.csproj" />
+        <ProjectReference Include="..\Sample.Identity.Web\Sample.Identity.Web.csproj" />
+        <ProjectReference Include="..\Sample.Blazor\Sample.Blazor.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="..\Shared\appsettings.Development.json">
+        <Link>appsettings.Development.json</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Include="..\Shared\appsettings.json">
+        <Link>appsettings.json</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
+</Project>
