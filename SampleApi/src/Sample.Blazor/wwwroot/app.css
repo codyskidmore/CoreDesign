@@ -1,5 +1,7 @@
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: #f5f7fb;
+    color: #1f2937;
 }
 
 h1:focus {
@@ -7,13 +9,40 @@ h1:focus {
 }
 
 a, .btn-link {
-    color: #0071c1;
+    color: #3656d4;
+    text-decoration-color: rgba(54, 86, 212, 0.35);
+}
+
+a:hover, .btn-link:hover {
+    color: #2a44ad;
 }
 
 .btn-primary {
     color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    background-color: #3656d4;
+    border-color: #2a44ad;
+}
+
+.btn-outline-primary {
+    color: #3656d4;
+    border-color: #3656d4;
+}
+
+.btn-outline-primary:hover {
+    color: #ffffff;
+    background-color: #3656d4;
+    border-color: #3656d4;
+}
+
+.btn-outline-secondary {
+    color: #4b5563;
+    border-color: #cbd5e1;
+}
+
+.btn-outline-secondary:hover {
+    color: #111827;
+    background-color: #e5e7eb;
+    border-color: #cbd5e1;
 }
 
 .valid.modified:not([type=checkbox]) {

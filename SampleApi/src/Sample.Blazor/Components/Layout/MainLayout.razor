@@ -6,7 +6,7 @@
     </div>
 
     <main>
-        <div class="top-row px-4">
+        <div class="top-row">
             <AuthorizeView>
                 <Authorized>
                     <span class="me-3">Hello, @context.User.Identity?.Name!</span>
@@ -18,7 +18,7 @@
             </AuthorizeView>
         </div>
 
-        <article class="content px-4">
+        <article class="content">
             @Body
         </article>
     </main>
