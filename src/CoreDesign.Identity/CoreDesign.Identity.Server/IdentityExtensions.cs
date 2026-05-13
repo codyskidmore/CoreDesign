@@ -24,7 +24,7 @@ public static class IdentityExtensions
         configure?.Invoke(options);
         services.AddSingleton(options);
 
-        var rsa = RSA.Create(2048);
+        var rsa = GetOrCreateDevKey(options.KeyId);
         var rsaKey = new RsaSecurityKey(rsa) { KeyId = options.KeyId };
         services.AddSingleton(rsaKey);
         services.AddSingleton(new SigningCredentials(rsaKey, SecurityAlgorithms.RsaSha256));
@@ -34,6 +34,38 @@ public static class IdentityExtensions
                 policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
 
         return services;
+    }
+
+    private static RSA GetOrCreateDevKey(string keyId)
+    {
+        var keyDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "coredesign-identity");
+        var keyPath = Path.Combine(keyDir, $"{keyId}.pem");
+
+        if (File.Exists(keyPath))
+        {
+            var rsa = RSA.Create();
+            rsa.ImportFromPem(File.ReadAllText(keyPath));
+            return rsa;
+        }
+
+        Directory.CreateDirectory(keyDir);
+        var newKey = RSA.Create(2048);
+        try
+        {
+            File.WriteAllText(keyPath, newKey.ExportRSAPrivateKeyPem());
+        }
+        catch (IOException)
+        {
+            if (File.Exists(keyPath))
+            {
+                newKey.Dispose();
+                newKey = RSA.Create();
+                newKey.ImportFromPem(File.ReadAllText(keyPath));
+            }
+        }
+        return newKey;
     }
 
     public static IServiceCollection AddJsonFileIdentityStore(

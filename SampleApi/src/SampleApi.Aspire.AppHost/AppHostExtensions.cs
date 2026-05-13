@@ -35,6 +35,16 @@ internal static class AppHostExtensions
             .WithUrlForEndpoint("https", u => u.DisplayText = "SampleApi Identity Web (Dev)");
     }
 
+    internal static IResourceBuilder<ProjectResource> AddIdentityApi(
+        this IDistributedApplicationBuilder builder)
+    {
+        return builder.AddProject<SampleApi_Identity_Api>("SampleApiIdentityApiDev")
+            // Pin to port 5001 for a stable Scalar URL across Aspire restarts.
+            // Issuer remains https://localhost:5003 (Identity Web) per appsettings.
+            .WithHttpsEndpoint(port: 5001, name: "https", isProxied: false)
+            .WithUrlForEndpoint("https", u => u.DisplayText = "SampleApi Identity API (Scalar)");
+    }
+
     internal static IResourceBuilder<ProjectResource> AddSampleApi(
         this IDistributedApplicationBuilder builder,
         IResourceBuilder<SqlServerDatabaseResource> database)
@@ -56,7 +66,7 @@ internal static class AppHostExtensions
 
     internal static IDistributedApplicationBuilder AddSampleBlazor(
         this IDistributedApplicationBuilder builder,
-        IResourceBuilder<ProjectResource> identityApi,
+        IResourceBuilder<ProjectResource> identityWeb,
         IResourceBuilder<ProjectResource> sampleApi)
     {
         builder.AddProject<Sample_Blazor>("SampleApiBlazor")
@@ -64,9 +74,9 @@ internal static class AppHostExtensions
             // clients.json ("https://localhost:7070/...") always match.
             .WithHttpsEndpoint(port: 7070, name: "https", isProxied: false)
             .WithUrlForEndpoint("https", u => u.DisplayText = "Sample Blazor UI")
-            .WithReference(identityApi)
+            .WithReference(identityWeb)
             .WithReference(sampleApi)
-            .WaitFor(identityApi)
+            .WaitFor(identityWeb)
             .WaitFor(sampleApi);
 
         return builder;

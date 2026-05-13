@@ -10,7 +10,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddCors(opts =>
     opts.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 
-builder.Services.AddIdentityServer(builder.Configuration);
+builder.Services.AddIdentityServer(builder.Configuration, sectionName: "CoreDesign:IdentityWebHost");
 builder.Services.AddJsonFileIdentityStore("identities.json");
 builder.Services.AddJsonFileClientStore("clients.json");
 

@@ -10,6 +10,12 @@ public interface IAuthProviderConfigurator
     /// <summary>Human-readable name shown in the UI.</summary>
     string ProviderName { get; }
 
+    /// <summary>
+    /// Indicates whether the provider supports federated sign-out via the OIDC
+    /// end-session endpoint.
+    /// </summary>
+    bool SupportsFederatedLogout { get; }
+
     /// <summary>Configure authentication and related services.</summary>
     void Configure(IServiceCollection services, IConfiguration configuration);
 }

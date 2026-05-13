@@ -20,14 +20,20 @@ public static class App
                 new AuthenticationProperties { RedirectUri = returnUrl ?? "/" },
                 [OpenIdConnectDefaults.AuthenticationScheme]));
 
-        // Logout endpoint: signs out of both the cookie and the identity provider.
-        app.MapGet("/account/logout", () =>
-            Results.SignOut(
-                new AuthenticationProperties { RedirectUri = "/" },
-                [
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    OpenIdConnectDefaults.AuthenticationScheme
-                ]));
+        // Logout endpoint: always clears the local cookie.
+        // Only attempt OIDC federated logout when the selected provider supports it.
+        app.MapGet("/account/logout", async (HttpContext context, IAuthProviderConfigurator authProvider) =>
+        {
+            var redirectHome = new AuthenticationProperties { RedirectUri = "/" };
+
+            await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+            if (!authProvider.SupportsFederatedLogout)
+                return Results.Redirect("/");
+
+            await context.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme, redirectHome);
+            return Results.Empty;
+        });
 
         app.MapRazorComponents<Components.App>()
             .AddInteractiveServerRenderMode();

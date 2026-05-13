@@ -18,6 +18,7 @@ namespace Sample.Blazor.Infrastructure.Auth;
 public sealed class LocalOidcAuthConfigurator : IAuthProviderConfigurator
 {
     public string ProviderName => "Local Identity Server";
+    public bool SupportsFederatedLogout => false;
 
     public void Configure(IServiceCollection services, IConfiguration configuration)
     {

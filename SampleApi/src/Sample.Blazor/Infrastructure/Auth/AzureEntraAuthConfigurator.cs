@@ -15,6 +15,7 @@ namespace Sample.Blazor.Infrastructure.Auth;
 public sealed class AzureEntraAuthConfigurator : IAuthProviderConfigurator
 {
     public string ProviderName => "Azure Entra";
+    public bool SupportsFederatedLogout => true;
 
     public void Configure(IServiceCollection services, IConfiguration configuration)
     {
