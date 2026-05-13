@@ -35,6 +35,7 @@ public class AuthorizeEndpointTests : IClassFixture<IdentityServerFixture>
         Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
         var html = await response.Content.ReadAsStringAsync();
         Assert.Contains("<form", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("class=\"id-error\"", html, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -141,6 +142,7 @@ public class AuthorizeEndpointTests : IClassFixture<IdentityServerFixture>
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
         var html = await response.Content.ReadAsStringAsync();
+        Assert.Contains("class=\"id-error\"", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Invalid username or password", html, StringComparison.OrdinalIgnoreCase);
     }
 

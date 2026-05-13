@@ -57,6 +57,20 @@ public static class AuthorizeEndpoint
     {
         var enc = HtmlEncoder.Default;
         var template = TemplateLoader.Load("login.html", env);
+        var errorAlert = string.IsNullOrWhiteSpace(error)
+            ? string.Empty
+            : $"""
+    <div class="id-error" role="alert">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+           aria-hidden="true">
+        <path fill-rule="evenodd"
+              d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"
+              clip-rule="evenodd"/>
+      </svg>
+      <span>{enc.Encode(error)}</span>
+    </div>
+""";
+
         var html = TemplateLoader.Render(template, new Dictionary<string, string>
         {
             ["response_type"]        = enc.Encode(request.ResponseType),
@@ -67,8 +81,7 @@ public static class AuthorizeEndpoint
             ["nonce"]                = enc.Encode(request.Nonce ?? string.Empty),
             ["code_challenge"]       = enc.Encode(request.CodeChallenge ?? string.Empty),
             ["code_challenge_method"]= enc.Encode(request.CodeChallengeMethod ?? string.Empty),
-            ["error_message"]        = error is null ? string.Empty : enc.Encode(error),
-            ["error_hidden"]         = error is null ? "hidden" : string.Empty
+            ["error_alert"]          = errorAlert
         });
 
         return Results.Content(html, "text/html; charset=utf-8", Encoding.UTF8, statusCode);
