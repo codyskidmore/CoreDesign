@@ -29,5 +29,9 @@
         </Content>
     </ItemGroup>
 
+    <ItemGroup>
+      <None Remove="README.docx" />
+    </ItemGroup>
+
 </Project>
 

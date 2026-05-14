@@ -8,7 +8,7 @@
 
     <ItemGroup>
         <!-- Azure Entra authentication via Microsoft Identity Web -->
-        <PackageReference Include="Microsoft.Identity.Web" Version="3.10.0" />
+        <PackageReference Include="Microsoft.Identity.Web" Version="4.9.0" />
         <!-- Logging -->
         <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
         <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
@@ -29,6 +29,10 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Sample.Aspire.ServiceDefaults\Sample.Aspire.ServiceDefaults.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="README.docx" />
     </ItemGroup>
 
 </Project>

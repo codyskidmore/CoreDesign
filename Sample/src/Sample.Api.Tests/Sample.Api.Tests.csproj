@@ -9,8 +9,8 @@
 
     <ItemGroup>
         <PackageReference Include="Bogus" Version="35.6.5" />
-        <PackageReference Include="CoreDesign.Data" Version="1.0.1" />
-        <PackageReference Include="CoreDesign.Shared" Version="1.0.1" />
+        <PackageReference Include="CoreDesign.Data" Version="1.0.2" />
+        <PackageReference Include="CoreDesign.Shared" Version="1.0.2" />
         <PackageReference Include="coverlet.collector" Version="10.0.0">
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
           <PrivateAssets>all</PrivateAssets>

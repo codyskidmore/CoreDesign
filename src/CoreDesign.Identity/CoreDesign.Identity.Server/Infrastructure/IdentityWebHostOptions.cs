@@ -9,4 +9,3 @@ public sealed class IdentityWebHostOptions
     public string IdentitiesFilePath { get; set; } = "identities.json";
     public string ClientsFilePath { get; set; } = "clients.json";
 }
-

@@ -1,10 +1,3 @@
-using CoreDesign.Data.Infrastructure;
-using CoreDesign.Shared.ExtensionMethods;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Sample.Api.Data;
-using Sample.Api.WeatherForecasts.Models;
-
 namespace Sample.Data.MigrationService;
 
 public class SampleMigrationWorker(

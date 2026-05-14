@@ -11,6 +11,9 @@ public interface ITestService
     string Login(string username, [Redact] string password);
     [Suppress] string GetSecret(string input);
     [Suppress] Task<string> FetchSecretAsync(string input);
+    [TruncateLog(10)] string GetValueWithLimit(string input);
+    [TruncateLog(0)] string GetValueUnlimited(string input);
+    [TruncateLog(10)] Task<string> FetchWithLimitAsync(string input);
 }
 
 public class TestService : ITestService
@@ -26,4 +29,7 @@ public class TestService : ITestService
     public string Login(string username, string password) => username;
     public string GetSecret(string input) => input;
     public Task<string> FetchSecretAsync(string input) => Task.FromResult(input);
+    public string GetValueWithLimit(string input) => input;
+    public string GetValueUnlimited(string input) => input;
+    public Task<string> FetchWithLimitAsync(string input) => Task.FromResult(input);
 }

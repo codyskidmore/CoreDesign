@@ -1,12 +1,3 @@
-using CoreDesign.Data.Infrastructure;
-using CoreDesign.Shared.Infrastructure;
-using Sample.Api.Data;
-using Sample.Aspire.ServiceDefaults;
-using Sample.Data.MigrationService;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddAspireServiceDefaults();

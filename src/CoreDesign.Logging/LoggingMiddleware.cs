@@ -128,12 +128,12 @@ public class LoggingMiddleware<T> : DispatchProxy where T : class
             if (resultValue is NotFoundMessage or BadRequestMessage)
             {
                 _logger.LogWarning("{ServiceType}.{Method} returned {Result}",
-                    typeof(T).Name, method.Name, FormatResult(result, method));
+                    typeof(T).Name, method.Name, FormatResult(resultValue, method));
                 return result;
             }
 
             _logger.LogInformation("{ServiceType}.{Method} returned {Result}",
-                typeof(T).Name, method.Name, FormatResult(result, method));
+                typeof(T).Name, method.Name, FormatResult(resultValue, method));
 
             return result;
         }

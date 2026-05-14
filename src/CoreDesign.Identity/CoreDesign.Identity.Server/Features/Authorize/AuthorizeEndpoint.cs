@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Hosting;
@@ -36,13 +34,13 @@ public static class AuthorizeEndpoint
 
         var code = AuthorizationCodeStore.Issue(new AuthorizationCodeTicket
         {
-            ClientId = request.ClientId,
-            RedirectUri = request.RedirectUri,
-            UserId = identity.UserId,
-            Scope = request.Scope,
-            CodeChallenge = request.CodeChallenge,
+            ClientId            = request.ClientId,
+            RedirectUri         = request.RedirectUri,
+            UserId              = identity.UserId,
+            Scope               = request.Scope,
+            CodeChallenge       = request.CodeChallenge,
             CodeChallengeMethod = request.CodeChallengeMethod,
-            Nonce = request.Nonce
+            Nonce               = request.Nonce
         });
 
         var redirectUri = BuildRedirect(request.RedirectUri, code, request.State);
@@ -68,15 +66,15 @@ public static class AuthorizeEndpoint
 
         var html = TemplateLoader.Render(template, new Dictionary<string, string>
         {
-            ["response_type"]        = enc.Encode(request.ResponseType),
-            ["client_id"]            = enc.Encode(request.ClientId),
-            ["redirect_uri"]         = enc.Encode(request.RedirectUri),
-            ["scope"]                = enc.Encode(request.Scope),
-            ["state"]                = enc.Encode(request.State ?? string.Empty),
-            ["nonce"]                = enc.Encode(request.Nonce ?? string.Empty),
-            ["code_challenge"]       = enc.Encode(request.CodeChallenge ?? string.Empty),
-            ["code_challenge_method"]= enc.Encode(request.CodeChallengeMethod ?? string.Empty),
-            ["error_alert"]          = errorAlert
+            ["response_type"]         = enc.Encode(request.ResponseType),
+            ["client_id"]             = enc.Encode(request.ClientId),
+            ["redirect_uri"]          = enc.Encode(request.RedirectUri),
+            ["scope"]                 = enc.Encode(request.Scope),
+            ["state"]                 = enc.Encode(request.State ?? string.Empty),
+            ["nonce"]                 = enc.Encode(request.Nonce ?? string.Empty),
+            ["code_challenge"]        = enc.Encode(request.CodeChallenge ?? string.Empty),
+            ["code_challenge_method"] = enc.Encode(request.CodeChallengeMethod ?? string.Empty),
+            ["error_alert"]           = errorAlert
         });
 
         return Results.Content(html, "text/html; charset=utf-8", Encoding.UTF8, statusCode);
@@ -126,128 +124,5 @@ public static class AuthorizeEndpoint
         var separator = redirectUri.Contains('?') ? "&" : "?";
         var statePart = string.IsNullOrEmpty(state) ? string.Empty : $"&state={Uri.EscapeDataString(state)}";
         return $"{redirectUri}{separator}code={Uri.EscapeDataString(code)}{statePart}";
-    }
-}
-
-internal static class AuthorizationCodeStore
-{
-    private static readonly ConcurrentDictionary<string, AuthorizationCodeTicket> Tickets = new();
-    private static readonly TimeSpan Lifetime = TimeSpan.FromMinutes(5);
-
-    public static string Issue(AuthorizationCodeTicket ticket)
-    {
-        var code = Guid.NewGuid().ToString("N");
-        ticket.ExpiresAtUtc = DateTime.UtcNow.Add(Lifetime);
-        Tickets[code] = ticket;
-        return code;
-    }
-
-    public static bool TryConsume(string code, out AuthorizationCodeTicket? ticket)
-    {
-        ticket = null;
-        if (!Tickets.TryRemove(code, out var current))
-            return false;
-
-        if (current.ExpiresAtUtc < DateTime.UtcNow)
-            return false;
-
-        ticket = current;
-        return true;
-    }
-
-    public static bool ValidateCodeVerifier(string codeVerifier, string codeChallenge, string? method)
-    {
-        if (string.IsNullOrWhiteSpace(codeVerifier) || !IsValidCodeVerifier(codeVerifier))
-            return false;
-
-        if (!string.Equals(method, "S256", StringComparison.Ordinal))
-            return false;
-
-        var hash = SHA256.HashData(Encoding.ASCII.GetBytes(codeVerifier));
-        return string.Equals(Base64UrlEncoder.Encode(hash), codeChallenge, StringComparison.Ordinal);
-    }
-
-    private static bool IsValidCodeVerifier(string codeVerifier)
-    {
-        if (codeVerifier.Length < 43 || codeVerifier.Length > 128)
-            return false;
-
-        foreach (var ch in codeVerifier)
-        {
-            if ((ch >= 'A' && ch <= 'Z') ||
-                (ch >= 'a' && ch <= 'z') ||
-                (ch >= '0' && ch <= '9') ||
-                ch is '-' or '.' or '_' or '~')
-                continue;
-
-            return false;
-        }
-
-        return true;
-    }
-}
-
-internal sealed class AuthorizationCodeTicket
-{
-    public string ClientId { get; init; } = string.Empty;
-    public string RedirectUri { get; init; } = string.Empty;
-    public string UserId { get; init; } = string.Empty;
-    public string Scope { get; init; } = string.Empty;
-    public string? CodeChallenge { get; init; }
-    public string? CodeChallengeMethod { get; init; }
-    public string? Nonce { get; init; }
-    public DateTime ExpiresAtUtc { get; set; }
-}
-
-internal sealed class AuthorizeRequest
-{
-    public string ResponseType { get; init; } = string.Empty;
-    public string ClientId { get; init; } = string.Empty;
-    public string RedirectUri { get; init; } = string.Empty;
-    public string Scope { get; init; } = string.Empty;
-    public string? State { get; init; }
-    public string? Nonce { get; init; }
-    public string? CodeChallenge { get; init; }
-    public string? CodeChallengeMethod { get; init; }
-    public string? Username { get; init; }
-    public string? Password { get; init; }
-
-    public static async Task<AuthorizeRequest> FromHttpAsync(HttpContext ctx)
-    {
-        IQueryCollection query = ctx.Request.Query;
-        IFormCollection? form = null;
-        if (ctx.Request.HasFormContentType)
-            form = await ctx.Request.ReadFormAsync();
-
-        string Read(string key)
-        {
-            if (form is not null && form.TryGetValue(key, out var formValue) && !string.IsNullOrWhiteSpace(formValue))
-                return formValue.ToString();
-
-            if (query.TryGetValue(key, out var queryValue) && !string.IsNullOrWhiteSpace(queryValue))
-                return queryValue.ToString();
-
-            return string.Empty;
-        }
-
-        string? ReadOptional(string key)
-        {
-            var value = Read(key);
-            return string.IsNullOrWhiteSpace(value) ? null : value;
-        }
-
-        return new AuthorizeRequest
-        {
-            ResponseType     = Read("response_type"),
-            ClientId         = Read("client_id"),
-            RedirectUri      = Read("redirect_uri"),
-            Scope            = Read("scope"),
-            State            = ReadOptional("state"),
-            Nonce            = ReadOptional("nonce"),
-            CodeChallenge    = ReadOptional("code_challenge"),
-            CodeChallengeMethod = ReadOptional("code_challenge_method"),
-            Username         = ReadOptional("username"),
-            Password         = ReadOptional("password")
-        };
     }
 }
