@@ -455,22 +455,18 @@ services.AddTransient<ICudRepository<SampleDbContext, WeatherForecast>,
 
 Services then declare their repository dependencies in the constructor and call the async CRUD methods. The repository interfaces are also easy to mock in unit tests using Moq, as shown in `WeatherForecastServiceTests.cs`.
 
-**MigrationWorker\<TContext\>** is an abstract `BackgroundService` in CoreDesign.Data that handles the full database bootstrap sequence: ensure the database exists, apply pending migrations, run seed data, then shut down the host. `Sample.Data.MigrationService` inherits from it as `SampleMigrationWorker` and overrides only the `SeedAsync` method to supply application-specific data:
+**MigrationWorker\<TContext\>** is a `BackgroundService` in CoreDesign.Data that handles the full database bootstrap sequence: ensure the database exists, apply pending migrations, seed reference data from JSON files, then shut down the host. `Sample.Data.MigrationService` registers it directly in `Program.cs` with no subclass required:
 
 ```csharp
-public class SampleMigrationWorker(
-    IServiceProvider serviceProvider,
-    IHostApplicationLifetime lifetime,
-    ILogger<SampleMigrationWorker> logger)
-    : MigrationWorker<SampleDbContext>(serviceProvider, lifetime, logger)
-{
-    protected override async Task SeedAsync(SampleDbContext dbContext, CancellationToken ct)
-    {
-        var forecasts = "SeedData/Sample.Api.WeatherForecasts.Models.WeatherForecast.json"
-            .LoadObjectFromJsonFile<List<WeatherForecast>>();
-        await SeedEntitiesAsync(dbContext, forecasts, ct);
-    }
-}
+builder.AddMigrationWorker<SampleDbContext>();
+```
+
+The worker scans the `SeedData/` directory for `*.json` files and seeds each one automatically. Each filename (without the `.json` extension) must be the **fully qualified type name** of a `BaseEntity` subclass in the `SampleDbContext` assembly. For example, the `WeatherForecast` entity in `Sample.Api.WeatherForecasts.Models` is seeded from a file named `Sample.Api.WeatherForecasts.Models.WeatherForecast.json`. A filename that cannot be resolved to a known entity type is skipped with a warning.
+
+To use a different seed directory, pass it as the second argument:
+
+```csharp
+builder.AddMigrationWorker<SampleDbContext>("ReferenceData");
 ```
 
 `SeedEntitiesAsync<T>` is a protected helper on the base class that inserts records not already present in the database, identified by `BaseEntity.Id`. It calls `IgnoreQueryFilters()` so soft-deleted rows are counted as existing and no duplicate-key errors occur on re-runs. Both the ensure-database and migrate steps wrap their calls in `CreateExecutionStrategy()` for automatic transient-error retry.
@@ -566,3 +562,15 @@ The following projects use this linking pattern:
 To change a setting that applies to all services, edit the file in `src/Shared/`. The change is immediately reflected in every linked project on the next build without touching any individual project file.
 
 Environment-specific overrides follow the standard `appsettings.{Environment}.json` convention. Secrets (passwords, connection string credentials) are always supplied via user secrets or environment variables and never committed to source control.
+
+## Feedback
+
+Feedback on this sample and the CoreDesign packages is welcome and genuinely respected. If the sample does not demonstrate something you needed to see, or if a pattern here led you down the wrong path, that is worth raising.
+
+Especially useful to hear about:
+
+- Scenarios the sample should cover but does not
+- Steps in the setup or deployment that were unclear or incomplete
+- Features in the CoreDesign packages that would make this kind of application easier to build
+
+Open an issue at [github.com/codyskidmore/CoreDesign/issues](https://github.com/codyskidmore/CoreDesign/issues) or tag [@codyskidmore](https://github.com/codyskidmore) in an existing issue or discussion. A plain description of what you ran into or what you wish existed is all that is needed.

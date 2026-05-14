@@ -1,4 +1,7 @@
+using System.Collections;
 using System.Diagnostics;
+using System.Reflection;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,18 +11,23 @@ using Microsoft.Extensions.Logging;
 namespace CoreDesign.Data.Infrastructure;
 
 /// <summary>
-/// Abstract base class for Aspire-hosted EF Core migration workers. Handles database
-/// creation, migration, and an optional seeding step, then signals the host to stop.
-/// Inherit and override <see cref="SeedAsync"/> to add application-specific seed data.
+/// Aspire-hosted EF Core migration worker. Handles database creation, migration, and an
+/// optional seeding step, then signals the host to stop. By default, seeds from JSON files
+/// in <paramref name="seedDirectory"/> where each filename is the fully qualified type name
+/// of a <see cref="BaseEntity"/> subclass. Override <see cref="SeedAsync"/> for custom logic.
 /// </summary>
-public abstract class MigrationWorker<TContext>(
+public class MigrationWorker<TContext>(
     IServiceProvider serviceProvider,
     IHostApplicationLifetime lifetime,
-    ILogger<MigrationWorker<TContext>> logger) : BackgroundService
+    ILogger<MigrationWorker<TContext>> logger,
+    string seedDirectory = "SeedData") : BackgroundService
     where TContext : DbContext
 {
     public const string ActivitySourceName = "Migrations";
     private static readonly ActivitySource ActivitySource = new(ActivitySourceName);
+
+    private static readonly JsonSerializerOptions SeedJsonOptions =
+        new() { PropertyNameCaseInsensitive = true };
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
@@ -43,11 +51,84 @@ public abstract class MigrationWorker<TContext>(
     }
 
     /// <summary>
-    /// Override to insert seed data after migrations complete. The default implementation
-    /// is a no-op. Call <see cref="SeedEntitiesAsync{T}"/> for each entity set to seed.
+    /// Seeds the database from JSON files in the configured seed directory. Override to
+    /// replace or extend this behavior. Call <see cref="SeedFromDirectoryAsync"/> or
+    /// <see cref="SeedEntitiesAsync{T}"/> as needed.
     /// </summary>
     protected virtual Task SeedAsync(TContext dbContext, CancellationToken cancellationToken)
-        => Task.CompletedTask;
+        => SeedFromDirectoryAsync(dbContext, seedDirectory, typeof(TContext).Assembly, cancellationToken);
+
+    /// <summary>
+    /// Scans <paramref name="directory"/> for <c>*.json</c> files and seeds each one.
+    /// Each filename (without extension) must be the fully qualified type name of a
+    /// <see cref="BaseEntity"/> subclass in <paramref name="typeAssembly"/>, for example
+    /// <c>MyApp.Orders.Models.Order.json</c>. Files whose name cannot be resolved to a
+    /// type are skipped with a warning.
+    /// </summary>
+    protected async Task SeedFromDirectoryAsync(
+        TContext dbContext,
+        string directory,
+        Assembly typeAssembly,
+        CancellationToken cancellationToken)
+    {
+        if (!Directory.Exists(directory))
+        {
+            logger.LogWarning("Seed directory '{Directory}' does not exist. Skipping.", directory);
+            return;
+        }
+
+        var files = Directory.GetFiles(directory, "*.json");
+        if (files.Length == 0)
+        {
+            logger.LogInformation("No seed files found in '{Directory}'.", directory);
+            return;
+        }
+
+        var seedMethod = typeof(MigrationWorker<TContext>)
+            .GetMethod(nameof(SeedEntitiesAsync), BindingFlags.NonPublic | BindingFlags.Instance)!;
+
+        foreach (var filePath in files)
+        {
+            var typeName = Path.GetFileNameWithoutExtension(filePath);
+            var entityType = typeAssembly.GetType(typeName);
+
+            if (entityType is null)
+            {
+                logger.LogWarning(
+                    "Could not resolve type '{TypeName}' in assembly '{Assembly}'. Skipping '{FileName}'.",
+                    typeName, typeAssembly.GetName().Name, Path.GetFileName(filePath));
+                continue;
+            }
+
+            if (!typeof(BaseEntity).IsAssignableFrom(entityType))
+            {
+                logger.LogWarning(
+                    "Type '{TypeName}' does not inherit BaseEntity. Skipping '{FileName}'.",
+                    typeName, Path.GetFileName(filePath));
+                continue;
+            }
+
+            var json = File.ReadAllText(filePath);
+            var listType = typeof(List<>).MakeGenericType(entityType);
+            var entities = JsonSerializer.Deserialize(json, listType, SeedJsonOptions) as IList;
+
+            if (entities is null || entities.Count == 0)
+            {
+                logger.LogWarning(
+                    "Seed file '{FileName}' is empty or could not be deserialized. Skipping.",
+                    Path.GetFileName(filePath));
+                continue;
+            }
+
+            var genericSeedMethod = seedMethod.MakeGenericMethod(entityType);
+            var task = (Task)genericSeedMethod.Invoke(this, [dbContext, entities, cancellationToken])!;
+            await task;
+
+            logger.LogInformation(
+                "Seeded {Count} {TypeName} records from '{FileName}'.",
+                entities.Count, entityType.Name, Path.GetFileName(filePath));
+        }
+    }
 
     /// <summary>
     /// Inserts each entity that does not already exist in the database, identified by

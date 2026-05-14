@@ -10,6 +10,7 @@
     <ItemGroup>
         <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.3.2" />
         <PackageReference Include="CoreDesign.Shared" Version="1.0.2" />
+        <PackageReference Include="CoreDesign.Data" Version="1.0.3" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.8" />
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.8" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.8" />

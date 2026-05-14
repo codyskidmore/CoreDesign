@@ -2,7 +2,9 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddAspireServiceDefaults();
 
-builder.Services.AddHostedService<SampleMigrationWorker>();
+// Override the folder where seed files here:  builder.AddMigrationWorker<SampleDbContext>("MySeedFolderLocation");
+builder.AddMigrationWorker<SampleDbContext>();
+
 builder.Services.AddOpenTelemetry()
     .WithTracing(tracing => tracing.AddSource(MigrationWorker<SampleDbContext>.ActivitySourceName));
 

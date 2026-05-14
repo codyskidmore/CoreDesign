@@ -109,3 +109,7 @@ JWT Bearer validation is configured with the following parameters:
 | Role claim type | `roles` |
 | Name claim type | `email` |
 | Inbound claim mapping | Disabled (`MapInboundClaims = false`) |
+
+## Feedback
+
+Feedback on this package is welcome. If you run into a missing feature, an unexpected behavior, or something that required more effort than it should have, open an issue at [github.com/codyskidmore/CoreDesign/issues](https://github.com/codyskidmore/CoreDesign/issues) or tag [@codyskidmore](https://github.com/codyskidmore). Suggestions about missing features and priority input are especially appreciated.

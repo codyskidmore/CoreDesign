@@ -71,3 +71,15 @@ Full details: [src/CoreDesign.Identity/CoreDesign.Identity.Client/README.md](src
 When multiple projects in the solution share configuration values (JWT issuer, audience, etc.), use a single `shared/` folder at the solution root and link the files into each project via the `.csproj`. This avoids configuration drift across projects.
 
 Full guidance: [SharedAppsettings.md](SharedAppsettings.md)
+
+## Feedback
+
+Feedback on these packages is welcome and genuinely respected. If something is missing, confusing, or lower priority than it should be, opening an issue is the best way to make it better for everyone.
+
+Especially useful to hear about:
+
+- Features you expected to find but did not
+- Behaviors that required a workaround or a subclass when they should have been built in
+- Prioritization input: which gaps would unblock you most
+
+Open an issue at [github.com/codyskidmore/CoreDesign/issues](https://github.com/codyskidmore/CoreDesign/issues) or tag [@codyskidmore](https://github.com/codyskidmore) in an existing issue or discussion. There are no templates to fill out; a plain description of what you ran into or what you wish existed is enough.

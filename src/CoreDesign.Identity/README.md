@@ -288,3 +288,7 @@ When the project is ready to connect to a production identity provider, replace 
 ## Important Notes
 
 The server package is intended for development and integration testing only. It stores passwords in plaintext, generates an ephemeral RSA signing key on every startup (tokens issued before a restart become invalid), and opens CORS to all origins. Do not deploy it to any environment accessible outside a development machine.
+
+## Feedback
+
+Feedback on these packages is welcome. If you run into a missing feature, an unexpected behavior, or something that required more effort than it should have, open an issue at [github.com/codyskidmore/CoreDesign/issues](https://github.com/codyskidmore/CoreDesign/issues) or tag [@codyskidmore](https://github.com/codyskidmore). Suggestions about missing features and priority input are especially appreciated.

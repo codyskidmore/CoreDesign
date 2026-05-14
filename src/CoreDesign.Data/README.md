@@ -151,38 +151,52 @@ await cudRepository.DeleteAsync(id, userId, cancellationToken);
 
 ## Migration Worker
 
-`MigrationWorker<TContext>` is an abstract `BackgroundService` designed for use with .NET Aspire migration projects. It runs three steps in order when the host starts:
+`MigrationWorker<TContext>` is a `BackgroundService` designed for use with .NET Aspire migration projects. It runs three steps in order when the host starts:
 
 1. **Ensure database** — creates the database if it does not exist.
 2. **Migrate** — applies all pending EF Core migrations via `MigrateAsync`.
-3. **Seed** — calls the virtual `SeedAsync` method (no-op by default).
+3. **Seed** — scans the seed directory for `*.json` files and inserts any records that do not yet exist in the database.
 
 When all steps complete, it calls `IHostApplicationLifetime.StopApplication()` and the process exits with code 0. If any step throws, the exception propagates and the process exits with a non-zero code, which blocks deployment pipelines from proceeding.
 
 Both the ensure and migrate steps wrap their database calls in `CreateExecutionStrategy()` so transient SQL Server errors are retried automatically.
 
-### Subclassing
+### Registration
 
-Create a class that inherits `MigrationWorker<TContext>` and pass all constructor parameters to the base:
+Use `AddMigrationWorker<TContext>` in `Program.cs`. This registers the worker as a hosted service and wires up OpenTelemetry tracing in one call:
 
 ```csharp
-public class AppMigrationWorker(
-    IServiceProvider serviceProvider,
-    IHostApplicationLifetime lifetime,
-    ILogger<AppMigrationWorker> logger)
-    : MigrationWorker<AppDbContext>(serviceProvider, lifetime, logger)
-{
-    protected override async Task SeedAsync(AppDbContext dbContext, CancellationToken ct)
-    {
-        var widgets = "SeedData/widgets.json".LoadObjectFromJsonFile<List<Widget>>();
-        await SeedEntitiesAsync(dbContext, widgets, ct);
-    }
-}
+builder.AddMigrationWorker<AppDbContext>();
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(t => t.AddSource(MigrationWorker<AppDbContext>.ActivitySourceName));
 ```
+
+### Seed file naming convention
+
+By default, `MigrationWorker<TContext>` scans a directory named `SeedData` (relative to the working directory) for `*.json` files. Each file must be named after the **fully qualified type name** of the entity it seeds. The worker resolves the filename (without the `.json` extension) to a type in `typeof(TContext).Assembly` and deserializes the JSON as a `List<T>`. Files whose name cannot be resolved to a `BaseEntity` subclass are skipped with a warning.
+
+For an entity `MyApp.Orders.Models.Order` the seed file must be named:
+
+```
+SeedData/MyApp.Orders.Models.Order.json
+```
+
+Using any other name causes the file to be skipped silently. The fully qualified name includes every namespace segment, separated by dots, with no assembly name prefix.
+
+### Overriding the seed directory
+
+Pass a custom directory path as the second argument to `AddMigrationWorker`:
+
+```csharp
+builder.AddMigrationWorker<AppDbContext>("ReferenceData");
+```
+
+The path is relative to the working directory. Absolute paths are also accepted. If the directory does not exist at runtime the worker logs a warning and skips seeding without throwing.
 
 ### SeedEntitiesAsync
 
-`SeedEntitiesAsync<T>` is a protected helper on the base class. It accepts an already-deserialized list of entities and inserts any that do not yet exist in the database, identified by `BaseEntity.Id`. Existence is checked with `IgnoreQueryFilters()` so soft-deleted rows count as existing and no duplicate-key errors occur on re-runs:
+`SeedEntitiesAsync<T>` is a protected helper. It accepts a deserialized sequence of entities and inserts any that do not yet exist in the database, identified by `BaseEntity.Id`. Existence is checked with `IgnoreQueryFilters()` so soft-deleted rows count as existing and no duplicate-key errors occur on re-runs:
 
 ```csharp
 protected async Task SeedEntitiesAsync<T>(
@@ -194,15 +208,34 @@ protected async Task SeedEntitiesAsync<T>(
 
 The writes are wrapped in `CreateExecutionStrategy()` for the same transient-error retry behaviour as the migration steps.
 
-### Registration
+### Custom seed logic
 
-Register the worker as a hosted service and add its `ActivitySource` to OpenTelemetry tracing in `Program.cs`:
+Override `SeedAsync` to replace or extend the default directory-scanning behavior. Call `SeedFromDirectoryAsync` or `SeedEntitiesAsync` as needed:
 
 ```csharp
-builder.Services.AddHostedService<AppMigrationWorker>();
+public class AppMigrationWorker(
+    IServiceProvider serviceProvider,
+    IHostApplicationLifetime lifetime,
+    ILogger<AppMigrationWorker> logger)
+    : MigrationWorker<AppDbContext>(serviceProvider, lifetime, logger)
+{
+    protected override async Task SeedAsync(AppDbContext dbContext, CancellationToken ct)
+    {
+        // Seed from the default directory first, then apply supplemental data.
+        await SeedFromDirectoryAsync(dbContext, "SeedData", typeof(AppDbContext).Assembly, ct);
+        await SeedEntitiesAsync(dbContext, GetAdminUsers(), ct);
+    }
+}
+```
 
-builder.Services.AddOpenTelemetry()
-    .WithTracing(t => t.AddSource(MigrationWorker<AppDbContext>.ActivitySourceName));
+Register the subclass by passing it to `AddMigrationWorker`:
+
+```csharp
+builder.Services.AddHostedService(sp =>
+    new AppMigrationWorker(
+        sp,
+        sp.GetRequiredService<IHostApplicationLifetime>(),
+        sp.GetRequiredService<ILogger<AppMigrationWorker>>()));
 ```
 
 ### Running outside Aspire
@@ -217,3 +250,7 @@ builder.Services.AddOpenTelemetry()
 ```
 
 The process exits 0 on success and non-zero on failure, making it safe to use as a deployment gate step.
+
+## Feedback
+
+Feedback on this package is welcome. If you run into a missing feature, an unexpected behavior, or something that required more effort than it should have, open an issue at [github.com/codyskidmore/CoreDesign/issues](https://github.com/codyskidmore/CoreDesign/issues) or tag [@codyskidmore](https://github.com/codyskidmore). Suggestions about missing features and priority input are especially appreciated.

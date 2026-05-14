@@ -1,5 +1,45 @@
 # Release Notes
 
+## CoreDesign.Data 1.0.3
+
+### AddMigrationWorker Extension Method
+
+A new `AddMigrationWorker<TContext>` extension method on `IHostApplicationBuilder` replaces the previous manual hosted-service registration. It creates and registers a `MigrationWorker<TContext>` instance in a single call, resolving `IHostApplicationLifetime` and the typed logger from the DI container automatically:
+
+```csharp
+builder.AddMigrationWorker<SampleDbContext>();
+```
+
+### Configurable Seed Directory
+
+The seed directory is now configurable through `AddMigrationWorker`. Pass a directory path as the second argument to override the default `SeedData` folder:
+
+```csharp
+builder.AddMigrationWorker<SampleDbContext>("ReferenceData");
+```
+
+The path is relative to the working directory. If the directory does not exist at runtime the worker logs a warning and skips seeding without throwing.
+
+### MigrationWorker No Longer Abstract
+
+`MigrationWorker<TContext>` is no longer abstract. `SeedAsync` is now a `virtual` method with a built-in default implementation that delegates to `SeedFromDirectoryAsync`. Consuming projects that rely entirely on convention-based JSON seeding no longer need to create a subclass. Subclassing is still available when custom seed logic is required: override `SeedAsync` and call `SeedFromDirectoryAsync` or `SeedEntitiesAsync<T>` as needed.
+
+---
+
+## Sample Application
+
+### Updated: Sample.Data.MigrationService
+
+The `SampleMigrationWorker` subclass has been removed. The migration service now registers `MigrationWorker<SampleDbContext>` directly in `Program.cs` using `AddMigrationWorker`:
+
+```csharp
+builder.AddMigrationWorker<SampleDbContext>();
+```
+
+The worker scans the `SeedData/` output directory automatically. Adding a new seed file no longer requires any code change in the migration service: create the JSON file, name it after the fully qualified entity type (for example `Sample.Api.WeatherForecasts.Models.WeatherForecast.json`), and add it to the `.csproj` with `CopyToOutputDirectory: PreserveNewest`.
+
+---
+
 ## CoreDesign.Identity.Server 1.0.7
 
 ### Authorization Code with PKCE
@@ -226,9 +266,20 @@ Use `[Suppress]` when the method name or parameter shape itself would be too rev
 
 ---
 
-## CoreDesign.Data 1.0.1
+## CoreDesign.Data 1.0.2
 
-No new features. Documentation updated with more complete setup guidance covering entity definition, entity configuration, `DbContext` registration, repository registration, and usage examples for both read and write operations.
+### Convention-Based Seed Data Loading
+
+A new `SeedFromDirectoryAsync` method on `MigrationWorker<TContext>` eliminates the need for subclasses to enumerate entity types explicitly. Pass a directory path and the assembly that owns your entity types; the base class scans every `*.json` file in the directory, resolves the entity type by filename, and calls `SeedEntitiesAsync<T>` for each one.
+
+```csharp
+protected override async Task SeedAsync(SampleDbContext dbContext, CancellationToken cancellationToken)
+{
+    await SeedFromDirectoryAsync(dbContext, "SeedData", typeof(SampleDbContext).Assembly, cancellationToken);
+}
+```
+
+Each seed file must be named after the fully qualified type of the entity it contains, for example `MyApp.Orders.Models.Order.json`. Files that cannot be resolved to a `BaseEntity` subtype are skipped with a warning so unrecognized files in the directory do not cause failures. The existing `SeedEntitiesAsync<T>` path remains available for cases where explicit control over individual entity sets is needed.
 
 ---
 
@@ -277,6 +328,10 @@ The Blazor app is pinned to HTTPS port 7070 so the redirect URI registered in `c
 
 - `Infrastructure/Configuration.cs` reorganized into focused setup methods (`AddIdentityAuthentication`, `AddAzureEntraAuthentication`, `AddDatabase`, `AddCache`, etc.).
 - API is pinned to a fixed HTTPS port for consistent testing.
+
+### Updated: Sample.Data.MigrationService
+
+`SampleMigrationWorker.SeedAsync` now delegates entirely to `SeedFromDirectoryAsync`, pointing at the `SeedData` output directory and passing `typeof(SampleDbContext).Assembly` for type resolution. The previous implementation loaded each entity type by hand using a `CoreDesign.Shared.ExtensionMethods` helper and required an explicit reference to every model class. Adding a new seed file no longer requires any code change in the migration service.
 
 ### Updated: Sample.Aspire.AppHost
 
