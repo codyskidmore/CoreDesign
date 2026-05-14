@@ -1,7 +1,8 @@
+using CoreDesign.Data.Infrastructure;
 using CoreDesign.Shared.Infrastructure;
 using Sample.Api.Data;
-using Sample.Data.MigrationService;
 using Sample.Aspire.ServiceDefaults;
+using Sample.Data.MigrationService;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -10,14 +11,13 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddAspireServiceDefaults();
 
-builder.AddConfiguration();
-
-builder.Services.AddHostedService<MigrationService>();
+builder.Services.AddHostedService<SampleMigrationWorker>();
 builder.Services.AddOpenTelemetry()
-    .WithTracing(tracing => tracing.AddSource(MigrationService.ActivitySourceName));
+    .WithTracing(tracing => tracing.AddSource(MigrationWorker<SampleDbContext>.ActivitySourceName));
 
 var dbOptions = builder.Configuration.GetSection(nameof(DatabaseOptions))
-    .Get<DatabaseOptions>();
+    .Get<DatabaseOptions>()
+    ?? throw new InvalidOperationException("DatabaseOptions configuration section is missing.");
 
 builder.AddSqlServerDbContext<SampleDbContext>(dbOptions.DatabaseName);
 

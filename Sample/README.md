@@ -99,6 +99,126 @@ The services will be available at addresses shown in the dashboard. Sample.Ident
 dotnet test
 ```
 
+## Deploying to Azure
+
+There are two deployment paths. Use the `azd` path if your team is already set up with the Azure Developer CLI. Use the GitHub Actions path if you are deploying to pre-provisioned Azure resources manually.
+
+### Option A: Azure Developer CLI (azd)
+
+Aspire generates a deployment manifest that `azd` reads to provision all Azure resources and wire up connection strings automatically. The migration service is deployed as an Azure Container App job and runs before the other services start.
+
+Install the Azure Developer CLI and log in:
+
+```
+winget install microsoft.azd
+azd auth login
+```
+
+Provision infrastructure and deploy all services in one command:
+
+```
+azd up
+```
+
+`azd` creates the Azure SQL Database, injects the connection string into the migration service, runs migrations and seeding, then deploys Sample.Api and Sample.Blazor. No secrets or connection strings need to be handled manually.
+
+### Option B: GitHub Actions
+
+Use this approach when deploying to Azure resources that you provision and manage separately (for example, an existing Azure SQL Database and Azure Container Apps environment).
+
+#### Required GitHub Secrets
+
+| Secret | Value |
+| --- | --- |
+| `AZURE_CLIENT_ID` | App registration client ID for OIDC federated authentication |
+| `AZURE_TENANT_ID` | Azure Entra tenant ID |
+| `AZURE_SUBSCRIPTION_ID` | Target subscription ID |
+| `AZURE_SQL_CONNECTION_STRING` | Full ADO.NET connection string for the Azure SQL Database |
+
+The Azure credentials use OIDC federated identity so no client secret needs to be stored in GitHub. Set up the federated credential in your app registration with subject `repo:<org>/<repo>:ref:refs/heads/main`.
+
+#### Workflow
+
+```yaml
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Build
+        run: dotnet build --configuration Release
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Run database migrations and seed
+        env:
+          ConnectionStrings__sample-db: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+        run: dotnet run --project src/Sample.Data.MigrationService --configuration Release --no-build
+
+      - name: Deploy Sample.Api
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          appSourcePath: ${{ github.workspace }}
+          acrName: <your-acr-name>
+          containerAppName: sample-api
+          resourceGroup: <your-resource-group>
+          dockerfilePath: src/Sample.Api/Dockerfile
+
+      - name: Deploy Sample.Blazor
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          appSourcePath: ${{ github.workspace }}
+          acrName: <your-acr-name>
+          containerAppName: sample-blazor
+          resourceGroup: <your-resource-group>
+          dockerfilePath: src/Sample.Blazor/Dockerfile
+```
+
+#### How the migration step works
+
+`dotnet run` on `Sample.Data.MigrationService` starts the `SampleMigrationWorker` background service. It connects to the Azure SQL Database using the `ConnectionStrings__sample-db` environment variable (the double underscore is the environment variable form of the `ConnectionStrings:sample-db` configuration key), applies any pending EF Core migrations, seeds reference data from the `SeedData/` folder, then calls `StopApplication()` and exits. The process exits with code 0 on success and a non-zero code on failure, which causes the workflow step to fail and stops the deployment before any containers are updated.
+
+The migration step runs before the deploy steps so the database schema is always consistent with the application version being deployed. If migrations fail, the running application is unaffected.
+
+#### Connection string format
+
+For Azure SQL Database with managed identity (recommended):
+
+```
+Server=<server>.database.windows.net;Database=sample-db;Authentication=Active Directory Default;Encrypt=True;
+```
+
+For Azure SQL Database with username and password (if managed identity is not available):
+
+```
+Server=<server>.database.windows.net;Database=sample-db;User Id=<user>;Password=<password>;Encrypt=True;TrustServerCertificate=False;
+```
+
 ## CoreDesign Packages
 
 This solution is a working example of how to integrate the CoreDesign library suite. The three packages used are described below.
@@ -335,7 +455,27 @@ services.AddTransient<ICudRepository<SampleDbContext, WeatherForecast>,
 
 Services then declare their repository dependencies in the constructor and call the async CRUD methods. The repository interfaces are also easy to mock in unit tests using Moq, as shown in `WeatherForecastServiceTests.cs`.
 
-For the full repository API, query options, soft-delete behaviour, and value converter reference, see [CoreDesign.Data/README.md](../src/CoreDesign.Data/README.md).
+**MigrationWorker\<TContext\>** is an abstract `BackgroundService` in CoreDesign.Data that handles the full database bootstrap sequence: ensure the database exists, apply pending migrations, run seed data, then shut down the host. `Sample.Data.MigrationService` inherits from it as `SampleMigrationWorker` and overrides only the `SeedAsync` method to supply application-specific data:
+
+```csharp
+public class SampleMigrationWorker(
+    IServiceProvider serviceProvider,
+    IHostApplicationLifetime lifetime,
+    ILogger<SampleMigrationWorker> logger)
+    : MigrationWorker<SampleDbContext>(serviceProvider, lifetime, logger)
+{
+    protected override async Task SeedAsync(SampleDbContext dbContext, CancellationToken ct)
+    {
+        var forecasts = "SeedData/Sample.Api.WeatherForecasts.Models.WeatherForecast.json"
+            .LoadObjectFromJsonFile<List<WeatherForecast>>();
+        await SeedEntitiesAsync(dbContext, forecasts, ct);
+    }
+}
+```
+
+`SeedEntitiesAsync<T>` is a protected helper on the base class that inserts records not already present in the database, identified by `BaseEntity.Id`. It calls `IgnoreQueryFilters()` so soft-deleted rows are counted as existing and no duplicate-key errors occur on re-runs. Both the ensure-database and migrate steps wrap their calls in `CreateExecutionStrategy()` for automatic transient-error retry.
+
+For the full repository API, query options, soft-delete behaviour, value converter reference, and MigrationWorker subclassing guide, see [CoreDesign.Data/README.md](../src/CoreDesign.Data/README.md).
 
 ## Logging
 

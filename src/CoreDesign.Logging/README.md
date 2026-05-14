@@ -25,8 +25,8 @@ The DI container will resolve `IWeatherForecastService` as a proxy-wrapped insta
 | Situation | Level |
 |---|---|
 | Method called | Information (method name and serialized parameters) |
-| Method returned a success result | Information (method name and serialized return value) |
-| Method returned a `NotFoundMessage` or `BadRequestMessage` | Warning |
+| Method returned a success result | Information (method name and serialized return value, truncated to 500 chars by default) |
+| Method returned a `NotFoundMessage` or `BadRequestMessage` | Warning (same truncation applies) |
 | Method threw an exception | Error (exception and method name) |
 
 Both synchronous and `Task`/`Task<T>` methods are fully supported.
@@ -69,6 +69,31 @@ public interface ITokenService
 ```
 
 Use `[Suppress]` when the method name or parameter shape itself would be too revealing, or when call volume is high enough that logging every invocation creates more noise than value.
+
+### `[TruncateLog]`
+
+Return values are serialized to JSON and truncated at 500 characters by default. Any result longer than this limit is cut and a note is appended showing the total length:
+
+```
+WeatherForecastService.GetAllAsync returned [{"id":"..."}... [truncated, total 3842 chars]
+```
+
+Apply `[TruncateLog]` to a method on the interface to override the limit for that method:
+
+```csharp
+public interface IWeatherForecastService
+{
+    // Raise the limit for a method expected to return larger payloads.
+    [TruncateLog(2000)]
+    Task<IReadOnlyList<WeatherForecast>> GetAllAsync(CancellationToken ct);
+
+    // Disable truncation entirely for a method that returns a small, critical diagnostic object.
+    [TruncateLog(0)]
+    Task<ServiceStatus> GetStatusAsync();
+}
+```
+
+The default limit of 500 characters is defined by `LoggingMiddleware.DefaultMaxResultLength`. Parameters are not truncated; use `[Redact]` to suppress a sensitive parameter entirely.
 
 ## Further Reading
 
