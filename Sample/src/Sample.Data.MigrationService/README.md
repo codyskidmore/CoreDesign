@@ -4,11 +4,20 @@ A .NET hosted service that ensures the database exists, applies pending EF Core 
 
 ## How it works
 
-`Program.cs` registers `MigrationWorker<SampleDbContext>` via `AddMigrationWorker<SampleDbContext>()`. On startup the worker runs three steps in order:
+`Program.cs` registers `MigrationWorker<SampleDbContext>` and its OpenTelemetry `ActivitySource`:
+
+```csharp
+builder.AddMigrationWorker<SampleDbContext>();
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing.AddSource(MigrationWorker<SampleDbContext>.ActivitySourceName));
+```
+
+On startup the worker runs three steps in order:
 
 1. **Ensure database**: creates the database if it does not exist yet (using `IRelationalDatabaseCreator`).
 2. **Migrate**: applies all pending EF Core migrations via `MigrateAsync`.
-3. **Seed**: scans the `SeedData/` directory, matches each `*.json` file to a `BaseEntity` subclass by filename, and inserts any records that do not already exist (identified by `Id`).
+3. **Seed**: scans the configured seed directory (default: `SeedData/`), matches each `*.json` file to a `BaseEntity` subclass by filename, and inserts any records that do not already exist (identified by `Id`). The seed directory can be changed without modifying any code — see [Overriding the seed directory](#overriding-the-seed-directory).
 
 When all three steps complete successfully, `IHostApplicationLifetime.StopApplication()` is called and the process exits with code 0. If any step throws, the exception propagates and the process exits with a non-zero code.
 
@@ -36,6 +45,18 @@ Currently seeded:
 | --- | --- | --- |
 | `Sample.Api.WeatherForecasts.Models.WeatherForecast.json` | `WeatherForecast` | 10 |
 
+## Overriding the seed directory
+
+The seed directory defaults to `SeedData` but can be changed by passing a different path to `AddMigrationWorker` in `Program.cs`. No other code changes are needed:
+
+```csharp
+builder.AddMigrationWorker<SampleDbContext>("ReferenceData");
+```
+
+The path is relative to the working directory. Absolute paths are also accepted. If the directory does not exist at runtime, a warning is logged and seeding is skipped without throwing.
+
+This is useful when different environments need different seed sets, or when reference data and test fixtures are kept in separate folders.
+
 ## Adding a new seed file
 
 1. Create a JSON file in `SeedData/` named after the fully qualified type name of the entity: `<Full.Namespace.ClassName>.json`.
@@ -43,16 +64,6 @@ Currently seeded:
 3. Add a `<None Update="SeedData\...">` entry to the `.csproj` with `CopyToOutputDirectory: PreserveNewest`.
 
 No code changes are required. The worker discovers and seeds the new file automatically on the next run.
-
-## Overriding the seed directory
-
-The default seed directory is `SeedData`. To use a different directory, pass it as the second argument to `AddMigrationWorker` in `Program.cs`:
-
-```csharp
-builder.AddMigrationWorker<SampleDbContext>("ReferenceData");
-```
-
-The path is relative to the working directory. If the directory does not exist at runtime, a warning is logged and seeding is skipped.
 
 ## Configuration
 

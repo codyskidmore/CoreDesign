@@ -459,6 +459,9 @@ Services then declare their repository dependencies in the constructor and call 
 
 ```csharp
 builder.AddMigrationWorker<SampleDbContext>();
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing.AddSource(MigrationWorker<SampleDbContext>.ActivitySourceName));
 ```
 
 The worker scans the `SeedData/` directory for `*.json` files and seeds each one automatically. Each filename (without the `.json` extension) must be the **fully qualified type name** of a `BaseEntity` subclass in the `SampleDbContext` assembly. For example, the `WeatherForecast` entity in `Sample.Api.WeatherForecasts.Models` is seeded from a file named `Sample.Api.WeatherForecasts.Models.WeatherForecast.json`. A filename that cannot be resolved to a known entity type is skipped with a warning.
@@ -471,7 +474,7 @@ builder.AddMigrationWorker<SampleDbContext>("ReferenceData");
 
 `SeedEntitiesAsync<T>` is a protected helper on the base class that inserts records not already present in the database, identified by `BaseEntity.Id`. It calls `IgnoreQueryFilters()` so soft-deleted rows are counted as existing and no duplicate-key errors occur on re-runs. Both the ensure-database and migrate steps wrap their calls in `CreateExecutionStrategy()` for automatic transient-error retry.
 
-For the full repository API, query options, soft-delete behaviour, value converter reference, and MigrationWorker subclassing guide, see [CoreDesign.Data/README.md](../src/CoreDesign.Data/README.md).
+For the full repository API, query options, soft-delete behaviour, value converter reference, and custom seed logic guide, see [CoreDesign.Data/README.md](../src/CoreDesign.Data/README.md).
 
 ## Logging
 

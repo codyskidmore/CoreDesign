@@ -18,7 +18,7 @@ A generic, reusable Entity Framework Core data access layer providing base entit
 - `BaseEntityConfiguration<T>` - EF Core `IEntityTypeConfiguration<T>` base that wires up primary key, index, soft-delete query filter, and required audit field constraints.
 - `BaseEntityExtensionMethods` - Extension methods `InitializeAuditFields` and `UpdateAuditFields` for setting audit fields on insert and update.
 - `ValueConverters` - Provides `GetUlidConverter()` (Ulid to string) and `GetEnumConverter<TEnum>()` (enum to string) for use in entity configurations.
-- `MigrationWorker<TContext>` - Abstract `BackgroundService` that ensures the database exists, applies pending EF Core migrations, calls a virtual `SeedAsync` hook, then stops the host. Inherit and override `SeedAsync` to add application-specific seed data.
+- `MigrationWorker<TContext>` - Concrete `BackgroundService` that ensures the database exists, applies pending EF Core migrations, seeds from JSON files in the configured seed directory (default: `SeedData`), then stops the host. No subclassing is required. Override the virtual `SeedAsync` method only when custom seed logic is needed.
 
 **Interfaces**
 
@@ -151,7 +151,7 @@ await cudRepository.DeleteAsync(id, userId, cancellationToken);
 
 ## Migration Worker
 
-`MigrationWorker<TContext>` is a `BackgroundService` designed for use with .NET Aspire migration projects. It runs three steps in order when the host starts:
+`MigrationWorker<TContext>` is a concrete `BackgroundService` that works in any .NET host application, including .NET Aspire migration services. It runs three steps in order when the host starts:
 
 1. **Ensure database** — creates the database if it does not exist.
 2. **Migrate** — applies all pending EF Core migrations via `MigrateAsync`.
@@ -163,7 +163,7 @@ Both the ensure and migrate steps wrap their database calls in `CreateExecutionS
 
 ### Registration
 
-Use `AddMigrationWorker<TContext>` in `Program.cs`. This registers the worker as a hosted service and wires up OpenTelemetry tracing in one call:
+Use `AddMigrationWorker<TContext>` in `Program.cs` to register the worker as a hosted service. Register the worker's `ActivitySource` with OpenTelemetry separately:
 
 ```csharp
 builder.AddMigrationWorker<AppDbContext>();
@@ -228,7 +228,7 @@ public class AppMigrationWorker(
 }
 ```
 
-Register the subclass by passing it to `AddMigrationWorker`:
+Register the subclass directly as a hosted service:
 
 ```csharp
 builder.Services.AddHostedService(sp =>
