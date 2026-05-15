@@ -37,7 +37,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <None Update="SeedData\Sample.Api.WeatherForecasts.Models.WeatherForecast.json">
+      <None Update="SeedData\Sample.Api.WeatherForecasts.Shared.WeatherForecast.json">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>

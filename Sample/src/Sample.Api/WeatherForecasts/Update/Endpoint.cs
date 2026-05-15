@@ -1,14 +1,16 @@
-namespace Sample.Api.WeatherForecasts.Endpoints;
+using GetByIdResponse = Sample.Api.WeatherForecasts.GetById.Response;
 
-public static class UpdateWeatherForecastEndpoint
+namespace Sample.Api.WeatherForecasts.Update;
+
+public static class Endpoint
 {
     public const string Name = nameof(UpdateWeatherForecast);
 
     public static IEndpointRouteBuilder MapUpdateWeatherForecast(this IEndpointRouteBuilder app)
     {
-        app.MapPut(Paths.WeatherForecasts.Update, UpdateWeatherForecastHandler.HandleAsync)
+        app.MapPut(Paths.WeatherForecasts.Update, Handler.HandleAsync)
             .WithName(Name)
-            .Produces<WeatherForecastResponse>()
+            .Produces<GetByIdResponse>()
             .Produces<string>(StatusCodes.Status404NotFound)
             .Produces<string>(StatusCodes.Status400BadRequest)
             .RequireAuthorization(AuthorizationRoles.AdminOnlyPolicy);

@@ -1,5 +1,5 @@
 using Bogus;
-using Sample.Api.WeatherForecasts.Models;
+using Sample.Api.WeatherForecasts.Shared;
 
 namespace Sample.Api.Tests.WeatherForecasts;
 
@@ -21,10 +21,21 @@ public static class WeatherForecastFakers
             .RuleFor(x => x.TemperatureC, f => f.Random.Int(-20, 45))
             .RuleFor(x => x.Summary, f => f.PickRandom(Summaries));
 
-    public static WeatherForecastRequest WeatherForecastRequest()
+    public static Sample.Api.WeatherForecasts.Create.Request CreateRequest()
     {
         var f = new Faker();
-        return new WeatherForecastRequest(
+        return new(
+            f.Address.City(),
+            DateOnly.FromDateTime(f.Date.Future()),
+            f.Random.Int(-20, 45),
+            f.PickRandom(Summaries)
+        );
+    }
+
+    public static Sample.Api.WeatherForecasts.Update.Request UpdateRequest()
+    {
+        var f = new Faker();
+        return new(
             f.Address.City(),
             DateOnly.FromDateTime(f.Date.Future()),
             f.Random.Int(-20, 45),

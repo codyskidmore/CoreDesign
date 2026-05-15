@@ -1,3 +1,9 @@
+using Sample.Api.WeatherForecasts.Create;
+using Sample.Api.WeatherForecasts.Delete;
+using Sample.Api.WeatherForecasts.GetAll;
+using Sample.Api.WeatherForecasts.GetById;
+using Sample.Api.WeatherForecasts.Update;
+
 namespace Sample.Api;
 
 public static class ModuleConfig
@@ -8,7 +14,7 @@ public static class ModuleConfig
 
         s.AddTransient<IReadRepository<SampleDbContext, WeatherForecast>, ReadRepository<SampleDbContext, WeatherForecast>>();
         s.AddTransient<ICudRepository<SampleDbContext, WeatherForecast>, CudRepository<SampleDbContext, WeatherForecast>>();
-        s.AddWithLogging<IWeatherForecastService, WeatherForecastService>();
+
         return builder;
     }
 

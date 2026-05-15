@@ -1,10 +1,7 @@
 global using Sample.Api.Data;
-global using Sample.Api.WeatherForecasts.Handlers;
-global using Sample.Api.WeatherForecasts.Models;
-global using Sample.Api.WeatherForecasts.Services;
-global using Sample.Api.WeatherForecasts.Endpoints;
-global using CoreDesign.Logging;
+global using Sample.Api.WeatherForecasts.Shared;
 global using Sample.Api.Infrastructure;
+global using CoreDesign.Logging;
 global using CoreDesign.Data.Infrastructure;
 global using CoreDesign.Data.Interfaces;
 global using CoreDesign.Data.Repositories;

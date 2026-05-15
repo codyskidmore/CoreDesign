@@ -1,14 +1,14 @@
-namespace Sample.Api.WeatherForecasts.Endpoints;
+namespace Sample.Api.WeatherForecasts.GetById;
 
-public static class GetWeatherForecastEndpoint
+public static class Endpoint
 {
     public const string Name = nameof(GetWeatherForecastEndpoint);
 
     public static IEndpointRouteBuilder MapGetWeatherForecast(this IEndpointRouteBuilder app)
     {
-        app.MapGet(Paths.WeatherForecasts.GetById, GetWeatherForecastHandler.HandleAsync)
+        app.MapGet(Paths.WeatherForecasts.GetById, Handler.HandleAsync)
             .WithName(Name)
-            .Produces<WeatherForecastResponse>()
+            .Produces<Response>()
             .Produces<string>(StatusCodes.Status404NotFound)
             .CacheOutput(nameof(CacheConfig.WeatherForecastCache))
             .RequireAuthorization(AuthorizationRoles.UserOrAdminPolicy);
@@ -16,5 +16,5 @@ public static class GetWeatherForecastEndpoint
         return app;
     }
 
-    private class GetWeatherForecastById;
+    private class GetWeatherForecastEndpoint;
 }

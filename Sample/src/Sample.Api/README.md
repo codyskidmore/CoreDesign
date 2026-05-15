@@ -1,20 +1,39 @@
-# SampleApi.Api
+# Sample.Api
 
-ASP.NET Core Minimal API demonstrating a feature-sliced structure with clean separation between routing, request handling, business logic, and data access.
+ASP.NET Core Minimal API demonstrating Vertical Slice Architecture (VSA): each HTTP operation is fully self-contained in its own folder, with no shared service layer between operations.
 
 ## Project Structure
 
 ```
-SampleApi.Api/
+Sample.Api/
 ├── Data/
 │   ├── Migrations/
-│   └── SampleApiDbContext.cs
+│   └── SampleDbContext.cs
 ├── Infrastructure/
 ├── WeatherForecasts/
-│   ├── Endpoints/
-│   ├── Handlers/
-│   ├── Models/
-│   └── Services/
+│   ├── Shared/
+│   │   ├── WeatherForecast.cs
+│   │   └── WeatherForecastConfiguration.cs
+│   ├── Create/
+│   │   ├── Endpoint.cs
+│   │   ├── Handler.cs
+│   │   ├── Request.cs
+│   │   └── Response.cs
+│   ├── Delete/
+│   │   ├── Endpoint.cs
+│   │   └── Handler.cs
+│   ├── GetAll/
+│   │   ├── Endpoint.cs
+│   │   ├── Handler.cs
+│   │   └── Response.cs
+│   ├── GetById/
+│   │   ├── Endpoint.cs
+│   │   ├── Handler.cs
+│   │   └── Response.cs
+│   └── Update/
+│       ├── Endpoint.cs
+│       ├── Handler.cs
+│       └── Request.cs
 ├── GlobalUsing.cs
 ├── ModuleConfig.cs
 └── Program.cs
@@ -25,8 +44,8 @@ SampleApi.Api/
 | File | Purpose |
 |------|---------|
 | `Program.cs` | Entry point. Bootstraps Serilog, builds the `WebApplication`, and runs the host. |
-| `GlobalUsing.cs` | Project-wide global using statements. |
-| `ModuleConfig.cs` | Registers each feature module's services with the DI container and defines all route path constants. |
+| `GlobalUsing.cs` | Project-wide global using statements. Includes `WeatherForecasts.Shared` so entity types are available everywhere. |
+| `ModuleConfig.cs` | Registers each feature module's repositories with the DI container and defines all route path constants. |
 
 ## Data
 
@@ -34,7 +53,7 @@ Holds the EF Core `DbContext` and database schema definitions.
 
 | File | Purpose |
 |------|---------|
-| `SampleApiDbContext.cs` | Declares `DbSet` properties and applies all `IEntityTypeConfiguration` implementations via assembly scanning. |
+| `SampleDbContext.cs` | Declares `DbSet` properties and applies all `IEntityTypeConfiguration` implementations via assembly scanning. |
 | `Schemas.cs` | Enum used to keep schema name references consistent across the project. |
 | `Migrations/` | EF Core migration files and model snapshot (auto-generated, do not edit manually). |
 
@@ -56,51 +75,65 @@ Cross-cutting configuration that applies to the whole application rather than an
 
 ## Feature Modules
 
-Each feature is a self-contained folder containing its own models, service, handlers, and endpoint mappings. Adding a new feature means adding a new folder with the same internal structure and registering it in `ModuleConfig.cs` and `Infrastructure/Endpoints.cs`.
+Each feature is organized by operation rather than by technical role. A developer tracing any single HTTP operation opens one folder and finds everything: the route definition, the request binding, the data access, and the response shape. Adding a new operation means adding a new sub-folder and registering the endpoint in `ModuleConfig.cs`.
 
 ### WeatherForecasts
 
-#### Models
+#### Shared
 
-Holds the entity, its EF Core configuration, request/response DTOs, and the mapper between them.
+Holds only what is genuinely shared across all operations: the entity class and its EF Core configuration. Both represent the database table, not any particular operation.
 
 | File | Purpose |
 |------|---------|
 | `WeatherForecast.cs` | EF Core entity. Inherits `BaseEntity` for common audit fields. |
-| `WeatherForecastConfiguration.cs` | EF Core `IEntityTypeConfiguration` implementation. Defines column constraints and indexes. |
-| `WeatherForecastRequest.cs` | Inbound DTO for create and update operations. |
-| `WeatherForecastResponse.cs` | Outbound DTO returned to callers. Includes computed `TemperatureF`. |
-| `Mapper.cs` | Static extension methods that convert between the entity and the request/response DTOs. |
+| `WeatherForecastConfiguration.cs` | EF Core `IEntityTypeConfiguration` implementation. Defines column constraints and unique index on `(Location, Date)`. |
 
-#### Services
+#### Create
 
-Contains the service interface and implementation. Services encapsulate all business logic and communicate results using `OneOf` discriminated unions instead of exceptions.
+`POST /WeatherForecasts` — requires `AdminOnly` policy.
 
 | File | Purpose |
 |------|---------|
-| `IWeatherForecastService.cs` | Defines the async CRUD contract with typed result unions for success, not-found, and error cases. |
-| `WeatherForecastService.cs` | Implements the contract using the read and CUD repositories. |
+| `Request.cs` | Inbound DTO. Includes `ToNewEntity()` to create a `WeatherForecast` from the request. |
+| `Response.cs` | Outbound DTO with `TemperatureF` computed from `TemperatureC`. Includes `From(entity)` factory. |
+| `Handler.cs` | Inserts via `ICudRepository`, evicts cache on success, returns `201 Created` with location header. |
+| `Endpoint.cs` | Registers the POST route, declares produces metadata, and applies the authorization policy. |
 
-#### Handlers
+#### Delete
 
-One handler per operation. Each handler calls the service, maps the result to an `IResult`, and handles cache invalidation where required. Handlers are static classes with a single `HandleAsync` method, which is referenced directly in the endpoint mapping.
-
-| File | Purpose |
-|------|---------|
-| `CreateWeatherForecastHandler.cs` | Calls `CreateAsync`, evicts the cache on success, returns `201 Created`. |
-| `GetAllWeatherForecastsHandler.cs` | Calls `GetAllAsync`, returns the list or `404 Not Found`. |
-| `GetWeatherForecastHandler.cs` | Calls `GetAsync` by ID, returns the item or `404 Not Found`. |
-| `UpdateWeatherForecastHandler.cs` | Calls `UpdateAsync`, evicts the cache on success, returns the updated item. |
-| `DeleteWeatherForecastHandler.cs` | Calls `DeleteAsync`, evicts the cache on success, returns `200 OK`. |
-
-#### Endpoints
-
-One endpoint class per operation. Each class is responsible only for registering the route, configuring metadata (name, produces, authorization), and pointing to the corresponding handler. No business logic lives here.
+`DELETE /WeatherForecasts/{id}` — requires `AdminOnly` policy.
 
 | File | Purpose |
 |------|---------|
-| `CreateWeatherForecastEndpoint.cs` | `POST /WeatherForecasts` — requires `AdminOnly` policy. |
-| `GetAllWeatherForecastsEndpoint.cs` | `GET /WeatherForecasts` — requires `UserOrAdmin` policy, output cached. |
-| `GetWeatherForecastEndpoint.cs` | `GET /WeatherForecasts/{id}` — requires `UserOrAdmin` policy, output cached. |
-| `UpdateWeatherForecastEndpoint.cs` | `PUT /WeatherForecasts/{id}` — requires `AdminOnly` policy. |
-| `DeleteWeatherForecastEndpoint.cs` | `DELETE /WeatherForecasts/{id}` — requires `AdminOnly` policy. |
+| `Handler.cs` | Deletes via `ICudRepository`. Returns `200 OK` on success or `404 Not Found` if the record does not exist. Evicts cache on success. |
+| `Endpoint.cs` | Registers the DELETE route and applies the authorization policy. |
+
+#### GetAll
+
+`GET /WeatherForecasts` — requires `UserOrAdmin` policy, output cached.
+
+| File | Purpose |
+|------|---------|
+| `Response.cs` | Outbound DTO for the collection. Includes `From(entity)` factory. |
+| `Handler.cs` | Retrieves all records via `IReadRepository`, maps to `Response`, returns `200 OK` or `404 Not Found` when no records exist. |
+| `Endpoint.cs` | Registers the GET route, applies cache policy and authorization. |
+
+#### GetById
+
+`GET /WeatherForecasts/{id}` — requires `UserOrAdmin` policy, output cached.
+
+| File | Purpose |
+|------|---------|
+| `Response.cs` | Outbound DTO for a single record. Includes `From(entity)` factory. Also used as the response type for the Update operation. |
+| `Handler.cs` | Retrieves a single record by ID via `IReadRepository`, returns `200 OK` or `404 Not Found`. |
+| `Endpoint.cs` | Registers the GET-by-id route, applies cache policy and authorization. Defines the route name used by Create's `CreatedAtRoute` response. |
+
+#### Update
+
+`PUT /WeatherForecasts/{id}` — requires `AdminOnly` policy.
+
+| File | Purpose |
+|------|---------|
+| `Request.cs` | Inbound DTO. Includes `Apply(entity)` to update an existing `WeatherForecast` in place. |
+| `Handler.cs` | Fetches the entity, applies the request, saves via `ICudRepository`. Returns `200 OK` with the updated record, `404 Not Found`, or `400 Bad Request` if the repository update fails. |
+| `Endpoint.cs` | Registers the PUT route and applies the authorization policy. |

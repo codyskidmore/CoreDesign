@@ -1,4 +1,4 @@
-namespace Sample.Api.WeatherForecasts.Models;
+namespace Sample.Api.WeatherForecasts.Shared;
 
 public class WeatherForecastConfig : BaseEntityConfiguration<WeatherForecast>
 {

@@ -1,12 +1,12 @@
-namespace Sample.Api.WeatherForecasts.Endpoints;
+namespace Sample.Api.WeatherForecasts.Delete;
 
-public static class DeleteWeatherForecastEndpoint
+public static class Endpoint
 {
     public const string Name = nameof(DeleteWeatherForecast);
 
     public static IEndpointRouteBuilder MapDeleteWeatherForecast(this IEndpointRouteBuilder app)
     {
-        app.MapDelete(Paths.WeatherForecasts.Delete, DeleteWeatherForecastHandler.HandleAsync)
+        app.MapDelete(Paths.WeatherForecasts.Delete, Handler.HandleAsync)
             .WithName(Name)
             .Produces(StatusCodes.Status200OK)
             .Produces<string>(StatusCodes.Status404NotFound)
