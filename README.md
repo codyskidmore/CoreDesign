@@ -2,6 +2,10 @@
 
 A collection of reusable .NET 10 libraries for data access, shared infrastructure, logging, and identity. Each package is independent and can be referenced on its own.
 
+## User Guide
+
+For a single consolidated reference covering all packages, the sample application, authentication setup, deployment, and release notes, see [CoreDesignUserGuide.md](CoreDesignUserGuide.md).
+
 ## Projects
 
 ### CoreDesign.Shared
