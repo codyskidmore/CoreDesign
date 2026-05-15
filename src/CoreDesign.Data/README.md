@@ -179,7 +179,7 @@ By default, `MigrationWorker<TContext>` scans a directory named `SeedData` (rela
 For an entity `MyApp.Orders.Models.Order` the seed file must be named:
 
 ```
-SeedData/MyApp.Orders.Models.Order.json
+MyApp.Orders.Models.Order.json
 ```
 
 Using any other name causes the file to be skipped silently. The fully qualified name includes every namespace segment, separated by dots, with no assembly name prefix.
