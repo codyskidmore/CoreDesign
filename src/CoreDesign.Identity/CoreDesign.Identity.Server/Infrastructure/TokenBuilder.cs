@@ -21,8 +21,8 @@ internal static class TokenBuilder
         if (!string.IsNullOrEmpty(nonce))
             claims.Add(new Claim(JwtRegisteredClaimNames.Nonce, nonce));
 
-        foreach (var role in identity.Roles)
-            claims.Add(new Claim("roles", role));
+        foreach (var permission in identity.Permissions)
+            claims.Add(new Claim("permissions", permission));
 
         foreach (var (type, value) in identity.CustomClaims)
             claims.Add(new Claim(type, value));

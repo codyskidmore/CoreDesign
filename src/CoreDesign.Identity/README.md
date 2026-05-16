@@ -66,7 +66,7 @@ Add an `identities.json` file to the project, set it to copy to the output direc
     "name": "Admin User",
     "givenName": "Admin",
     "familyName": "User",
-    "roles": ["admin", "user"],
+    "permissions": ["items:read", "items:write"],
     "customClaims": {}
   }
 ]
@@ -194,7 +194,7 @@ Frontend                 Azure Entra                  API
    |<-- 200 [ ... ] ------------------------------------'
 ```
 
-The API receives a Bearer token in both flows. Its validation logic, authorization policies, and role checks do not change.
+The API receives a Bearer token in both flows. Its validation logic, authorization policies, and permission checks do not change.
 
 ### Step 1: obtain a token
 
@@ -254,7 +254,7 @@ if (response.status === 401) {
 | API calls | `Authorization: Bearer <token>` | `Authorization: Bearer <token>` |
 | API validation config | `CoreDesign:Identity:Issuer` and `Audience` | `AzureAd:TenantId` and `Audience` |
 | API code and policies | unchanged | unchanged |
-| Token claims (`roles`, `email`, `oid`) | set in `identities.json` | set in Entra App Role assignments |
+| Token claims (`permissions`, `email`, `oid`) | set in `identities.json` | Entra App Roles mapped to `permissions` claims via claims transformation |
 
 ## Token Claims
 
@@ -268,7 +268,7 @@ Every issued token includes the following claims:
 | `given_name` | `givenName` from the identity record |
 | `family_name` | `familyName` from the identity record |
 | `oid` | `userId` from the identity record |
-| `roles` | Each entry in the `roles` array becomes its own claim |
+| `permissions` | Each entry in the `permissions` array becomes its own claim |
 | Custom | Each key in `customClaims` becomes its own claim |
 
 ## Development Behavior

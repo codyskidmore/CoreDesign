@@ -1,5 +1,166 @@
 # Release Notes
 
+## CoreDesign.Identity.Client 1.0.9
+
+### Permission-Based Authorization
+
+Authorization is now permission-based rather than role-based. Named authorization policies (such as `AdminOnly` or `UserOrAdmin`) are gone. Endpoints declare their required permission by passing a permission string directly to `RequireAuthorization()`:
+
+```csharp
+app.MapGet("/items", Handler.HandleAsync).RequireAuthorization("items:read");
+app.MapPost("/items", Handler.HandleAsync).RequireAuthorization("items:write");
+```
+
+Three new types support this model:
+
+| Type | Description |
+| --- | --- |
+| `PermissionRequirement` | An `IAuthorizationRequirement` that carries a permission string. |
+| `PermissionAuthorizationHandler` | Checks the `permissions` claim in the bearer token against the required permission string. Succeeds when the claim is present and matches exactly. |
+| `PermissionAuthorizationPolicyProvider` | Extends `DefaultAuthorizationPolicyProvider`. Returns any explicitly registered named policy unchanged. For any other policy name it creates a policy on demand that requires authentication and the matching `permissions` claim. |
+
+`AddIdentityClient` now calls `AddPermissionAuthorization` automatically. For production auth providers that do not go through `AddIdentityClient`, call it explicitly:
+
+```csharp
+if (builder.Environment.IsDevelopment())
+    builder.Services.AddIdentityClient(builder.Configuration);
+else
+{
+    builder.AddAzureEntraAuthentication();
+    builder.Services.AddPermissionAuthorization();
+}
+```
+
+`AddPermissionAuthorization` also sets a fallback policy that requires every user to be authenticated, so anonymous access is denied by default without needing `[Authorize]` on every endpoint.
+
+### Bug Fix: Registration Order
+
+`AddPermissionAuthorization` previously used `TryAddSingleton` and `TryAddScoped` to register the policy provider and handler. Both calls were no-ops because `AddAuthorization` (called first inside `AddPermissionAuthorization`) had already registered `DefaultAuthorizationPolicyProvider` and `PassThroughAuthorizationHandler` for those service types. The provider is now registered with `AddSingleton` so it overrides the default, and the handler is registered with `TryAddEnumerable` (the correct pattern for adding to the authorization handler collection).
+
+### Breaking Changes
+
+- Named role-based authorization policies (`AdminOnly`, `UserOrAdmin`, etc.) are no longer created. Replace any `RequireAuthorization("PolicyName")` calls with `RequireAuthorization("permission:string")`.
+- The `identities.json` `roles` field is replaced by `permissions`. See the CoreDesign.Identity.Server 1.0.8 entry.
+
+---
+
+## CoreDesign.Identity.Server 1.0.8
+
+### Permissions Replace Roles
+
+Issued tokens now carry `permissions` claims instead of `roles` claims. Each entry in the identity record's `permissions` array becomes its own `permissions` claim in the JWT. The `GET /connect/userinfo` endpoint also returns permissions under the `permissions` JSON property.
+
+The `identities.json` file format changes accordingly: replace the `roles` array with a `permissions` array in every identity record.
+
+**Before:**
+
+```json
+{
+  "userId": "11111111-1111-1111-1111-111111111111",
+  "username": "admin@example.local",
+  "password": "Password1!",
+  "email": "admin@example.local",
+  "name": "Admin User",
+  "givenName": "Admin",
+  "familyName": "User",
+  "roles": [ "Admin", "AppUser" ],
+  "customClaims": {}
+}
+```
+
+**After:**
+
+```json
+{
+  "userId": "11111111-1111-1111-1111-111111111111",
+  "username": "admin@example.local",
+  "password": "Password1!",
+  "email": "admin@example.local",
+  "name": "Admin User",
+  "givenName": "Admin",
+  "familyName": "User",
+  "permissions": [ "items:read", "items:write" ],
+  "customClaims": {}
+}
+```
+
+Permission strings are arbitrary and must match the strings passed to `RequireAuthorization()` in the API.
+
+### Breaking Change
+
+The `roles` property on `IdentityRecord` is removed. The `roles` claim is no longer emitted in any token. APIs that relied on `User.IsInRole()` or a role claim type of `roles` must migrate to the `permissions` claim using `PermissionAuthorizationHandler` from `CoreDesign.Identity.Client`.
+
+---
+
+## Sample Application (Permissions Refactor)
+
+### Updated: Sample.Api
+
+`Authorization.cs` and `EnvironmentName.cs` have been removed from `Infrastructure/`. They are replaced by `Permissions.cs`, which defines the permission constants used by all endpoints:
+
+```csharp
+public static class Permissions
+{
+    public const string WeatherRead  = "weather:read";
+    public const string WeatherWrite = "weather:write";
+}
+```
+
+Each endpoint passes the appropriate constant to `RequireAuthorization()` directly:
+
+```csharp
+app.MapGet(Paths.WeatherForecasts.GetAll, Handler.HandleAsync)
+    .RequireAuthorization(Permissions.WeatherRead);
+
+app.MapPost(Paths.WeatherForecasts.Create, Handler.HandleAsync)
+    .RequireAuthorization(Permissions.WeatherWrite);
+```
+
+The pre-configured development accounts now reflect permissions instead of roles:
+
+| Email | Password | Permissions |
+| --- | --- | --- |
+| admin@sampleapi.local | Password1! | weather:read, weather:write |
+| user@sampleapi.local | Password1! | weather:read |
+
+---
+
+## Tests
+
+### New: PermissionAuthorizationTests (CoreDesign.Identity.Client.Tests)
+
+Eleven new tests cover the three types introduced in CoreDesign.Identity.Client 1.0.9:
+
+**`PermissionAuthorizationHandlerTests`**
+
+- Succeeds when the `permissions` claim matches the required permission.
+- Succeeds when one of multiple `permissions` claims matches.
+- Does not succeed when no `permissions` claim is present.
+- Does not succeed when the claim value does not match.
+- Does not succeed when the user has no claims at all.
+
+**`PermissionAuthorizationPolicyProviderTests`**
+
+- Returns an existing explicitly defined policy unchanged.
+- Returns a permission policy for any unrecognized policy name.
+- Permission policies created on demand include `DenyAnonymousAuthorizationRequirement`.
+
+**`AddPermissionAuthorizationTests`**
+
+- `PermissionAuthorizationPolicyProvider` is resolved as `IAuthorizationPolicyProvider`.
+- `PermissionAuthorizationHandler` is included in the `IAuthorizationHandler` collection.
+- The fallback policy requires an authenticated user.
+
+### Fixed: IdentityFakers (CoreDesign.Identity.Server.Tests)
+
+`IdentityFakers.IdentityRecord()` was referencing the removed `Roles` property. Updated to use `Permissions` with representative permission strings (`items:read`, `items:write`, `items:delete`).
+
+### Fixed: ClientFakers (CoreDesign.Identity.Server.Tests)
+
+`ClientFakers.cs` contained a class named `PleseClientFakers` (typo). Renamed to `ClientFakers` to match the name used by `JsonFileClientStoreTests` and `TokenEndpointTests`.
+
+---
+
 ## CoreDesign.Data 1.0.3
 
 ### AddMigrationWorker Extension Method
@@ -295,10 +456,10 @@ A dedicated standalone identity server built on the new `AddIdentityServerWebHos
 
 Two accounts are pre-configured:
 
-| Email | Password | Roles |
+| Email | Password | Permissions |
 | --- | --- | --- |
-| admin@sampleapi.local | Password1! | DevAdmin, DevAppUsers |
-| user@sampleapi.local | Password1! | DevAppUsers |
+| admin@sampleapi.local | Password1! | weather:read, weather:write |
+| user@sampleapi.local | Password1! | weather:read |
 
 ### New: Sample.Blazor
 
@@ -403,4 +564,4 @@ Client and identity store JSON files are now in a single `Sample/src/Shared/` fo
 
 - Valid bearer token returns expected claims.
 - Invalid or expired token returns HTTP 401.
-- Claims mapping is validated for `sub`, `email`, `name`, and `roles`.
+- Claims mapping is validated for `sub`, `email`, `name`, and `permissions`.

@@ -547,7 +547,7 @@ A lightweight, self-contained OIDC identity server library for ASP.NET Core. It 
 | `POST /get-token` | Convenience JSON token endpoint for tooling (Postman, Scalar, curl) |
 | `POST /auth/login` | Direct JSON login endpoint for non-OIDC frontends |
 
-Tokens are RS256-signed JWTs containing `sub`, `email`, `preferred_username`, `name`, `given_name`, `family_name`, `oid`, `roles`, and any custom claims defined on the identity record.
+Tokens are RS256-signed JWTs containing `sub`, `email`, `preferred_username`, `name`, `given_name`, `family_name`, `oid`, `permissions`, and any custom claims defined on the identity record.
 
 #### Token Claims
 
@@ -561,7 +561,7 @@ Every issued token includes the following claims:
 | `given_name` | `givenName` from the identity record |
 | `family_name` | `familyName` from the identity record |
 | `oid` | `userId` from the identity record |
-| `roles` | Each entry in the `roles` array becomes its own claim |
+| `permissions` | Each entry in the `permissions` array becomes its own claim |
 | Custom | Each key in `customClaims` becomes its own claim |
 
 The token endpoint issues two distinct JWTs per successful authentication:
@@ -717,7 +717,7 @@ The file is a JSON array of identity records:
     "name": "Admin User",
     "givenName": "Admin",
     "familyName": "User",
-    "roles": [ "Admin", "AppUser" ],
+    "permissions": [ "items:read", "items:write" ],
     "customClaims": {}
   }
 ]
@@ -732,7 +732,7 @@ The file is a JSON array of identity records:
 | `name` | string | `name` claim |
 | `givenName` | string | `given_name` claim |
 | `familyName` | string | `family_name` claim |
-| `roles` | string[] | Each value emitted as a separate `roles` claim |
+| `permissions` | string[] | Each value emitted as a separate `permissions` claim |
 | `customClaims` | object | Arbitrary key-value pairs added as additional claims |
 
 To use a custom backing store implement `IIdentityStore` and register it directly:
@@ -954,8 +954,11 @@ For Blazor or other browser-based apps, use the OIDC middleware directly (see [B
 
 | Type | Description |
 |---|---|
-| `IdentityClientExtensions.AddIdentityClient` | Registers JWT Bearer auth and the `IdentityApiClient` HTTP client |
+| `IdentityClientExtensions.AddIdentityClient` | Registers JWT Bearer auth, the `IdentityApiClient` HTTP client, and permission-based authorization |
 | `IdentityClientExtensions.UseLocalBearerTokenInjection` | Mounts the bearer token injection middleware (development only) |
+| `PermissionAuthorizationExtensions.AddPermissionAuthorization` | Registers permission-based authorization as a standalone call, for auth providers that do not go through `AddIdentityClient` |
+| `PermissionAuthorizationPolicyProvider` | Dynamically creates an authorization policy for any permission string passed to `RequireAuthorization()` |
+| `PermissionAuthorizationHandler` | Checks the `permissions` claim in the bearer token against the required permission |
 | `IdentityApiClient` | Fetches and caches access tokens from the identity server |
 | `BearerSecurityTransformer` | OpenAPI transformer that adds a Bearer security scheme to authenticated operations |
 
@@ -963,12 +966,29 @@ For Blazor or other browser-based apps, use the OIDC middleware directly (see [B
 
 **1. Register services**
 
+Call `AddIdentityClient` in development and `AddPermissionAuthorization` explicitly for non-development providers. Permission-based authorization is registered automatically when using `AddIdentityClient`:
+
 ```csharp
 if (builder.Environment.IsDevelopment())
     builder.Services.AddIdentityClient(builder.Configuration);
 else
+{
     builder.Services.AddProductionAuthentication(...);
+    builder.Services.AddPermissionAuthorization();
+}
 ```
+
+Endpoints declare their required permission by passing a permission string directly to `RequireAuthorization()`:
+
+```csharp
+app.MapGet("/items", Handler.HandleAsync)
+    .RequireAuthorization("items:read");
+
+app.MapPost("/items", Handler.HandleAsync)
+    .RequireAuthorization("items:write");
+```
+
+No policy registration is needed. `PermissionAuthorizationPolicyProvider` creates the policy on demand the first time a given permission string is encountered.
 
 **2. Add middleware**
 
@@ -1040,7 +1060,6 @@ When all conditions are met it calls `IdentityApiClient.GetAccessTokenAsync()`, 
 | Audience validation | Enabled, matched against the configured audience |
 | Lifetime validation | Enabled |
 | Signing key discovery | Automatic via `/.well-known/openid-configuration` |
-| Role claim type | `roles` |
 | Name claim type | `email` |
 | Inbound claim mapping | Disabled (`MapInboundClaims = false`) |
 
@@ -1071,8 +1090,8 @@ Frontend                 Identity Server              API
 | Token acquisition | `POST /auth/login` on the identity server | MSAL `loginPopup` or `loginRedirect` |
 | API calls | `Authorization: Bearer <token>` | `Authorization: Bearer <token>` |
 | API validation config | `CoreDesign:Identity:Issuer` and `Audience` | `AzureAd:TenantId` and `Audience` |
-| API code and policies | unchanged | unchanged |
-| Token claims (`roles`, `email`, `oid`) | set in `identities.json` | set in Entra App Role assignments |
+| API code and endpoint permissions | unchanged | unchanged |
+| Token claims (`permissions`, `email`, `oid`) | set in `identities.json` | Entra App Roles mapped to `permissions` claims via claims transformation |
 
 ---
 
@@ -1082,12 +1101,12 @@ This section describes how to switch from `CoreDesign.Identity.Server` in develo
 
 ### Environment Summary
 
-| Environment | Auth provider | Role names |
-|---|---|---|
-| `Development` | CoreDesign.Identity.Server (local) | `DevAdmin`, `DevAppUsers` |
-| `AzureDev` | Azure Entra | `DevAdmin`, `DevAppUsers` |
-| `UAT` | Azure Entra | `UATAdmin`, `UATUsers` |
-| `Production` | Azure Entra | `AdminUsers`, `AppUsers` |
+| Environment | Auth provider |
+|---|---|
+| `Development` | CoreDesign.Identity.Server (local) |
+| `AzureDev`, `UAT`, `Production` | Azure Entra |
+
+Authorization uses the same permission strings in every environment. Only the token issuer and the mechanism for assigning permissions to users differs between development and production.
 
 ### How the Switch Works
 
@@ -1126,34 +1145,22 @@ Add a scope:
 
 ### Step 3: Define App Roles
 
-Under **App roles**, create a role for each role name the API expects for the target environment. Role names must match exactly what the authorization policies check.
-
-**AzureDev**
+Under **App roles**, create a role for each permission string the API uses. The **Value** field must exactly match the permission string declared in your application (e.g., in `Permissions.cs`). Use the same roles across all environments.
 
 | Display name | Value | Allowed member types |
 |---|---|---|
-| Dev Administrator | `DevAdmin` | Users/Groups |
-| Dev App Users | `DevAppUsers` | Users/Groups |
+| Weather Read | `weather:read` | Users/Groups |
+| Weather Write | `weather:write` | Users/Groups |
 
-**UAT**
-
-| Display name | Value | Allowed member types |
-|---|---|---|
-| UAT Administrator | `UATAdmin` | Users/Groups |
-| UAT App Users | `UATUsers` | Users/Groups |
-
-**Production**
-
-| Display name | Value | Allowed member types |
-|---|---|---|
-| Administrator | `AdminUsers` | Users/Groups |
-| App Users | `AppUsers` | Users/Groups |
+Add one entry for each permission string your API defines. Values are case-sensitive and must match exactly.
 
 ### Step 4: Assign Users to Roles
 
-In **Azure Active Directory > Enterprise applications**, find the app registration. Under **Users and groups**, assign each user or group to the appropriate role. Users without a role assignment will receive tokens with no `roles` claim and will be denied by the API's authorization policies.
+In **Azure Active Directory > Enterprise applications**, find the app registration. Under **Users and groups**, assign each user or group to the appropriate roles. A user assigned to `weather:write` can call write endpoints; a user assigned only to `weather:read` cannot. Users with no role assignment receive no `roles` claim and are denied by the API's fallback authentication policy.
 
 ### Step 5: Configure the API
+
+Add the Entra configuration section to `appsettings.json` (supply secrets via user secrets or a key vault):
 
 ```json
 {
@@ -1167,6 +1174,27 @@ In **Azure Active Directory > Enterprise applications**, find the app registrati
 ```
 
 The API resolves the JWT authority as `{Instance}/{TenantId}/v2.0` and validates the `aud` claim against `Audience`.
+
+Entra App Roles are emitted in tokens as `roles` claims. The `PermissionAuthorizationHandler` checks for `permissions` claims, so a claims transformation is required to bridge the two. Register it alongside `AddAzureEntraAuthentication`:
+
+```csharp
+public class RolesToPermissionsTransformation : IClaimsTransformation
+{
+    public Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
+    {
+        var identity = (ClaimsIdentity)principal.Identity!;
+        foreach (var role in principal.FindAll("roles").ToList())
+            identity.AddClaim(new Claim("permissions", role.Value));
+        return Task.FromResult(principal);
+    }
+}
+```
+
+Register the transformation in the service container (typically inside `AddAzureEntraAuthentication`):
+
+```csharp
+services.AddScoped<IClaimsTransformation, RolesToPermissionsTransformation>();
+```
 
 ### Step 6: Register a Client Application
 
@@ -1184,7 +1212,7 @@ The API configures JWT Bearer with `MapInboundClaims = false`. Entra tokens use 
 
 | Claim in token | Used as | Note |
 |---|---|---|
-| `roles` | Role claim | Populated from App Role assignments |
+| `roles` | App Role assignments | Mapped to `permissions` claims via `RolesToPermissionsTransformation` before authorization runs |
 | `oid` | Object ID | Present by default |
 
 If users need the `email` claim, ensure **Optional claims** includes `email` in the token configuration for the API's App Registration (under **Token configuration > Add optional claim > Access token > email**).
@@ -1193,7 +1221,7 @@ If users need the `email` claim, ensure **Optional claims** includes `email` in 
 
 **401 on all requests**: Verify `AzureAd:TenantId` and `AzureAd:Audience` are set correctly. The audience in the token (`aud` claim) must exactly match the configured value, including the `api://` prefix.
 
-**403 on protected endpoints**: The user's token contains no `roles` claim or the role value does not match the expected name. Check the App Role assignment in the Enterprise application and confirm the role `Value` field matches the string in `AuthorizationRoles.cs`.
+**403 on protected endpoints**: The user's token contains no matching `permissions` claim after transformation. Check that `RolesToPermissionsTransformation` is registered, that the user is assigned to the correct App Role in the Enterprise application, and that the App Role `Value` field exactly matches the permission string used in `RequireAuthorization()`.
 
 **IDX20804 / metadata failure**: The API could not reach the Entra metadata endpoint at startup. Check outbound internet connectivity and confirm `AzureAd:Instance` and `AzureAd:TenantId` form a valid authority URL.
 
@@ -1366,10 +1394,10 @@ Sample is a .NET 10 microservices solution that demonstrates how to build a REST
 
 **Pre-configured accounts**
 
-| Email | Password | Roles |
+| Email | Password | Permissions |
 |---|---|---|
-| admin@sampleapi.local | Password1! | DevAdmin, DevAppUsers |
-| user@sampleapi.local | Password1! | DevAppUsers |
+| admin@sampleapi.local | Password1! | weather:read, weather:write |
+| user@sampleapi.local | Password1! | weather:read |
 
 ### 9.2 Prerequisites and Setup
 
@@ -1477,8 +1505,7 @@ Sample.Api/
 ├── Infrastructure/
 │   ├── App.cs
 │   ├── Configuration.cs
-│   ├── AuthorizationPolicyConfiguration.cs
-│   ├── AuthorizationRoles.cs
+│   ├── Permissions.cs
 │   ├── Endpoints.cs
 │   ├── Cache.cs
 │   ├── Identity.cs
@@ -1518,9 +1545,8 @@ Sample.Api/
 | File | Purpose |
 |---|---|
 | `App.cs` | Configures the middleware pipeline: HTTPS, CORS, authentication, authorization, output caching, and endpoint mapping. |
-| `Configuration.cs` | Registers services: database, identity, authorization policies, CORS, output caching, and telemetry. Also registers `BearerSecurityTransformer`. |
-| `AuthorizationPolicyConfiguration.cs` | Defines role-based authorization policies with environment-specific role mappings. |
-| `AuthorizationRoles.cs` | Constants for role names and policy names referenced across the application. |
+| `Configuration.cs` | Registers services: database, identity, CORS, output caching, and telemetry. Also registers `BearerSecurityTransformer`. Permission-based authorization is registered automatically via `AddIdentityClient` in development and `AddPermissionAuthorization` in production. |
+| `Permissions.cs` | Application permission constants (`weather:read`, `weather:write`) passed directly to `RequireAuthorization()`. |
 | `Endpoints.cs` | Top-level endpoint registration. Delegates to each feature module's endpoint mapper. |
 | `Cache.cs` | Output cache policy configuration and the `CacheConfig` enum used for tag-based cache invalidation. |
 | `Identity.cs` | Extension method on `HttpContext` that extracts the authenticated user's ID from the `oid` claim. |
@@ -1529,13 +1555,13 @@ Sample.Api/
 
 #### WeatherForecasts Feature
 
-| Endpoint | Auth Policy | Notes |
+| Endpoint | Required Permission | Notes |
 |---|---|---|
-| `POST /WeatherForecasts` | `AdminOnly` | Inserts via `ICudRepository`, evicts cache, returns `201 Created` |
-| `GET /WeatherForecasts` | `UserOrAdmin` | Output cached |
-| `GET /WeatherForecasts/{id}` | `UserOrAdmin` | Output cached |
-| `PUT /WeatherForecasts/{id}` | `AdminOnly` | Fetches, applies request, saves via `ICudRepository` |
-| `DELETE /WeatherForecasts/{id}` | `AdminOnly` | Soft-deletes via `ICudRepository`, evicts cache |
+| `POST /WeatherForecasts` | `weather:write` | Inserts via `ICudRepository`, evicts cache, returns `201 Created` |
+| `GET /WeatherForecasts` | `weather:read` | Output cached |
+| `GET /WeatherForecasts/{id}` | `weather:read` | Output cached |
+| `PUT /WeatherForecasts/{id}` | `weather:write` | Fetches, applies request, saves via `ICudRepository` |
+| `DELETE /WeatherForecasts/{id}` | `weather:write` | Soft-deletes via `ICudRepository`, evicts cache |
 
 `Shared/` holds only the `WeatherForecast` entity and its EF Core configuration. Everything else (request/response types, handler logic) is scoped to its individual operation folder.
 
@@ -1859,8 +1885,7 @@ Sample.Api/
 ├── Infrastructure/
 │   ├── App.cs
 │   ├── Configuration.cs
-│   ├── AuthorizationPolicyConfiguration.cs
-│   ├── AuthorizationRoles.cs
+│   ├── Permissions.cs
 │   ├── Endpoints.cs
 │   ├── Cache.cs
 │   ├── Serilog.cs
@@ -1909,6 +1934,34 @@ Sample.Api/
 ---
 
 ## 11. Release Notes
+
+### CoreDesign.Identity.Client (Permission-Based Authorization)
+
+**Permission-based authorization replaces role-based policies.**
+
+`AddIdentityClient` now registers `PermissionAuthorizationPolicyProvider` and `PermissionAuthorizationHandler` automatically. Endpoints declare their required permission by passing a string directly to `RequireAuthorization()`:
+
+```csharp
+app.MapGet("/items", Handler.HandleAsync).RequireAuthorization("items:read");
+app.MapPost("/items", Handler.HandleAsync).RequireAuthorization("items:write");
+```
+
+No policy registration is needed. The policy provider creates the policy on demand the first time a given permission string is encountered, and checks for a matching `permissions` claim in the bearer token.
+
+`AddPermissionAuthorization` is now available as a standalone extension method on `IServiceCollection`, intended for production auth providers (such as Azure Entra) that do not go through `AddIdentityClient`.
+
+**Breaking changes:**
+
+- Named role-based authorization policies (`AdminOnly`, `UserOrAdmin`, etc.) are no longer created. Replace any `RequireAuthorization("PolicyName")` calls with `RequireAuthorization("permission:string")`.
+- The `roles` field in `identities.json` is replaced by `permissions`. Update all identity records to use the `permissions` array.
+
+---
+
+### CoreDesign.Identity.Server (Permission Claims)
+
+Issued tokens now include `permissions` claims instead of `roles` claims. Each entry in the identity record's `permissions` array becomes its own `permissions` claim in the JWT and is returned by the `/connect/userinfo` endpoint. The `identities.json` format changes accordingly: replace the `roles` array with a `permissions` array in every identity record.
+
+---
 
 ### CoreDesign.Data 1.0.3
 

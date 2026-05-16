@@ -7,7 +7,7 @@
     "name": "Admin User",
     "givenName": "Admin",
     "familyName": "User",
-    "roles": [ "DevAdmin", "DevAppUsers" ],
+    "permissions": [ "weather:read", "weather:write" ],
     "customClaims": {}
   },
   {
@@ -18,7 +18,7 @@
     "name": "App User",
     "givenName": "App",
     "familyName": "User",
-    "roles": [ "DevAppUsers" ],
+    "permissions": [ "weather:read" ],
     "customClaims": {}
   }
 ]

@@ -65,8 +65,7 @@ Cross-cutting configuration that applies to the whole application rather than an
 |------|---------|
 | `App.cs` | Configures the middleware pipeline: HTTPS, CORS, authentication, authorization, output caching, and endpoint mapping. |
 | `Configuration.cs` | Registers services during builder setup: database, identity, authorization policies, CORS, output caching, and telemetry. Also registers `BearerSecurityTransformer`, which annotates the OpenAPI document with the Bearer security scheme and automatically excludes anonymous endpoints. |
-| `AuthorizationPolicyConfiguration.cs` | Defines role-based authorization policies with environment-specific role mappings (Development, UAT, Production). |
-| `AuthorizationRoles.cs` | Constants for role names and policy names referenced across the application. |
+| `Permissions.cs` | Application permission constants (`weather:read`, `weather:write`) passed directly to `RequireAuthorization()`. The underlying policy provider and claim handler live in `CoreDesign.Identity.Client` and are registered automatically by `AddIdentityClient()`. |
 | `Endpoints.cs` | Top-level endpoint registration. Delegates to each feature module's endpoint mapper. |
 | `Cache.cs` | Output cache policy configuration and the `CacheConfig` enum used for tag-based cache invalidation. |
 | `Identity.cs` | Extension method on `HttpContext` that extracts the authenticated user's ID from the `oid` claim. |
@@ -90,7 +89,7 @@ Holds only what is genuinely shared across all operations: the entity class and 
 
 #### Create
 
-`POST /WeatherForecasts` — requires `AdminOnly` policy.
+`POST /WeatherForecasts` — requires `weather:write` permission.
 
 | File | Purpose |
 |------|---------|
@@ -101,7 +100,7 @@ Holds only what is genuinely shared across all operations: the entity class and 
 
 #### Delete
 
-`DELETE /WeatherForecasts/{id}` — requires `AdminOnly` policy.
+`DELETE /WeatherForecasts/{id}` — requires `weather:write` permission.
 
 | File | Purpose |
 |------|---------|
@@ -110,7 +109,7 @@ Holds only what is genuinely shared across all operations: the entity class and 
 
 #### GetAll
 
-`GET /WeatherForecasts` — requires `UserOrAdmin` policy, output cached.
+`GET /WeatherForecasts` — requires `weather:read` permission, output cached.
 
 | File | Purpose |
 |------|---------|
@@ -120,7 +119,7 @@ Holds only what is genuinely shared across all operations: the entity class and 
 
 #### GetById
 
-`GET /WeatherForecasts/{id}` — requires `UserOrAdmin` policy, output cached.
+`GET /WeatherForecasts/{id}` — requires `weather:read` permission, output cached.
 
 | File | Purpose |
 |------|---------|
@@ -130,7 +129,7 @@ Holds only what is genuinely shared across all operations: the entity class and 
 
 #### Update
 
-`PUT /WeatherForecasts/{id}` — requires `AdminOnly` policy.
+`PUT /WeatherForecasts/{id}` — requires `weather:write` permission.
 
 | File | Purpose |
 |------|---------|

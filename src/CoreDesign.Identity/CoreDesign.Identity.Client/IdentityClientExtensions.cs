@@ -42,10 +42,11 @@ public static class IdentityClientExtensions
                     ValidateIssuer = true,
                     ValidateAudience = true,
                     ValidateLifetime = true,
-                    RoleClaimType = "roles",
                     NameClaimType = "email"
                 };
             });
+
+        services.AddPermissionAuthorization();
 
         return services;
     }

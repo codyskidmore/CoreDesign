@@ -17,6 +17,6 @@ public class UserinfoResponse
     [JsonPropertyName("family_name")]
     public string FamilyName { get; set; } = string.Empty;
 
-    [JsonPropertyName("roles")]
-    public List<string> Roles { get; set; } = [];
+    [JsonPropertyName("permissions")]
+    public List<string> Permissions { get; set; } = [];
 }

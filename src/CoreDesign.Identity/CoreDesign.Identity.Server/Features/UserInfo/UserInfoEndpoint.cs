@@ -49,7 +49,7 @@ public static class UserInfoEndpoint
                 Name = identity.Name,
                 GivenName = identity.GivenName,
                 FamilyName = identity.FamilyName,
-                Roles = identity.Roles
+                Permissions = identity.Permissions
             });
         }
         catch (Exception ex)

@@ -8,8 +8,11 @@ For Blazor or other browser-based apps, use the OIDC middleware directly (see th
 
 | Type | Description |
 | --- | --- |
-| `IdentityClientExtensions.AddIdentityClient` | Registers JWT Bearer auth and the `IdentityApiClient` HTTP client |
+| `IdentityClientExtensions.AddIdentityClient` | Registers JWT Bearer auth, the `IdentityApiClient` HTTP client, and permission-based authorization |
 | `IdentityClientExtensions.UseLocalBearerTokenInjection` | Mounts the bearer token injection middleware (development only) |
+| `PermissionAuthorizationExtensions.AddPermissionAuthorization` | Registers permission-based authorization as a standalone call, for auth providers that do not go through `AddIdentityClient` |
+| `PermissionAuthorizationPolicyProvider` | Dynamically creates an authorization policy for any permission string passed to `RequireAuthorization()` |
+| `PermissionAuthorizationHandler` | Checks the `permissions` claim in the bearer token against the required permission |
 | `IdentityApiClient` | Fetches and caches access tokens from the identity server |
 | `BearerSecurityTransformer` | OpenAPI transformer that adds a Bearer security scheme to authenticated operations |
 
@@ -17,14 +20,29 @@ For Blazor or other browser-based apps, use the OIDC middleware directly (see th
 
 ### 1. Register services
 
-Call `AddIdentityClient` during service registration, passing the app's `IConfiguration`. This is typically done conditionally so that production environments use a different auth provider (such as Azure Entra):
+Call `AddIdentityClient` during service registration, passing the app's `IConfiguration`. This is typically done conditionally so that production environments use a different auth provider (such as Azure Entra). Permission-based authorization is registered automatically:
 
 ```csharp
 if (builder.Environment.IsDevelopment())
     builder.Services.AddIdentityClient(builder.Configuration);
 else
+{
     builder.Services.AddProductionAuthentication(...);
+    builder.Services.AddPermissionAuthorization();
+}
 ```
+
+Endpoints declare their required permission by passing a permission string directly to `RequireAuthorization()`:
+
+```csharp
+app.MapGet("/items", Handler.HandleAsync)
+    .RequireAuthorization("items:read");
+
+app.MapPost("/items", Handler.HandleAsync)
+    .RequireAuthorization("items:write");
+```
+
+No policy registration is needed. The `PermissionAuthorizationPolicyProvider` creates the policy on demand the first time a given permission string is encountered. The `permissions` claim in the bearer token is checked against the required value. Adding a new permission to a new endpoint requires no changes to the authorization setup.
 
 ### 2. Add middleware
 
@@ -106,7 +124,6 @@ JWT Bearer validation is configured with the following parameters:
 | Audience validation | Enabled, matched against the configured audience |
 | Lifetime validation | Enabled |
 | Signing key discovery | Automatic via `/.well-known/openid-configuration` on the identity server |
-| Role claim type | `roles` |
 | Name claim type | `email` |
 | Inbound claim mapping | Disabled (`MapInboundClaims = false`) |
 

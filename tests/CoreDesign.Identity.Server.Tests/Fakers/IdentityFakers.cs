@@ -14,6 +14,6 @@ public static class IdentityFakers
             .RuleFor(x => x.Name, f => f.Name.FullName())
             .RuleFor(x => x.GivenName, f => f.Name.FirstName())
             .RuleFor(x => x.FamilyName, f => f.Name.LastName())
-            .RuleFor(x => x.Roles, f => f.Make(2, () => f.PickRandom("admin", "user", "viewer")).ToList())
+            .RuleFor(x => x.Permissions, f => f.Make(2, () => f.PickRandom("items:read", "items:write", "items:delete")).ToList())
             .RuleFor(x => x.CustomClaims, _ => new Dictionary<string, string>());
 }

@@ -17,7 +17,7 @@ Intended for **development and testing only**. Passwords are stored in plaintext
 | `POST /get-token` | Convenience JSON token endpoint for tooling (non-standard, no `client_id` required) |
 | `POST /auth/login` | Direct JSON login endpoint for non-OIDC frontends (no `client_id` required) |
 
-Tokens are RS256-signed JWTs containing `sub`, `email`, `preferred_username`, `name`, `given_name`, `family_name`, `oid`, `roles`, and any custom claims defined on the identity record.
+Tokens are RS256-signed JWTs containing `sub`, `email`, `preferred_username`, `name`, `given_name`, `family_name`, `oid`, `permissions`, and any custom claims defined on the identity record.
 
 ## Login flows
 
@@ -265,7 +265,7 @@ The file is a JSON array of identity records:
     "name": "Admin User",
     "givenName": "Admin",
     "familyName": "User",
-    "roles": [ "Admin", "AppUser" ],
+    "permissions": [ "items:read", "items:write" ],
     "customClaims": {}
   }
 ]
@@ -280,7 +280,7 @@ The file is a JSON array of identity records:
 | `name` | string | `name` claim |
 | `givenName` | string | `given_name` claim |
 | `familyName` | string | `family_name` claim |
-| `roles` | string[] | Each value emitted as a separate `roles` claim |
+| `permissions` | string[] | Each value emitted as a separate `permissions` claim |
 | `customClaims` | object | Arbitrary key-value pairs added as additional claims |
 
 ## Blazor app integration

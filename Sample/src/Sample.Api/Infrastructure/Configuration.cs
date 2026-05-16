@@ -13,7 +13,6 @@ public static class Configuration
         builder.AddAppSettings();
 
         builder.AddIdentityAuthentication();
-        builder.AddAuthorizationPolicyConfiguration();
         builder.Services.AddApplicationInsightsTelemetry();
 
         builder.AddWeatherForecastsModule();
@@ -63,10 +62,11 @@ public static class Configuration
                     ValidateIssuer = true,
                     ValidateAudience = true,
                     ValidateLifetime = true,
-                    RoleClaimType = "roles",
                     NameClaimType = "email"
                 };
             });
+
+        builder.Services.AddPermissionAuthorization();
 
         return builder;
     }
