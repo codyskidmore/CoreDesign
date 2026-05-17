@@ -2,6 +2,16 @@
 
 A collection of reusable .NET 10 libraries for data access, shared infrastructure, logging, and identity. Each package is independent and can be referenced on its own.
 
+## NuGet Packages
+
+| Package | Link |
+|---|---|
+| `CoreDesign.Shared` | [nuget.org/packages/CoreDesign.Shared](https://www.nuget.org/packages/CoreDesign.Shared/) |
+| `CoreDesign.Data` | [nuget.org/packages/CoreDesign.Data](https://www.nuget.org/packages/CoreDesign.Data/) |
+| `CoreDesign.Logging` | [nuget.org/packages/CoreDesign.Logging](https://www.nuget.org/packages/CoreDesign.Logging/) |
+| `CoreDesign.Identity.Server` | [nuget.org/packages/CoreDesign.Identity.Server](https://www.nuget.org/packages/CoreDesign.Identity.Server/) |
+| `CoreDesign.Identity.Client` | [nuget.org/packages/CoreDesign.Identity.Client](https://www.nuget.org/packages/CoreDesign.Identity.Client/) |
+
 ## User Guide
 
 For a single consolidated reference covering all packages, the sample application, authentication setup, deployment, and release notes, see [CoreDesignUserGuide.md](CoreDesignUserGuide.md).
