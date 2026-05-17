@@ -1,0 +1,57 @@
+@page "/"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IAuthProviderConfigurator AuthProvider
+
+<PageTitle>Home</PageTitle>
+
+<h1>Welcome, @userName!</h1>
+<p class="text-muted">Authenticated via <strong>@AuthProvider.ProviderName</strong></p>
+
+<h2 class="mt-4">Your Claims</h2>
+<table class="table table-sm table-bordered">
+    <thead class="table-dark">
+        <tr>
+            <th>Claim Type</th>
+            <th>Value</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var claim in claims)
+        {
+            <tr>
+                <td>@claim.Type</td>
+                <td>@claim.Value</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private string userName = string.Empty;
+    private IEnumerable<ClaimDisplay> claims = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationStateTask is null)
+            return;
+
+        var authState = await AuthenticationStateTask;
+        var user = authState.User;
+
+        userName = user.Identity?.Name
+                   ?? user.FindFirst("name")?.Value
+                   ?? user.FindFirst("preferred_username")?.Value
+                   ?? "User";
+
+        claims = user.Claims
+            .Select(c => new ClaimDisplay(c.Type, c.Value))
+            .OrderBy(c => c.Type);
+    }
+
+    private record ClaimDisplay(string Type, string Value);
+}
+

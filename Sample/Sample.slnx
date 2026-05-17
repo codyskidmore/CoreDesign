@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Sample.Api.Tests/Sample.Api.Tests.csproj" />
+    <Project Path="src/Sample.Api/Sample.Api.csproj" />
+    <Project Path="src/Sample.Aspire.AppHost/Sample.Aspire.AppHost.csproj" />
+    <Project Path="src/Sample.Identity.Api/Sample.Identity.Api.csproj" />
+    <Project Path="src/Sample.Identity.Web/Sample.Identity.Web.csproj" />
+    <Project Path="src/Sample.Aspire.ServiceDefaults/Sample.Aspire.ServiceDefaults.csproj" />
+    <Project Path="src/Sample.Data.MigrationService/Sample.Data.MigrationService.csproj" />
+    <Project Path="src/Sample.Blazor/Sample.Blazor.csproj" />
+  </Folder>
+</Solution>

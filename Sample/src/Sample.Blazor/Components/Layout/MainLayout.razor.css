@@ -1,0 +1,94 @@
+.page {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 18rem 1fr;
+    background: #f3f6fc;
+}
+
+.sidebar {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    background: linear-gradient(180deg, #1f2a5f 0%, #111738 100%);
+    box-shadow: 0 0 24px rgba(16, 24, 40, 0.18);
+    overflow-y: auto;
+}
+
+main {
+    min-width: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.top-row {
+    height: 4rem;
+    background: rgba(255, 255, 255, 0.92);
+    border-bottom: 1px solid #dbe3f1;
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 1.5rem;
+}
+
+.content {
+    width: 100%;
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.content :deep(h1),
+.content :deep(h2),
+.content :deep(h3) {
+    color: #0f172a;
+    margin-bottom: 1rem;
+}
+
+.content :deep(.card),
+.content :deep(.table) {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    border-radius: 0.75rem;
+}
+
+@media (max-width: 960px) {
+    .page {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        position: static;
+        height: auto;
+    }
+
+    .top-row {
+        justify-content: space-between;
+    }
+
+    .content {
+        padding: 1.25rem;
+    }
+}
+
+#blazor-error-ui {
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
+

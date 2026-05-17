@@ -1,6 +1,6 @@
 # CoreDesign.Logging
 
-`CoreDesign.Logging` provides a `DispatchProxy`-based logging middleware that wraps any service interface and automatically logs every method invocation, return value, and exception. Service classes stay free of log statements while still producing structured, consistent log output for every operation.
+`CoreDesign.Logging` provides a `DispatchProxy`-based logging middleware that wraps any class behind an interface and automatically logs every method invocation, return value, and exception. Classes stay free of log statements while still producing structured, consistent log output for every operation.
 
 ## Installation
 
@@ -10,7 +10,7 @@ dotnet add package CoreDesign.Logging
 
 ## Usage
 
-### Register a service with the logging proxy
+### Register a single class with the logging proxy
 
 Replace the standard `AddTransient` (or `AddScoped`) call with `AddWithLogging`:
 
@@ -20,23 +20,49 @@ services.AddWithLogging<IWeatherForecastService, WeatherForecastService>();
 
 The DI container will resolve `IWeatherForecastService` as a proxy-wrapped instance. The concrete class needs no changes.
 
+### Automatic registration with `ILoggable`
+
+For larger applications, implement the `ILoggable` marker interface on any class to opt it into automatic logging registration. `ILoggable` can be applied to services, handlers, or any other class in your application regardless of naming convention.
+
+```csharp
+public class CreateForecastHandler(...) : ICreateForecastHandler, ILoggable { ... }
+public class GetForecastHandler(...) : IGetForecastHandler, ILoggable { ... }
+public class OrderProcessingService(...) : IOrderProcessingService, ILoggable { ... }
+```
+
+Then register all marked classes in a single call:
+
+```csharp
+services.AddWithLogging(typeof(Program).Assembly);
+```
+
+The overload scans the assembly for every non-abstract class implementing `ILoggable`, pairs it with each of its non-marker interfaces, and registers a logging proxy for each one. Renaming a class has no effect on whether it gets logging — only the presence of `ILoggable` matters.
+
+### Choosing between the two approaches
+
+| Approach | When to use |
+|---|---|
+| `AddWithLogging<TInterface, TImplementation>()` | Explicit, per-class control. Useful when only a small number of classes need logging, or when you want each registration to be visible at the call site. |
+| `AddWithLogging(assembly)` | Opt-in at the class level via `ILoggable`. Useful when many classes across an assembly should be logged and you want a single registration call. |
+
 ### What gets logged
 
 | Situation | Level |
 |---|---|
 | Method called | Information (method name and serialized parameters) |
-| Method returned a success result | Information (method name and serialized return value) |
-| Method returned a `NotFoundMessage` or `BadRequestMessage` | Warning |
+| Method returned a success result | Information (method name and serialized return value, truncated to 500 chars by default) |
+| Method returned a `NotFoundMessage` or `BadRequestMessage` | Warning (same truncation applies) |
 | Method threw an exception | Error (exception and method name) |
 
 Both synchronous and `Task`/`Task<T>` methods are fully supported.
 
 ### Lifetime
 
-`AddWithLogging` defaults to `Transient`. Pass a different lifetime when needed:
+Both overloads default to `Transient`. Pass a different lifetime when needed:
 
 ```csharp
 services.AddWithLogging<IMyService, MyService>(ServiceLifetime.Scoped);
+services.AddWithLogging(typeof(Program).Assembly, ServiceLifetime.Scoped);
 ```
 
 ## Sensitive Data
@@ -70,6 +96,31 @@ public interface ITokenService
 
 Use `[Suppress]` when the method name or parameter shape itself would be too revealing, or when call volume is high enough that logging every invocation creates more noise than value.
 
+### `[TruncateLog]`
+
+Return values are serialized to JSON and truncated at 500 characters by default. Any result longer than this limit is cut and a note is appended showing the total length:
+
+```
+WeatherForecastService.GetAllAsync returned [{"id":"..."}... [truncated, total 3842 chars]
+```
+
+Apply `[TruncateLog]` to a method on the interface to override the limit for that method:
+
+```csharp
+public interface IWeatherForecastService
+{
+    // Raise the limit for a method expected to return larger payloads.
+    [TruncateLog(2000)]
+    Task<IReadOnlyList<WeatherForecast>> GetAllAsync(CancellationToken ct);
+
+    // Disable truncation entirely for a method that returns a small, critical diagnostic object.
+    [TruncateLog(0)]
+    Task<ServiceStatus> GetStatusAsync();
+}
+```
+
+The default limit of 500 characters is defined by `LoggingMiddleware.DefaultMaxResultLength`. Parameters are not truncated; use `[Redact]` to suppress a sensitive parameter entirely.
+
 ## Further Reading
 
 Design rationale and comparison with Serilog and Serilog.Enrichers.Sensitive: [SerilogVsMiddleware.md](SerilogVsMiddleware.md)
@@ -80,3 +131,7 @@ Design rationale and comparison with Serilog and Serilog.Enrichers.Sensitive: [S
 - `OneOf` for discriminated-union result inspection
 - `Microsoft.Extensions.Logging.Abstractions`
 - `Microsoft.Extensions.DependencyInjection.Abstractions`
+
+## Feedback
+
+Feedback on this package is welcome. If you run into a missing feature, an unexpected behavior, or something that required more effort than it should have, open an issue at [github.com/codyskidmore/CoreDesign/issues](https://github.com/codyskidmore/CoreDesign/issues) or tag [@codyskidmore](https://github.com/codyskidmore). Suggestions about missing features and priority input are especially appreciated.

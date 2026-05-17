@@ -198,7 +198,7 @@ public class LoggingMiddlewareTests
         _proxy.Login("alice", "s3cr3t");
 
         Assert.True(_logger.HasEntry(LogLevel.Information, "[REDACTED]"));
-        Assert.False(_logger.Entries.Any(e => e.Message.Contains("s3cr3t")));
+        Assert.DoesNotContain(_logger.Entries, e => e.Message.Contains("s3cr3t"));
     }
 
     [Fact]
@@ -208,7 +208,7 @@ public class LoggingMiddlewareTests
 
         _proxy.Login("alice", "s3cr3t");
 
-        Assert.True(_logger.Entries.Any(e => e.Message.Contains("alice")));
+        Assert.Contains(_logger.Entries, e => e.Message.Contains("alice"));
     }
 
     [Fact]
@@ -268,5 +268,100 @@ public class LoggingMiddlewareTests
         var result = await _proxy.FetchSecretAsync("x");
 
         Assert.Equal("secret", result);
+    }
+
+    [Fact]
+    public void Invoke_SyncMethod_ResultUnderDefaultLimit_LogsFullJson()
+    {
+        _serviceMock.Setup(s => s.GetValue("x")).Returns("y");
+
+        _proxy.GetValue("x");
+
+        Assert.Contains(_logger.Entries, e =>
+            e.Level == LogLevel.Information &&
+            e.Message.Contains("returned") &&
+            e.Message.Contains("\"y\"") &&
+            !e.Message.Contains("truncated"));
+    }
+
+    [Fact]
+    public void Invoke_SyncMethod_ResultOverDefaultLimit_LogsTruncated()
+    {
+        var longValue = new string('a', 600);
+        _serviceMock.Setup(s => s.GetValue(It.IsAny<string>())).Returns(longValue);
+
+        _proxy.GetValue("x");
+
+        Assert.Contains(_logger.Entries, e =>
+            e.Level == LogLevel.Information &&
+            e.Message.Contains("returned") &&
+            e.Message.Contains("truncated"));
+    }
+
+    [Fact]
+    public void Invoke_SyncMethod_ResultOverDefaultLimit_TruncatesAtDefaultLength()
+    {
+        var longValue = new string('a', 600);
+        _serviceMock.Setup(s => s.GetValue(It.IsAny<string>())).Returns(longValue);
+
+        _proxy.GetValue("x");
+
+        var entry = _logger.Entries.First(e => e.Level == LogLevel.Information && e.Message.Contains("returned"));
+        var afterReturned = entry.Message[(entry.Message.IndexOf("returned") + "returned".Length)..];
+        Assert.Contains($"total {longValue.Length + 2} chars", afterReturned);
+    }
+
+    [Fact]
+    public void Invoke_TruncateLog_CustomLimit_TruncatesAtCustomLength()
+    {
+        _serviceMock.Setup(s => s.GetValueWithLimit(It.IsAny<string>())).Returns("hello world");
+
+        _proxy.GetValueWithLimit("x");
+
+        Assert.Contains(_logger.Entries, e =>
+            e.Level == LogLevel.Information &&
+            e.Message.Contains("returned") &&
+            e.Message.Contains("truncated"));
+    }
+
+    [Fact]
+    public void Invoke_TruncateLog_ZeroLimit_DoesNotTruncate()
+    {
+        var longValue = new string('a', 600);
+        _serviceMock.Setup(s => s.GetValueUnlimited(It.IsAny<string>())).Returns(longValue);
+
+        _proxy.GetValueUnlimited("x");
+
+        Assert.DoesNotContain(_logger.Entries, e =>
+            e.Level == LogLevel.Information &&
+            e.Message.Contains("returned") &&
+            e.Message.Contains("truncated"));
+    }
+
+    [Fact]
+    public async Task Invoke_AsyncGenericTask_ResultOverDefaultLimit_LogsTruncated()
+    {
+        var longValue = new string('a', 600);
+        _serviceMock.Setup(s => s.FetchAsync(It.IsAny<string>())).ReturnsAsync(longValue);
+
+        await _proxy.FetchAsync("x");
+
+        Assert.Contains(_logger.Entries, e =>
+            e.Level == LogLevel.Information &&
+            e.Message.Contains("returned") &&
+            e.Message.Contains("truncated"));
+    }
+
+    [Fact]
+    public async Task Invoke_AsyncGenericTask_TruncateLog_CustomLimit_TruncatesAtCustomLength()
+    {
+        _serviceMock.Setup(s => s.FetchWithLimitAsync(It.IsAny<string>())).ReturnsAsync("hello world");
+
+        await _proxy.FetchWithLimitAsync("x");
+
+        Assert.Contains(_logger.Entries, e =>
+            e.Level == LogLevel.Information &&
+            e.Message.Contains("returned") &&
+            e.Message.Contains("truncated"));
     }
 }

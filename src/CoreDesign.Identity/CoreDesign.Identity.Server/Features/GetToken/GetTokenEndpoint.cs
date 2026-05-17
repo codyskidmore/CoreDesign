@@ -28,5 +28,3 @@ public static class GetTokenEndpoint
         });
     }
 }
-
-public record TokenGenerationRequest(string Username, string Password);

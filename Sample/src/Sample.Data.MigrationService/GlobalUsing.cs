@@ -1,0 +1,8 @@
+global using CoreDesign.Data.Infrastructure;
+global using CoreDesign.Shared.Infrastructure;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Hosting;
+global using Microsoft.Extensions.Logging;
+global using Sample.Api.Data;
+global using Sample.Aspire.ServiceDefaults;

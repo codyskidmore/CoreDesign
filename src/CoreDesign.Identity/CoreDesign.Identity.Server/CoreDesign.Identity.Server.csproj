@@ -3,16 +3,21 @@
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <PackageId>CoreDesign.Identity.Server</PackageId>
-        <Version>1.0.6</Version>
+        <Version>1.0.7</Version>
         <Description>ASP.NET Core server library for CoreDesign Identity. Provides OAuth 2.0 and OIDC-compatible endpoints including token issuance, JWKS, and OpenID Connect discovery for embedding a lightweight identity server into an ASP.NET Core application.</Description>
         <PackageTags>identity;authentication;jwt;oauth2;oidc;aspnetcore;coredesign</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.Identity/CoreDesign.Identity.Server</PackageProjectUrl>
         <RepositoryUrl>https://github.com/codyskidmore/CoreDesign</RepositoryUrl>
+        <PackageReleaseNotes>Added support for frontends authenticating in addiction to using the get-token end point for directly testing APIs.</PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>
         <None Include="README.md" Pack="true" PackagePath="/" />
+        <EmbeddedResource Include="Templates\login.html" />
+        <EmbeddedResource Include="Templates\login-error.html" />
+        <EmbeddedResource Include="Templates\landing.html" />
+        <None Remove="README.docx" />
     </ItemGroup>
 
     <ItemGroup>
@@ -20,7 +25,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.8.0" />
+        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
     </ItemGroup>
 
 </Project>

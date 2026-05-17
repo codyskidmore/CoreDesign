@@ -1,19 +1,19 @@
 # Azure Entra Authentication
 
-This project uses `CoreDesign.Identity.Server` and `CoreDesign.Identity.Client` in the `Development` environment and switches to Azure Entra (formerly Azure Active Directory) in all other environments. The API code treats both as interchangeable JWT Bearer providers: the only differences are which authority signs the tokens and which role names are expected.
+This project uses `CoreDesign.Identity.Server` and `CoreDesign.Identity.Client` in the `Development` environment and switches to Azure Entra (formerly Azure Active Directory) in all other environments. The API code treats both as interchangeable JWT Bearer providers: the only differences are which authority signs the tokens and how permissions are assigned to users.
 
-## Environment summary
+## Environment Summary
 
-| Environment | Auth provider | Role names |
+| Environment | Auth provider | Permissions |
 | --- | --- | --- |
-| `Development` | CoreDesign.Identity.Server (local) | `DevAdmin`, `DevAppUsers` |
-| `AzureDev` | Azure Entra | `DevAdmin`, `DevAppUsers` |
-| `UAT` | Azure Entra | `UATAdmin`, `UATUsers` |
-| `Production` | Azure Entra | `AdminUsers`, `AppUsers` |
+| `Development` | CoreDesign.Identity.Server (local) | Declared in `identities.json` as a `permissions` array |
+| `AzureDev`, `UAT`, `Production` | Azure Entra | Entra App Roles with permission string values, mapped to `permissions` claims via claims transformation |
 
-## How the switch works
+Authorization uses the same permission strings in every environment. Only the token issuer and the mechanism for assigning permissions to users differs.
 
-`AddIdentityAuthentication` in `Dcne.Api` selects the provider at startup:
+## How the Switch Works
+
+`AddIdentityAuthentication` selects the provider at startup:
 
 ```csharp
 if (builder.Environment.IsDevelopment())
@@ -22,7 +22,7 @@ else
     builder.AddAzureEntraAuthentication();
 ```
 
-`AddAzureEntraAuthentication` configures JWT Bearer to trust tokens from Entra and validates issuer, audience, and lifetime. Role and name claim types are kept identical to the local setup so authorization policies and endpoint code require no changes between environments.
+`AddAzureEntraAuthentication` configures JWT Bearer to trust tokens from Entra and validates issuer, audience, and lifetime. Because Entra emits App Role assignments as `roles` claims rather than `permissions` claims, a claims transformation step is required to bridge the two.
 
 ## Step 1: Create an App Registration
 
@@ -34,7 +34,7 @@ In the Azure portal, go to **Azure Active Directory > App registrations > New re
 | Supported account types | Accounts in this organizational directory only |
 | Redirect URI | Leave blank (this registration is for the API, not a client) |
 
-After creation, note the **Application (client) ID** and the **Directory (tenant) ID** from the Overview page. These populate the config values below.
+After creation, note the **Application (client) ID** and the **Directory (tenant) ID** from the Overview page.
 
 ## Step 2: Expose an API
 
@@ -50,32 +50,18 @@ Add a scope so client applications can request access:
 
 ## Step 3: Define App Roles
 
-Under **App roles**, create a role for each role name the API expects for the target environment. Role names must match exactly what the authorization policies check.
-
-**AzureDev**
+Under **App roles**, create a role for each permission string the API uses. The **Value** field must exactly match the permission string declared in your application (e.g., in `Permissions.cs`). Use the same roles across all environments.
 
 | Display name | Value | Allowed member types |
 | --- | --- | --- |
-| Dev Administrator | `DevAdmin` | Users/Groups |
-| Dev App Users | `DevAppUsers` | Users/Groups |
+| Weather Read | `weather:read` | Users/Groups |
+| Weather Write | `weather:write` | Users/Groups |
 
-**UAT**
+Add one entry for each permission string your API defines. Values are case-sensitive and must match exactly.
 
-| Display name | Value | Allowed member types |
-| --- | --- | --- |
-| UAT Administrator | `UATAdmin` | Users/Groups |
-| UAT App Users | `UATUsers` | Users/Groups |
+## Step 4: Assign Users to Roles
 
-**Production**
-
-| Display name | Value | Allowed member types |
-| --- | --- | --- |
-| Administrator | `AdminUsers` | Users/Groups |
-| App Users | `AppUsers` | Users/Groups |
-
-## Step 4: Assign users to roles
-
-In **Azure Active Directory > Enterprise applications**, find the app registration created above. Under **Users and groups**, assign each user or group to the appropriate role. Users without a role assignment will receive tokens with no `roles` claim and will be denied by the API's authorization policies.
+In **Azure Active Directory > Enterprise applications**, find the app registration created above. Under **Users and groups**, assign each user or group to the appropriate roles. A user assigned to `weather:write` can call write endpoints; a user assigned only to `weather:read` cannot. Users with no role assignment receive no `roles` claim and are denied by the API's fallback authentication policy.
 
 ## Step 5: Configure the API
 
@@ -92,9 +78,32 @@ Replace the placeholder values in the appropriate environment appsettings file w
 }
 ```
 
-The API resolves the JWT authority as `{Instance}/{TenantId}/v2.0` and validates the `aud` claim against `Audience`. No other configuration is needed on the API side.
+The API resolves the JWT authority as `{Instance}/{TenantId}/v2.0` and validates the `aud` claim against `Audience`.
 
-## Step 6: Register a client application
+Entra App Roles are emitted in tokens as `roles` claims. The `PermissionAuthorizationHandler` checks for `permissions` claims, so a claims transformation bridges the two. Register it alongside `AddAzureEntraAuthentication`:
+
+```csharp
+public class RolesToPermissionsTransformation : IClaimsTransformation
+{
+    public Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
+    {
+        var identity = (ClaimsIdentity)principal.Identity!;
+        foreach (var role in principal.FindAll("roles").ToList())
+            identity.AddClaim(new Claim("permissions", role.Value));
+        return Task.FromResult(principal);
+    }
+}
+```
+
+Register the transformation in the service container (typically inside `AddAzureEntraAuthentication`):
+
+```csharp
+services.AddScoped<IClaimsTransformation, RolesToPermissionsTransformation>();
+```
+
+With this in place, each Entra `roles` claim value (which equals the App Role `Value` field) is copied to a `permissions` claim, and `RequireAuthorization("weather:read")` works identically in both development and production.
+
+## Step 6: Register a Client Application
 
 Any application that calls the API needs its own App Registration. In the client's registration:
 
@@ -110,14 +119,13 @@ POST https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token
 
 with the scope set to `api://{api-client-id}/access_as_user`. The resulting access token is sent as `Authorization: Bearer <token>` to the API.
 
-## Claim mapping
+## Claim Mapping
 
-The API configures JWT Bearer with `MapInboundClaims = false`. Entra tokens use standard claim names, but some differ from the defaults Microsoft's middleware applies. The relevant mappings:
+The API configures JWT Bearer with `MapInboundClaims = false`. Entra tokens use standard claim names:
 
 | Claim in token | Used as | Note |
 | --- | --- | --- |
-| `roles` | Role claim | Populated from App Role assignments |
-| `preferred_username` or `upn` | Not mapped to name | `NameClaimType` is set to `email` |
+| `roles` | App Role assignments | Mapped to `permissions` claims via `RolesToPermissionsTransformation` before authorization runs |
 | `oid` | Object ID | Present by default |
 
 If users need the `email` claim populated, ensure **Optional claims** includes `email` in the token configuration for the API's App Registration (under **Token configuration > Add optional claim > Access token > email**).
@@ -126,6 +134,6 @@ If users need the `email` claim populated, ensure **Optional claims** includes `
 
 **401 on all requests**: Verify `AzureAd:TenantId` and `AzureAd:Audience` are set correctly. The audience in the token (`aud` claim) must exactly match the configured value, including the `api://` prefix.
 
-**403 on protected endpoints**: The user's token contains no `roles` claim or the role value does not match the expected name for the current environment. Check the App Role assignment in the Enterprise application and confirm the role `Value` field (not Display name) matches the string in `AuthorizationRoles.cs`.
+**403 on protected endpoints**: The user's token contains no matching `permissions` claim after transformation. Check that `RolesToPermissionsTransformation` is registered, that the user is assigned to the correct App Role in the Enterprise application, and that the App Role `Value` field exactly matches the permission string used in `RequireAuthorization()`.
 
 **IDX20804 / metadata failure**: The API could not reach the Entra metadata endpoint at startup. Check outbound internet connectivity and confirm `AzureAd:Instance` and `AzureAd:TenantId` form a valid authority URL.

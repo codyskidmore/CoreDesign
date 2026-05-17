@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\src\CoreDesign.Identity\CoreDesign.Identity.Server\CoreDesign.Identity.Server.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="..\Shared\appsettings.json">
+            <Link>appsettings.json</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="..\Shared\appsettings.Development.json">
+            <Link>appsettings.Development.json</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="..\Shared\identities.json">
+            <Link>identities.json</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="..\Shared\clients.json">
+            <Link>clients.json</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="README.docx" />
+    </ItemGroup>
+
+</Project>
+

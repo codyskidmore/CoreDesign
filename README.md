@@ -2,6 +2,10 @@
 
 A collection of reusable .NET 10 libraries for data access, shared infrastructure, logging, and identity. Each package is independent and can be referenced on its own.
 
+## User Guide
+
+For a single consolidated reference covering all packages, the sample application, authentication setup, deployment, and release notes, see [CoreDesignUserGuide.md](CoreDesignUserGuide.md).
+
 ## Projects
 
 ### CoreDesign.Shared
@@ -26,9 +30,15 @@ Full details: [src/CoreDesign.Data/README.md](src/CoreDesign.Data/README.md)
 
 `src/CoreDesign.Logging/`
 
-A `DispatchProxy`-based logging middleware that wraps any service interface and automatically logs every method invocation, return value, and exception. Service classes stay free of log statements while still producing structured, consistent log output for every operation.
+A `DispatchProxy`-based logging middleware that wraps any class behind an interface and automatically logs every method invocation, return value, and exception. Classes stay free of log statements while still producing structured, consistent log output for every operation.
 
-Register a service using `AddWithLogging` in place of the standard `AddTransient` or `AddScoped` call:
+Implement `ILoggable` on any class to opt it into automatic logging registration, then register every marked class in one call:
+
+```csharp
+services.AddWithLogging(typeof(Program).Assembly);
+```
+
+For explicit per-class control, use the generic overload instead:
 
 ```csharp
 services.AddWithLogging<IWeatherForecastService, WeatherForecastService>();
@@ -71,3 +81,15 @@ Full details: [src/CoreDesign.Identity/CoreDesign.Identity.Client/README.md](src
 When multiple projects in the solution share configuration values (JWT issuer, audience, etc.), use a single `shared/` folder at the solution root and link the files into each project via the `.csproj`. This avoids configuration drift across projects.
 
 Full guidance: [SharedAppsettings.md](SharedAppsettings.md)
+
+## Feedback
+
+Feedback on these packages is welcome and genuinely respected. If something is missing, confusing, or lower priority than it should be, opening an issue is the best way to make it better for everyone.
+
+Especially useful to hear about:
+
+- Features you expected to find but did not
+- Behaviors that required a workaround or a subclass when they should have been built in
+- Prioritization input: which gaps would unblock you most
+
+Open an issue at [github.com/codyskidmore/CoreDesign/issues](https://github.com/codyskidmore/CoreDesign/issues) or tag [@codyskidmore](https://github.com/codyskidmore) in an existing issue or discussion. There are no templates to fill out; a plain description of what you ran into or what you wish existed is enough.

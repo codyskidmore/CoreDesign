@@ -11,8 +11,11 @@ public static class UserInfoEndpoint
         HttpContext ctx,
         RsaSecurityKey rsaKey,
         IdentityOptions options,
-        IIdentityStore identityStore)
+        IIdentityStore identityStore,
+        ILoggerFactory loggerFactory)
     {
+        var logger = loggerFactory.CreateLogger("CoreDesign.Identity.Server.UserInfo");
+
         var auth = ctx.Request.Headers.Authorization.ToString();
         if (!auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             return Results.Unauthorized();
@@ -46,33 +49,14 @@ public static class UserInfoEndpoint
                 Name = identity.Name,
                 GivenName = identity.GivenName,
                 FamilyName = identity.FamilyName,
-                Roles = identity.Roles
+                Permissions = identity.Permissions
             });
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogWarning(ex, "Bearer token validation failed for userinfo request from {RemoteIp}",
+                ctx.Connection.RemoteIpAddress);
             return Results.Unauthorized();
         }
     }
-}
-
-public class UserinfoResponse
-{
-    [JsonPropertyName("sub")]
-    public string Sub { get; set; } = string.Empty;
-
-    [JsonPropertyName("email")]
-    public string Email { get; set; } = string.Empty;
-
-    [JsonPropertyName("name")]
-    public string Name { get; set; } = string.Empty;
-
-    [JsonPropertyName("given_name")]
-    public string GivenName { get; set; } = string.Empty;
-
-    [JsonPropertyName("family_name")]
-    public string FamilyName { get; set; } = string.Empty;
-
-    [JsonPropertyName("roles")]
-    public List<string> Roles { get; set; } = [];
 }

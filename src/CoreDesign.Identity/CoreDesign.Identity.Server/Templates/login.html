@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign in</title>
+  <style>
+    /*
+     * CoreDesign Identity login page.
+     *
+     * Customize by copying this file to identity-templates/login.html in your
+     * host project and setting CopyToOutputDirectory to PreserveNewest.
+     *
+     * Available placeholders:
+     *   {{response_type}}        OIDC response_type (HTML-encoded)
+     *   {{client_id}}            OIDC client_id (HTML-encoded)
+     *   {{redirect_uri}}         OIDC redirect_uri (HTML-encoded)
+     *   {{scope}}                OIDC scope (HTML-encoded)
+     *   {{state}}                OIDC state (HTML-encoded)
+     *   {{nonce}}                OIDC nonce (HTML-encoded)
+     *   {{code_challenge}}       PKCE code_challenge (HTML-encoded)
+     *   {{code_challenge_method}} PKCE method, e.g. S256 (HTML-encoded)
+     *   {{error_alert}}          Full error alert HTML from login-error.html, emitted only after a failed login attempt
+     *
+     * Theming: override the CSS custom properties in :root to change colors
+     * without touching the rest of the stylesheet.
+     */
+
+    :root {
+      --id-bg:             #f1f5f9;
+      --id-surface:        #ffffff;
+      --id-primary:        #4f46e5;
+      --id-primary-hover:  #4338ca;
+      --id-primary-ring:   rgba(79, 70, 229, .15);
+      --id-text:           #0f172a;
+      --id-muted:          #64748b;
+      --id-border:         #e2e8f0;
+      --id-error-bg:       #fef2f2;
+      --id-error-border:   #fca5a5;
+      --id-error-text:     #b91c1c;
+      --id-radius:         10px;
+      --id-input-radius:   6px;
+      --id-shadow:         0 4px 32px rgba(15, 23, 42, .10);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                   'Helvetica Neue', Arial, sans-serif;
+      font-size: 1rem;
+      line-height: 1.5;
+      color: var(--id-text);
+      background: var(--id-bg);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .id-card {
+      background: var(--id-surface);
+      border-radius: var(--id-radius);
+      box-shadow: var(--id-shadow);
+      padding: 2.5rem 2.25rem;
+      width: 100%;
+      max-width: 22rem;
+    }
+
+    /* Icon badge */
+    .id-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.75rem;
+      height: 2.75rem;
+      background: var(--id-primary);
+      border-radius: 8px;
+      margin: 0 auto 1.5rem;
+      color: #fff;
+    }
+
+    .id-icon svg { width: 1.375rem; height: 1.375rem; }
+
+    /* Heading */
+    .id-heading {
+      font-size: 1.375rem;
+      font-weight: 700;
+      text-align: center;
+      color: var(--id-text);
+      margin-bottom: .25rem;
+    }
+
+    .id-subheading {
+      font-size: .8125rem;
+      color: var(--id-muted);
+      text-align: center;
+      margin-bottom: 1.75rem;
+    }
+
+    /* Error banner */
+    .id-error {
+      display: flex;
+      align-items: flex-start;
+      gap: .5rem;
+      background: var(--id-error-bg);
+      border: 1px solid var(--id-error-border);
+      border-radius: var(--id-input-radius);
+      color: var(--id-error-text);
+      font-size: .8125rem;
+      padding: .75rem .875rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .id-error svg {
+      width: 1rem;
+      height: 1rem;
+      flex-shrink: 0;
+      margin-top: .125rem;
+    }
+
+    /* Fields */
+    .id-field { margin-bottom: 1rem; }
+
+    .id-field label {
+      display: block;
+      font-size: .8125rem;
+      font-weight: 500;
+      color: var(--id-text);
+      margin-bottom: .375rem;
+    }
+
+    .id-field input[type="text"],
+    .id-field input[type="password"] {
+      display: block;
+      width: 100%;
+      padding: .5625rem .8125rem;
+      background: var(--id-surface);
+      border: 1px solid var(--id-border);
+      border-radius: var(--id-input-radius);
+      font-size: .9375rem;
+      color: var(--id-text);
+      transition: border-color .15s, box-shadow .15s;
+      outline: none;
+    }
+
+    .id-field input[type="text"]:focus,
+    .id-field input[type="password"]:focus {
+      border-color: var(--id-primary);
+      box-shadow: 0 0 0 3px var(--id-primary-ring);
+    }
+
+    .id-field input::placeholder { color: var(--id-muted); opacity: .75; }
+
+    /* Submit */
+    .id-submit {
+      display: block;
+      width: 100%;
+      padding: .625rem 1rem;
+      margin-top: 1.5rem;
+      background: var(--id-primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--id-input-radius);
+      font-size: .9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .id-submit:hover  { background: var(--id-primary-hover); }
+    .id-submit:focus-visible {
+      outline: 2px solid var(--id-primary);
+      outline-offset: 2px;
+    }
+
+    /* Footer note */
+    .id-footer {
+      margin-top: 1.75rem;
+      text-align: center;
+      font-size: .6875rem;
+      color: var(--id-muted);
+      letter-spacing: .02em;
+    }
+  </style>
+</head>
+<body>
+  <main class="id-card">
+
+    <div class="id-icon" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+    </div>
+
+    <h1 class="id-heading">Sign in</h1>
+    <p class="id-subheading">Development identity provider</p>
+
+    {{error_alert}}
+
+    <form method="post" action="/connect/authorize" autocomplete="on"
+          novalidate>
+
+      <input type="hidden" name="response_type"        value="{{response_type}}" />
+      <input type="hidden" name="client_id"            value="{{client_id}}" />
+      <input type="hidden" name="redirect_uri"         value="{{redirect_uri}}" />
+      <input type="hidden" name="scope"                value="{{scope}}" />
+      <input type="hidden" name="state"                value="{{state}}" />
+      <input type="hidden" name="nonce"                value="{{nonce}}" />
+      <input type="hidden" name="code_challenge"       value="{{code_challenge}}" />
+      <input type="hidden" name="code_challenge_method" value="{{code_challenge_method}}" />
+
+      <div class="id-field">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username"
+               autocomplete="username" required autofocus
+               placeholder="you@example.com" />
+      </div>
+
+      <div class="id-field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password"
+               autocomplete="current-password" required
+               placeholder="Password" />
+      </div>
+
+      <button type="submit" class="id-submit">Sign in</button>
+    </form>
+
+    <p class="id-footer">CoreDesign Identity (Development only)</p>
+
+  </main>
+</body>
+</html>

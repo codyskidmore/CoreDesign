@@ -1,5 +1,10 @@
 namespace CoreDesign.Logging;
 
+public static class LoggingMiddleware
+{
+    public const int DefaultMaxResultLength = 500;
+}
+
 public class LoggingMiddleware<T> : DispatchProxy where T : class
 {
     private T _service = null!;
@@ -40,8 +45,8 @@ public class LoggingMiddleware<T> : DispatchProxy where T : class
             if (result is Task task)
                 return WrapTask(task, targetMethod);
 
-            _logger.LogInformation("{ServiceType}.{Method} returned {@Result}",
-                typeof(T).Name, targetMethod.Name, result);
+            _logger.LogInformation("{ServiceType}.{Method} returned {Result}",
+                typeof(T).Name, targetMethod.Name, FormatResult(result, targetMethod));
 
             return result;
         }
@@ -66,6 +71,20 @@ public class LoggingMiddleware<T> : DispatchProxy where T : class
                 : args[i];
         }
         return sanitized;
+    }
+
+    private static string FormatResult(object? result, MethodInfo method)
+    {
+        var maxLength = LoggingMiddleware.DefaultMaxResultLength;
+        var attr = method.GetCustomAttribute<TruncateLogAttribute>();
+        if (attr is not null)
+            maxLength = attr.MaxLength;
+
+        var json = JsonSerializer.Serialize(result);
+        if (maxLength <= 0 || json.Length <= maxLength)
+            return json;
+
+        return $"{json[..maxLength]}... [truncated, total {json.Length} chars]";
     }
 
     private object WrapTask(Task task, MethodInfo method)
@@ -108,13 +127,13 @@ public class LoggingMiddleware<T> : DispatchProxy where T : class
 
             if (resultValue is NotFoundMessage or BadRequestMessage)
             {
-                _logger.LogWarning("{ServiceType}.{Method} returned {@Result}",
-                    typeof(T).Name, method.Name, result);
+                _logger.LogWarning("{ServiceType}.{Method} returned {Result}",
+                    typeof(T).Name, method.Name, FormatResult(resultValue, method));
                 return result;
             }
 
-            _logger.LogInformation("{ServiceType}.{Method} returned {@Result}",
-                typeof(T).Name, method.Name, result);
+            _logger.LogInformation("{ServiceType}.{Method} returned {Result}",
+                typeof(T).Name, method.Name, FormatResult(resultValue, method));
 
             return result;
         }
@@ -142,6 +161,37 @@ public static class LoggingMiddlewareExtensions
             var logger = provider.GetRequiredService<ILogger<TImplementation>>();
             return LoggingMiddleware<TInterface>.Create(implementation, logger);
         }, lifetime));
+
+        return services;
+    }
+
+    public static IServiceCollection AddWithLogging(
+        this IServiceCollection services,
+        Assembly assembly,
+        ServiceLifetime lifetime = ServiceLifetime.Transient)
+    {
+        var loggableType = typeof(ILoggable);
+        var genericMethod = typeof(LoggingMiddlewareExtensions)
+            .GetMethods()
+            .First(m => m.Name == nameof(AddWithLogging)
+                     && m.IsGenericMethod
+                     && m.GetGenericArguments().Length == 2);
+
+        var loggableTypes = assembly.GetTypes()
+            .Where(t => t.IsClass && !t.IsAbstract && loggableType.IsAssignableFrom(t));
+
+        foreach (var implementation in loggableTypes)
+        {
+            var interfaces = implementation.GetInterfaces()
+                .Where(i => i != loggableType);
+
+            foreach (var iface in interfaces)
+            {
+                genericMethod
+                    .MakeGenericMethod(iface, implementation)
+                    .Invoke(null, [services, lifetime]);
+            }
+        }
 
         return services;
     }
