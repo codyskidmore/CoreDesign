@@ -1,6 +1,6 @@
 @page "/weather"
 @attribute [Authorize]
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 @inject SampleClient ApiClient
 
 <PageTitle>Weather Forecasts</PageTitle>

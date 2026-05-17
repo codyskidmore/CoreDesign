@@ -5,7 +5,7 @@ public interface IGetForecastHandler
     Task<OneOf<WeatherForecast, NotFoundMessage>> GetByIdAsync(Ulid id, CancellationToken ct);
 }
 
-public class GetForecastHandler(IReadRepository<SampleDbContext, WeatherForecast> repository) : IGetForecastHandler
+public class GetForecastHandler(IReadRepository<SampleDbContext, WeatherForecast> repository) : IGetForecastHandler, ILoggable
 {
     public async Task<OneOf<WeatherForecast, NotFoundMessage>> GetByIdAsync(Ulid id, CancellationToken ct)
     {

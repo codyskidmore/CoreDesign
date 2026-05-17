@@ -7,7 +7,7 @@ public interface IDeleteForecastHandler
     Task<OneOf<Success, NotFoundMessage>> DeleteAsync(Ulid id, Guid userId, CancellationToken ct);
 }
 
-public class DeleteForecastHandler(ICudRepository<SampleDbContext, WeatherForecast> repository) : IDeleteForecastHandler
+public class DeleteForecastHandler(ICudRepository<SampleDbContext, WeatherForecast> repository) : IDeleteForecastHandler, ILoggable
 {
     public async Task<OneOf<Success, NotFoundMessage>> DeleteAsync(Ulid id, Guid userId, CancellationToken ct)
     {

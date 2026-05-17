@@ -8,7 +8,7 @@ public interface IUpdateForecastHandler
 
 public class UpdateForecastHandler(
     IReadRepository<SampleDbContext, WeatherForecast> readRepository,
-    ICudRepository<SampleDbContext, WeatherForecast> cudRepository) : IUpdateForecastHandler
+    ICudRepository<SampleDbContext, WeatherForecast> cudRepository) : IUpdateForecastHandler, ILoggable
 {
     public async Task<OneOf<WeatherForecast, NotFoundMessage, BadRequestMessage>> UpdateAsync(
         Ulid id, Request request, Guid userId, CancellationToken ct)

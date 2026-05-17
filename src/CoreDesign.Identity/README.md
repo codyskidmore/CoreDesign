@@ -19,7 +19,7 @@ Create a host project (a minimal ASP.NET Core app or .NET Aspire resource) and i
 dotnet add package CoreDesign.Identity.Server
 ```
 
-Wire up the services and endpoints in `Program.cs`:
+Wire up the services and endpoints in `Program.cs` using the standalone web host pattern:
 
 ```csharp
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
@@ -28,15 +28,14 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
     ContentRootPath = AppContext.BaseDirectory
 });
 
-builder.Services.AddIdentityServer(builder.Configuration);
-builder.Services.AddJsonFileIdentityStore("identities.json");
-builder.Services.AddJsonFileClientStore("clients.json");
+builder.Services.AddIdentityServerWebHost(builder.Configuration);
 
 var app = builder.Build();
-app.UseIdentityServerCors(); // required for browser-based frontends calling /auth/login
-app.MapIdentityEndpoints();
+app.MapIdentityServerWebHost();
 app.Run();
 ```
+
+`AddIdentityServerWebHost` reads the `CoreDesign:IdentityWebHost` configuration section, generates or loads a persistent RSA signing key from `%APPDATA%\coredesign-identity\`, and registers the JSON file stores. `MapIdentityServerWebHost` enables CORS, mounts all OIDC endpoints, and serves a landing page at `/`.
 
 Add a `clients.json` file to define the registered Relying Parties (client applications):
 
@@ -151,10 +150,12 @@ The server package registers five endpoints:
 |---|---|---|
 | `/.well-known/openid-configuration` | GET | OIDC discovery document |
 | `/.well-known/jwks.json` | GET | RSA public signing key in JWKS format |
-| `/connect/token` | POST | Issues tokens via the OAuth 2.0 password grant (form-encoded). Requires a registered `client_id`. |
+| `/connect/authorize` | GET | Renders the browser login form. Used in Authorization Code with PKCE flows. |
+| `/connect/authorize` | POST | Processes the form submission and redirects back with an authorization code. |
+| `/connect/token` | POST | Issues tokens via the OAuth 2.0 password or authorization code grant (form-encoded). Requires a registered `client_id`. |
 | `/connect/userinfo` | GET | Returns claims for a valid Bearer token |
 | `/get-token` | POST | Convenience JSON endpoint for tooling (Postman, Scalar, curl). No `client_id` required. |
-| `/auth/login` | POST | Frontend login endpoint — accepts JSON credentials, returns a token. No `client_id` required. |
+| `/auth/login` | POST | Frontend login endpoint that accepts JSON credentials and returns a token. No `client_id` required. |
 
 ## Frontend Login Flow
 
@@ -287,7 +288,7 @@ When the project is ready to connect to a production identity provider, replace 
 
 ## Important Notes
 
-The server package is intended for development and integration testing only. It stores passwords in plaintext, generates an ephemeral RSA signing key on every startup (tokens issued before a restart become invalid), and opens CORS to all origins. Do not deploy it to any environment accessible outside a development machine.
+The server package is intended for development and integration testing only. It stores passwords in plaintext, persists the RSA signing key to `%APPDATA%\coredesign-identity\` (tokens remain valid across restarts), and opens CORS to all origins. Do not deploy it to any environment accessible outside a development machine.
 
 ## Feedback
 

@@ -20,10 +20,10 @@ The main ASP.NET Core REST API. It exposes weather forecast CRUD endpoints prote
 
 A lightweight OAuth2/OIDC identity server built on CoreDesign.Identity.Server. It hosts the login form for Blazor OIDC flows and reads users from a local `identities.json` file. Two accounts are pre-configured:
 
-| Email | Password | Roles |
+| Email | Password | Permissions |
 |---|---|---|
-| admin@sampleapi.local | Password1! | DevAdmin, DevAppUsers |
-| user@sampleapi.local | Password1! | DevAppUsers |
+| admin@sampleapi.local | Password1! | weather:read, weather:write |
+| user@sampleapi.local | Password1! | weather:read |
 
 ### Sample.Identity.Api
 
@@ -201,7 +201,7 @@ jobs:
 
 #### How the migration step works
 
-`dotnet run` on `Sample.Data.MigrationService` starts the `SampleMigrationWorker` background service. It connects to the Azure SQL Database using the `ConnectionStrings__sample-db` environment variable (the double underscore is the environment variable form of the `ConnectionStrings:sample-db` configuration key), applies any pending EF Core migrations, seeds reference data from the `SeedData/` folder, then calls `StopApplication()` and exits. The process exits with code 0 on success and a non-zero code on failure, which causes the workflow step to fail and stops the deployment before any containers are updated.
+`dotnet run` on `Sample.Data.MigrationService` starts the `MigrationWorker<SampleDbContext>` background service. It connects to the Azure SQL Database using the `ConnectionStrings__sample-db` environment variable (the double underscore is the environment variable form of the `ConnectionStrings:sample-db` configuration key), applies any pending EF Core migrations, seeds reference data from the `SeedData/` folder, then calls `StopApplication()` and exits. The process exits with code 0 on success and a non-zero code on failure, which causes the workflow step to fail and stops the deployment before any containers are updated.
 
 The migration step runs before the deploy steps so the database schema is always consistent with the application version being deployed. If migrations fail, the running application is unaffected.
 
@@ -267,13 +267,13 @@ Each record defines one login account. The full field set:
     "name": "Admin User",
     "givenName": "Admin",
     "familyName": "User",
-    "roles": [ "DevAdmin", "DevAppUsers" ],
+    "permissions": [ "weather:read", "weather:write" ],
     "customClaims": {}
   }
 ]
 ```
 
-`userId` becomes the `sub` and `oid` claims. `roles` values are emitted as separate `roles` claims. `customClaims` accepts arbitrary key-value pairs that are added as additional claims.
+`userId` becomes the `sub` and `oid` claims. `permissions` values are emitted as separate `permissions` claims. `customClaims` accepts arbitrary key-value pairs that are added as additional claims.
 
 #### clients.json
 
@@ -453,7 +453,7 @@ services.AddTransient<ICudRepository<SampleDbContext, WeatherForecast>,
                       CudRepository<SampleDbContext, WeatherForecast>>();
 ```
 
-Services then declare their repository dependencies in the constructor and call the async CRUD methods. The repository interfaces are also easy to mock in unit tests using Moq, as shown in `WeatherForecastServiceTests.cs`.
+Services then declare their repository dependencies in the constructor and call the async CRUD methods. The repository interfaces are also easy to mock in unit tests using Moq. The test project covers all handler operations with success, not-found, and failure scenarios.
 
 **MigrationWorker\<TContext\>** is a `BackgroundService` in CoreDesign.Data that handles the full database bootstrap sequence: ensure the database exists, apply pending migrations, seed reference data from JSON files, then shut down the host. `Sample.Data.MigrationService` registers it directly in `Program.cs` with no subclass required:
 
@@ -503,13 +503,19 @@ Service classes in this project contain no log statements. All invocation loggin
 
 Both synchronous and asynchronous methods are fully supported. For `Task<T>` returns the middleware awaits the result before deciding which log level to use.
 
-Register a service with the middleware using the `AddWithLogging` extension in place of the standard `AddTransient`/`AddScoped` registration:
+In Sample.Api, each handler class implements `ILoggable` to opt into automatic logging registration. The middleware is registered once in `Configuration.cs` for the entire assembly:
 
 ```csharp
-services.AddWithLogging<IWeatherForecastService, WeatherForecastService>();
+builder.Services.AddWithLogging(typeof(Configuration).Assembly);
 ```
 
-The DI container resolves the interface as the middleware-wrapped version. The concrete service class remains a plain implementation with no logging code. Every operation gets a consistent, structured log record automatically without scattering log calls across the codebase.
+The DI container resolves each `ILoggable` class as a middleware-wrapped instance. Concrete handler classes contain no logging code. Adding a new handler that implements `ILoggable` is sufficient to get consistent, structured log output automatically.
+
+For explicit per-class control the generic overload is also available:
+
+```csharp
+services.AddWithLogging<IHandler, Handler>();
+```
 
 Two attributes on the interface give fine-grained control when needed:
 

@@ -14,6 +14,7 @@ public static class Configuration
         builder.AddAuthProviderConfiguration();
 
         builder.Services.AddAuthorization();
+        builder.Services.AddCascadingAuthenticationState();
         builder.Services.AddHttpContextAccessor();
 
         // Razor components with Interactive Server rendering
@@ -50,4 +51,3 @@ public static class Configuration
         return builder;
     }
 }
-

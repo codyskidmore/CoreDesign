@@ -34,7 +34,7 @@ CoreDesign is a collection of reusable .NET 10 libraries for data access, shared
 |---|---|---|
 | `CoreDesign.Shared` | `src/CoreDesign.Shared/` | Shared infrastructure, error result types, and utility extension methods |
 | `CoreDesign.Data` | `src/CoreDesign.Data/` | Generic EF Core data access layer with repository pattern and migration worker |
-| `CoreDesign.Logging` | `src/CoreDesign.Logging/` | DispatchProxy-based logging middleware that instruments service interfaces automatically |
+| `CoreDesign.Logging` | `src/CoreDesign.Logging/` | DispatchProxy-based logging middleware that instruments any class automatically |
 | `CoreDesign.Identity.Server` | `src/CoreDesign.Identity/CoreDesign.Identity.Server/` | Self-contained OIDC identity server for development and testing |
 | `CoreDesign.Identity.Client` | `src/CoreDesign.Identity/CoreDesign.Identity.Client/` | ASP.NET Core JWT Bearer authentication client and token injection middleware |
 
@@ -401,7 +401,7 @@ builder.Services.AddHostedService(sp =>
 
 ## 4. CoreDesign.Logging
 
-`CoreDesign.Logging` provides a `DispatchProxy`-based logging middleware that wraps any service interface and automatically logs every method invocation, return value, and exception. Service classes stay free of log statements while still producing structured, consistent log output for every operation.
+`CoreDesign.Logging` provides a `DispatchProxy`-based logging middleware that wraps any class behind an interface and automatically logs every method invocation, return value, and exception. Classes stay free of log statements while still producing structured, consistent log output for every operation.
 
 ### Installation
 
@@ -411,6 +411,8 @@ dotnet add package CoreDesign.Logging
 
 ### Usage
 
+#### Register a single class with the logging proxy
+
 Replace the standard `AddTransient` (or `AddScoped`) call with `AddWithLogging`:
 
 ```csharp
@@ -419,10 +421,38 @@ services.AddWithLogging<IWeatherForecastService, WeatherForecastService>();
 
 The DI container will resolve `IWeatherForecastService` as a proxy-wrapped instance. The concrete class needs no changes.
 
-Pass a different lifetime when needed:
+#### Automatic registration with `ILoggable`
+
+For larger applications, implement the `ILoggable` marker interface on any class to opt it into automatic logging registration. `ILoggable` can be applied to services, handlers, or any other class in your application regardless of naming convention.
+
+```csharp
+public class CreateForecastHandler(...) : ICreateForecastHandler, ILoggable { ... }
+public class GetForecastHandler(...) : IGetForecastHandler, ILoggable { ... }
+public class OrderProcessingService(...) : IOrderProcessingService, ILoggable { ... }
+```
+
+Then register all marked classes in a single call:
+
+```csharp
+services.AddWithLogging(typeof(Program).Assembly);
+```
+
+The overload scans the assembly for every non-abstract class implementing `ILoggable`, pairs it with each of its non-marker interfaces, and registers a logging proxy for each one. Renaming a class has no effect on whether it gets logging — only the presence of `ILoggable` matters.
+
+#### Choosing between the two approaches
+
+| Approach | When to use |
+|---|---|
+| `AddWithLogging<TInterface, TImplementation>()` | Explicit, per-class control. Useful when only a small number of classes need logging, or when you want each registration to be visible at the call site. |
+| `AddWithLogging(assembly)` | Opt-in at the class level via `ILoggable`. Useful when many classes across an assembly should be logged and you want a single registration call. |
+
+#### Lifetime
+
+Both overloads default to `Transient`. Pass a different lifetime when needed:
 
 ```csharp
 services.AddWithLogging<IMyService, MyService>(ServiceLifetime.Scoped);
+services.AddWithLogging(typeof(Program).Assembly, ServiceLifetime.Scoped);
 ```
 
 ### Log Levels
@@ -497,25 +527,25 @@ public interface IWeatherForecastService
 
 These tools operate at fundamentally different layers and are not alternatives to each other.
 
-**Serilog** is a logging pipeline. It handles formatting, enrichment, filtering, and routing entries to sinks (files, Seq, Application Insights, etc.). It has no concept of the service layer and no mechanism to intercept method calls. It is the "how and where" of log output.
+**Serilog** is a logging pipeline. It handles formatting, enrichment, filtering, and routing entries to sinks (files, Seq, Application Insights, etc.). It has no concept of application code and no mechanism to intercept method calls. It is the "how and where" of log output.
 
 **Serilog.Enrichers.Sensitive** works inside that pipeline. It scans already-formed log messages for patterns (regex or property names) and masks matches before they reach a sink. It does not know what triggered the log entry or where in the application it came from.
 
-**LoggingMiddleware** operates one layer up, at the point where application code calls services. It intercepts every method invocation before it happens, which gives it three things the others cannot offer:
+**LoggingMiddleware** operates one layer up, at the point where application code calls any class registered with the logging proxy. It intercepts every method invocation before it happens, which gives it three things the others cannot offer:
 
 - **Structural awareness.** It knows the method name, the parameter names, and the call site. `[Redact]` is declared on the interface alongside the parameter it protects.
 - **Intentional suppression.** `[Suppress]` removes a method from logging entirely. A regex enricher cannot suppress a log entry that was already written.
-- **Zero instrumentation in service classes.** Services contain no log statements and no awareness of observability at all.
+- **Zero instrumentation in application classes.** Classes contain no log statements and no awareness of observability at all. The proxy handles it uniformly, whether the class is a service, handler, or anything else.
 
 The right mental model is that these are complementary:
 
 | Layer | Tool | Responsibility |
 |---|---|---|
-| Service boundary | LoggingMiddleware | Intercepts calls, logs method invocations and results |
+| Application class boundary | LoggingMiddleware | Intercepts calls on any `ILoggable` class, logs method invocations and results |
 | Logging pipeline | Serilog | Routes and formats entries to sinks |
 | Pipeline safety net | Serilog.Enrichers.Sensitive | Masks sensitive values from code outside your control |
 
-Using all three together gives intentional logging at the service layer, flexible output routing, and a defensive backstop for third-party libraries and ad-hoc log statements that fall outside the proxy.
+Using all three together gives intentional logging at the application layer, flexible output routing, and a defensive backstop for third-party libraries and ad-hoc log statements that fall outside the proxy.
 
 ---
 
@@ -1545,7 +1575,7 @@ Sample.Api/
 | File | Purpose |
 |---|---|
 | `App.cs` | Configures the middleware pipeline: HTTPS, CORS, authentication, authorization, output caching, and endpoint mapping. |
-| `Configuration.cs` | Registers services: database, identity, CORS, output caching, and telemetry. Also registers `BearerSecurityTransformer`. Permission-based authorization is registered automatically via `AddIdentityClient` in development and `AddPermissionAuthorization` in production. |
+| `Configuration.cs` | Registers services: database, identity, authorization, logging middleware, CORS, output caching, and telemetry. Calls `AddWithLogging(assembly)` so every `ILoggable` class in the project is covered automatically. Also registers `BearerSecurityTransformer`. |
 | `Permissions.cs` | Application permission constants (`weather:read`, `weather:write`) passed directly to `RequireAuthorization()`. |
 | `Endpoints.cs` | Top-level endpoint registration. Delegates to each feature module's endpoint mapper. |
 | `Cache.cs` | Output cache policy configuration and the `CacheConfig` enum used for tag-based cache invalidation. |
@@ -1567,11 +1597,13 @@ Sample.Api/
 
 #### Logging
 
-Service classes in Sample.Api contain no log statements. All invocation logging is handled by `CoreDesign.Logging`. Services are registered with `AddWithLogging` in place of `AddTransient`:
+Classes in Sample.Api contain no log statements. All invocation logging is handled by `CoreDesign.Logging`. Each handler implements `ILoggable`, and all `ILoggable` classes in the assembly are registered together in `Configuration.cs`:
 
 ```csharp
-services.AddWithLogging<IWeatherForecastService, WeatherForecastService>();
+builder.Services.AddWithLogging(typeof(Configuration).Assembly);
 ```
+
+Because registration lives in infrastructure rather than in the module config, any new feature class that implements `ILoggable` is automatically covered without an additional registration line.
 
 #### Shared App Settings
 
@@ -1679,6 +1711,16 @@ builder.Services.AddHttpClient<SampleClient>(client =>
 ```
 
 The base address `https://SampleApi` uses Aspire service discovery so the Blazor app finds Sample.Api automatically without hard-coding a port.
+
+#### Home Page and Claims Display
+
+`Home.razor` reads the authenticated user's identity from the cascading `Task<AuthenticationState>` parameter and renders a table of all claims from the bearer token. This requires `AddCascadingAuthenticationState()` to be registered in `Configuration.cs`, which makes the auth state available to every component in the tree without each component needing to inject `IHttpContextAccessor` directly.
+
+The page also displays the active auth provider name (injected via `IAuthProviderConfigurator`) so it is immediately obvious whether the app is running against the local identity server or Azure Entra.
+
+#### Interactive Rendering and Authentication State
+
+`WeatherForecasts.razor` uses `new InteractiveServerRenderMode(prerender: false)` rather than plain `InteractiveServer`. Prerendering runs on the server before the SignalR circuit is established, at which point the authenticated user's identity is not yet available to the component. Disabling prerender ensures the component executes only during the interactive phase, when the full auth context is present and API calls can carry the correct bearer token.
 
 #### Configuration Reference
 
@@ -1935,9 +1977,25 @@ Sample.Api/
 
 ## 11. Release Notes
 
-### CoreDesign.Identity.Client (Permission-Based Authorization)
+### Sample Application (Current)
 
-**Permission-based authorization replaces role-based policies.**
+**Sample.Api** — Reorganized to full Vertical Slice Architecture. Each HTTP operation is self-contained in its own folder with operation-scoped request/response types and direct repository injection. `AddWithLogging` is now registered once in `Configuration.cs` for the entire assembly; each handler class implements `ILoggable` to opt into automatic logging without any per-class registration step.
+
+**Sample.Blazor** — New Blazor Server application authenticating via OIDC and displaying weather forecast data. Supports pluggable auth providers (`"Local"` or `"AzureEntra"`) via `IAuthProviderConfigurator`. The home page displays claims and identity information for the authenticated user. `AddCascadingAuthenticationState()` is registered in `Configuration.cs` and the weather forecasts page uses `InteractiveServerRenderMode(prerender: false)` to ensure auth state is available during the interactive rendering phase.
+
+**Sample.Identity.Web** — Standalone identity server for Blazor browser login flows.
+
+**Sample.Data.MigrationService** — The `SampleMigrationWorker` subclass has been removed. The service now registers `MigrationWorker<SampleDbContext>` directly with `AddMigrationWorker`. Adding a new seed file requires no code changes.
+
+**Sample.Aspire.AppHost** — `AppHostExtensions.cs` extracts Aspire wiring into named helper methods. All services run on fixed HTTPS ports to ensure OIDC issuer URLs and redirect URIs remain stable.
+
+**Shared Configuration Files** — `clients.json` and `identities.json` now live in a single `Sample/src/Shared/` folder and are linked into all relevant projects.
+
+---
+
+### CoreDesign.Identity.Client 1.0.7
+
+**Permission-Based Authorization**
 
 `AddIdentityClient` now registers `PermissionAuthorizationPolicyProvider` and `PermissionAuthorizationHandler` automatically. Endpoints declare their required permission by passing a string directly to `RequireAuthorization()`:
 
@@ -1950,44 +2008,22 @@ No policy registration is needed. The policy provider creates the policy on dema
 
 `AddPermissionAuthorization` is now available as a standalone extension method on `IServiceCollection`, intended for production auth providers (such as Azure Entra) that do not go through `AddIdentityClient`.
 
-**Breaking changes:**
+**Dual Configuration Section Support**
+
+The client reads issuer and audience from both `CoreDesign:Identity` and `CoreDesign:IdentityWebHost` configuration sections. `CoreDesign:IdentityWebHost` takes precedence when both are present.
+
+**Breaking Changes**
 
 - Named role-based authorization policies (`AdminOnly`, `UserOrAdmin`, etc.) are no longer created. Replace any `RequireAuthorization("PolicyName")` calls with `RequireAuthorization("permission:string")`.
 - The `roles` field in `identities.json` is replaced by `permissions`. Update all identity records to use the `permissions` array.
 
 ---
 
-### CoreDesign.Identity.Server (Permission Claims)
-
-Issued tokens now include `permissions` claims instead of `roles` claims. Each entry in the identity record's `permissions` array becomes its own `permissions` claim in the JWT and is returned by the `/connect/userinfo` endpoint. The `identities.json` format changes accordingly: replace the `roles` array with a `permissions` array in every identity record.
-
----
-
-### CoreDesign.Data 1.0.3
-
-**AddMigrationWorker Extension Method**
-
-A new `AddMigrationWorker<TContext>` extension method on `IHostApplicationBuilder` replaces the previous manual hosted-service registration:
-
-```csharp
-builder.AddMigrationWorker<SampleDbContext>();
-```
-
-**Configurable Seed Directory**
-
-Pass a directory path as the second argument to override the default `SeedData` folder:
-
-```csharp
-builder.AddMigrationWorker<SampleDbContext>("ReferenceData");
-```
-
-**MigrationWorker No Longer Abstract**
-
-`MigrationWorker<TContext>` is no longer abstract. `SeedAsync` is now a `virtual` method with a built-in default implementation that delegates to `SeedFromDirectoryAsync`. Consuming projects that rely entirely on convention-based JSON seeding no longer need to create a subclass.
-
----
-
 ### CoreDesign.Identity.Server 1.0.7
+
+**Permission Claims**
+
+Issued tokens now include `permissions` claims instead of `roles` claims. Each entry in the identity record's `permissions` array becomes its own `permissions` claim in the JWT and is returned by the `/connect/userinfo` endpoint. Replace the `roles` array with a `permissions` array in every identity record.
 
 **Authorization Code with PKCE**
 
@@ -2035,41 +2071,59 @@ The RSA signing key is now persisted across restarts to `%APPDATA%\coredesign-id
 
 ---
 
-### CoreDesign.Identity.Client 1.0.7
+### CoreDesign.Logging 1.0.4
 
-**Dual Configuration Section Support**
+**ILoggable Marker Interface**
 
-The client now reads issuer and audience from both `CoreDesign:Identity` and `CoreDesign:IdentityWebHost` configuration sections. `CoreDesign:IdentityWebHost` takes precedence when both are present.
+A new `ILoggable` marker interface lets classes opt into automatic logging registration. Implement `ILoggable` on any class to mark it for discovery.
+
+**Assembly Scanning**
+
+A new `AddWithLogging(IServiceCollection, Assembly, ServiceLifetime)` overload scans an assembly and registers all `ILoggable` classes paired with their interfaces in a single call:
+
+```csharp
+services.AddWithLogging(typeof(Program).Assembly);
+```
+
+The per-class generic overload remains available for cases where explicit control is needed:
+
+```csharp
+services.AddWithLogging<IWeatherForecastService, WeatherForecastService>();
+```
+
+---
+
+### CoreDesign.Data 1.0.2
+
+**AddMigrationWorker Extension Method**
+
+A new `AddMigrationWorker<TContext>` extension method on `IHostApplicationBuilder` replaces the previous manual hosted-service registration:
+
+```csharp
+builder.AddMigrationWorker<SampleDbContext>();
+```
+
+**Configurable Seed Directory**
+
+Pass a directory path as the second argument to override the default `SeedData` folder:
+
+```csharp
+builder.AddMigrationWorker<SampleDbContext>("ReferenceData");
+```
+
+**MigrationWorker No Longer Abstract**
+
+`MigrationWorker<TContext>` is no longer abstract. `SeedAsync` is now a `virtual` method with a built-in default implementation that delegates to `SeedFromDirectoryAsync`. Consuming projects that rely entirely on convention-based JSON seeding no longer need to create a subclass.
+
+**Convention-Based Seed Data Loading**
+
+`SeedFromDirectoryAsync` eliminates the need for subclasses to enumerate entity types explicitly. Pass a directory path and the assembly that owns entity types; the base class scans every `*.json` file in the directory, resolves the entity type by filename, and calls `SeedEntitiesAsync<T>` for each one.
 
 ---
 
 ### CoreDesign.Logging 1.0.3
 
 New package. Provides a `DispatchProxy`-based middleware that wraps any service interface and automatically produces structured log output for every method call, return value, and exception.
-
----
-
-### CoreDesign.Data 1.0.2
-
-**Convention-Based Seed Data Loading**
-
-A new `SeedFromDirectoryAsync` method on `MigrationWorker<TContext>` eliminates the need for subclasses to enumerate entity types explicitly. Pass a directory path and the assembly that owns entity types; the base class scans every `*.json` file in the directory, resolves the entity type by filename, and calls `SeedEntitiesAsync<T>` for each one.
-
----
-
-### Sample Application (Current)
-
-**Sample.Identity.Web** — New standalone identity server for Blazor browser login flows.
-
-**Sample.Blazor** — New Blazor Server application authenticating via OIDC and displaying weather forecast data. Supports pluggable auth providers (`"Local"` or `"AzureEntra"`) via `IAuthProviderConfigurator`.
-
-**Sample.Api** — Reorganized to full Vertical Slice Architecture. Each HTTP operation is self-contained in its own folder with operation-scoped request/response types and direct repository injection.
-
-**Sample.Data.MigrationService** — The `SampleMigrationWorker` subclass has been removed. The service now registers `MigrationWorker<SampleDbContext>` directly with `AddMigrationWorker`. Adding a new seed file requires no code changes.
-
-**Sample.Aspire.AppHost** — `AppHostExtensions.cs` extracts Aspire wiring into named helper methods. All services run on fixed HTTPS ports to ensure OIDC issuer URLs and redirect URIs remain stable.
-
-**Shared Configuration Files** — `clients.json` and `identities.json` now live in a single `Sample/src/Shared/` folder and are linked into all relevant projects.
 
 ---
 

@@ -1,6 +1,3 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.OutputCaching;
 using Sample.Api.Data;
 using Sample.Api.WeatherForecasts.Delete;
 using Sample.Api.WeatherForecasts.Shared;
@@ -12,36 +9,28 @@ namespace Sample.Api.Tests.WeatherForecasts.Delete;
 public class DeleteHandlerTests
 {
     private readonly Mock<ICudRepository<SampleDbContext, WeatherForecast>> _mockCud = new();
-    private readonly Mock<IOutputCacheStore> _mockCache = new();
-
-    private static HttpContext BuildContext()
-    {
-        var ctx = new DefaultHttpContext();
-        ctx.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim("oid", Guid.NewGuid().ToString())]));
-        return ctx;
-    }
 
     [Fact]
-    public async Task HandleAsync_WhenForecastExists_ReturnsOk()
+    public async Task DeleteAsync_WhenForecastExists_ReturnsSuccess()
     {
         _mockCud.Setup(r => r.DeleteAsync(It.IsAny<Ulid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+        var handler = new DeleteForecastHandler(_mockCud.Object);
 
-        var result = await Handler.HandleAsync(
-            Ulid.NewUlid(), _mockCud.Object, BuildContext(), _mockCache.Object, CancellationToken.None);
+        var result = await handler.DeleteAsync(Ulid.NewUlid(), Guid.NewGuid(), CancellationToken.None);
 
-        Assert.Equal(StatusCodes.Status200OK, ((IStatusCodeHttpResult)result).StatusCode);
+        Assert.True(result.IsT0);
     }
 
     [Fact]
-    public async Task HandleAsync_WhenForecastNotFound_ReturnsNotFound()
+    public async Task DeleteAsync_WhenForecastNotFound_ReturnsNotFound()
     {
         _mockCud.Setup(r => r.DeleteAsync(It.IsAny<Ulid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
+        var handler = new DeleteForecastHandler(_mockCud.Object);
 
-        var result = await Handler.HandleAsync(
-            Ulid.NewUlid(), _mockCud.Object, BuildContext(), _mockCache.Object, CancellationToken.None);
+        var result = await handler.DeleteAsync(Ulid.NewUlid(), Guid.NewGuid(), CancellationToken.None);
 
-        Assert.Equal(StatusCodes.Status404NotFound, ((IStatusCodeHttpResult)result).StatusCode);
+        Assert.True(result.IsT1);
     }
 }

@@ -30,9 +30,15 @@ Full details: [src/CoreDesign.Data/README.md](src/CoreDesign.Data/README.md)
 
 `src/CoreDesign.Logging/`
 
-A `DispatchProxy`-based logging middleware that wraps any service interface and automatically logs every method invocation, return value, and exception. Service classes stay free of log statements while still producing structured, consistent log output for every operation.
+A `DispatchProxy`-based logging middleware that wraps any class behind an interface and automatically logs every method invocation, return value, and exception. Classes stay free of log statements while still producing structured, consistent log output for every operation.
 
-Register a service using `AddWithLogging` in place of the standard `AddTransient` or `AddScoped` call:
+Implement `ILoggable` on any class to opt it into automatic logging registration, then register every marked class in one call:
+
+```csharp
+services.AddWithLogging(typeof(Program).Assembly);
+```
+
+For explicit per-class control, use the generic overload instead:
 
 ```csharp
 services.AddWithLogging<IWeatherForecastService, WeatherForecastService>();

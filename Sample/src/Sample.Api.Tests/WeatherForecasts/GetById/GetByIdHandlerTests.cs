@@ -1,6 +1,4 @@
 using System.Linq.Expressions;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Http;
 using Sample.Api.Data;
 using Sample.Api.WeatherForecasts.GetById;
 using Sample.Api.WeatherForecasts.Shared;
@@ -13,15 +11,8 @@ public class GetByIdHandlerTests
 {
     private readonly Mock<IReadRepository<SampleDbContext, WeatherForecast>> _mockRead = new();
 
-    private static HttpContext BuildContext()
-    {
-        var ctx = new DefaultHttpContext();
-        ctx.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim("oid", Guid.NewGuid().ToString())]));
-        return ctx;
-    }
-
     [Fact]
-    public async Task HandleAsync_WhenForecastExists_ReturnsOk()
+    public async Task GetByIdAsync_WhenForecastExists_ReturnsForecast()
     {
         var forecast = WeatherForecastFakers.WeatherForecast().Generate();
         _mockRead.Setup(r => r.GetAsync(
@@ -29,25 +20,25 @@ public class GetByIdHandlerTests
                 It.IsAny<Func<IQueryable<WeatherForecast>, IQueryable<WeatherForecast>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(forecast);
+        var handler = new GetForecastHandler(_mockRead.Object);
 
-        var result = await Handler.HandleAsync(
-            forecast.Id, _mockRead.Object, BuildContext(), CancellationToken.None);
+        var result = await handler.GetByIdAsync(forecast.Id, CancellationToken.None);
 
-        Assert.Equal(StatusCodes.Status200OK, ((IStatusCodeHttpResult)result).StatusCode);
+        Assert.True(result.IsT0);
     }
 
     [Fact]
-    public async Task HandleAsync_WhenForecastNotFound_ReturnsNotFound()
+    public async Task GetByIdAsync_WhenForecastNotFound_ReturnsNotFound()
     {
         _mockRead.Setup(r => r.GetAsync(
                 It.IsAny<Expression<Func<WeatherForecast, bool>>>(),
                 It.IsAny<Func<IQueryable<WeatherForecast>, IQueryable<WeatherForecast>>>(),
                 It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult<WeatherForecast>(null!));
+        var handler = new GetForecastHandler(_mockRead.Object);
 
-        var result = await Handler.HandleAsync(
-            Ulid.NewUlid(), _mockRead.Object, BuildContext(), CancellationToken.None);
+        var result = await handler.GetByIdAsync(Ulid.NewUlid(), CancellationToken.None);
 
-        Assert.Equal(StatusCodes.Status404NotFound, ((IStatusCodeHttpResult)result).StatusCode);
+        Assert.True(result.IsT1);
     }
 }

@@ -1,6 +1,50 @@
 # Release Notes
 
-## CoreDesign.Identity.Client 1.0.9
+## Sample Application
+
+### Logging Registration Moved to Infrastructure
+
+`AddWithLogging(assembly)` was moved from `ModuleConfig.cs` into `Configuration.cs` (infrastructure setup). Because it is called during builder configuration rather than inside a feature module registration, every class in the assembly that implements `ILoggable` is covered automatically — including any new features added by developers. Adding a new handler no longer requires a corresponding line in `ModuleConfig.cs`.
+
+### Blazor Home Page: Claims Display
+
+The home page now correctly displays the authenticated user's name and all JWT claims. Two changes were required:
+
+- `AddCascadingAuthenticationState()` was added to `Configuration.cs`. Without this, the cascading `Task<AuthenticationState>` parameter that `Home.razor` depends on was not available, so the component could not read the user's identity.
+- `WeatherForecasts.razor` was changed from `@rendermode InteractiveServer` to `@rendermode @(new InteractiveServerRenderMode(prerender: false))`. Prerendering runs before the SignalR circuit is established and the authenticated user identity is not yet available at that point. Disabling prerender ensures the component runs only during the interactive phase, when the full auth context and bearer token are present.
+
+---
+
+## CoreDesign.Logging 1.0.4
+
+### `ILoggable` Marker Interface
+
+A new `ILoggable` marker interface allows any class to opt into automatic logging registration, regardless of naming convention. The interface carries no members; its presence on a class is the only signal the registration machinery uses.
+
+```csharp
+public class CreateForecastHandler(...) : ICreateForecastHandler, ILoggable { ... }
+public class GetForecastHandler(...) : IGetForecastHandler, ILoggable { ... }
+```
+
+### Assembly-Scanning Overload for `AddWithLogging`
+
+A new overload of `AddWithLogging` accepts an `Assembly` and registers a logging proxy for every non-abstract class in that assembly that implements `ILoggable`:
+
+```csharp
+services.AddWithLogging(typeof(Program).Assembly);
+```
+
+The overload pairs each `ILoggable` class with each of its non-marker interfaces and calls the existing generic overload for each pair. The optional `ServiceLifetime` parameter works the same as on the explicit overload:
+
+```csharp
+services.AddWithLogging(typeof(Program).Assembly, ServiceLifetime.Scoped);
+```
+
+Logging is no longer limited to service classes. Handlers, query objects, and any other application class can participate by implementing `ILoggable`.
+
+---
+
+## CoreDesign.Identity.Client 1.0.7
 
 ### Permission-Based Authorization
 
@@ -37,14 +81,24 @@ else
 
 `AddPermissionAuthorization` previously used `TryAddSingleton` and `TryAddScoped` to register the policy provider and handler. Both calls were no-ops because `AddAuthorization` (called first inside `AddPermissionAuthorization`) had already registered `DefaultAuthorizationPolicyProvider` and `PassThroughAuthorizationHandler` for those service types. The provider is now registered with `AddSingleton` so it overrides the default, and the handler is registered with `TryAddEnumerable` (the correct pattern for adding to the authorization handler collection).
 
+### Dual Configuration Section Support
+
+The client now reads issuer and audience from both `CoreDesign:Identity` and `CoreDesign:IdentityWebHost` configuration sections. `CoreDesign:IdentityWebHost` takes precedence when both are present. This makes client configuration symmetric with the server's standalone web host pattern: a single `CoreDesign:IdentityWebHost` block configures both sides without duplication.
+
+### Dependency Updates
+
+- `Microsoft.AspNetCore.Authentication.JwtBearer` upgraded from 10.0.6 to 10.0.8.
+- `Microsoft.AspNetCore.OpenApi` upgraded to 10.0.8.
+- `Microsoft.Extensions.Http` upgraded from 10.0.0 to 10.0.8.
+
 ### Breaking Changes
 
 - Named role-based authorization policies (`AdminOnly`, `UserOrAdmin`, etc.) are no longer created. Replace any `RequireAuthorization("PolicyName")` calls with `RequireAuthorization("permission:string")`.
-- The `identities.json` `roles` field is replaced by `permissions`. See the CoreDesign.Identity.Server 1.0.8 entry.
+- The `identities.json` `roles` field is replaced by `permissions`. See the CoreDesign.Identity.Server 1.0.7 entry.
 
 ---
 
-## CoreDesign.Identity.Server 1.0.8
+## CoreDesign.Identity.Server 1.0.7
 
 ### Permissions Replace Roles
 
@@ -85,123 +139,6 @@ The `identities.json` file format changes accordingly: replace the `roles` array
 ```
 
 Permission strings are arbitrary and must match the strings passed to `RequireAuthorization()` in the API.
-
-### Breaking Change
-
-The `roles` property on `IdentityRecord` is removed. The `roles` claim is no longer emitted in any token. APIs that relied on `User.IsInRole()` or a role claim type of `roles` must migrate to the `permissions` claim using `PermissionAuthorizationHandler` from `CoreDesign.Identity.Client`.
-
----
-
-## Sample Application (Permissions Refactor)
-
-### Updated: Sample.Api
-
-`Authorization.cs` and `EnvironmentName.cs` have been removed from `Infrastructure/`. They are replaced by `Permissions.cs`, which defines the permission constants used by all endpoints:
-
-```csharp
-public static class Permissions
-{
-    public const string WeatherRead  = "weather:read";
-    public const string WeatherWrite = "weather:write";
-}
-```
-
-Each endpoint passes the appropriate constant to `RequireAuthorization()` directly:
-
-```csharp
-app.MapGet(Paths.WeatherForecasts.GetAll, Handler.HandleAsync)
-    .RequireAuthorization(Permissions.WeatherRead);
-
-app.MapPost(Paths.WeatherForecasts.Create, Handler.HandleAsync)
-    .RequireAuthorization(Permissions.WeatherWrite);
-```
-
-The pre-configured development accounts now reflect permissions instead of roles:
-
-| Email | Password | Permissions |
-| --- | --- | --- |
-| admin@sampleapi.local | Password1! | weather:read, weather:write |
-| user@sampleapi.local | Password1! | weather:read |
-
----
-
-## Tests
-
-### New: PermissionAuthorizationTests (CoreDesign.Identity.Client.Tests)
-
-Eleven new tests cover the three types introduced in CoreDesign.Identity.Client 1.0.9:
-
-**`PermissionAuthorizationHandlerTests`**
-
-- Succeeds when the `permissions` claim matches the required permission.
-- Succeeds when one of multiple `permissions` claims matches.
-- Does not succeed when no `permissions` claim is present.
-- Does not succeed when the claim value does not match.
-- Does not succeed when the user has no claims at all.
-
-**`PermissionAuthorizationPolicyProviderTests`**
-
-- Returns an existing explicitly defined policy unchanged.
-- Returns a permission policy for any unrecognized policy name.
-- Permission policies created on demand include `DenyAnonymousAuthorizationRequirement`.
-
-**`AddPermissionAuthorizationTests`**
-
-- `PermissionAuthorizationPolicyProvider` is resolved as `IAuthorizationPolicyProvider`.
-- `PermissionAuthorizationHandler` is included in the `IAuthorizationHandler` collection.
-- The fallback policy requires an authenticated user.
-
-### Fixed: IdentityFakers (CoreDesign.Identity.Server.Tests)
-
-`IdentityFakers.IdentityRecord()` was referencing the removed `Roles` property. Updated to use `Permissions` with representative permission strings (`items:read`, `items:write`, `items:delete`).
-
-### Fixed: ClientFakers (CoreDesign.Identity.Server.Tests)
-
-`ClientFakers.cs` contained a class named `PleseClientFakers` (typo). Renamed to `ClientFakers` to match the name used by `JsonFileClientStoreTests` and `TokenEndpointTests`.
-
----
-
-## CoreDesign.Data 1.0.3
-
-### AddMigrationWorker Extension Method
-
-A new `AddMigrationWorker<TContext>` extension method on `IHostApplicationBuilder` replaces the previous manual hosted-service registration. It creates and registers a `MigrationWorker<TContext>` instance in a single call, resolving `IHostApplicationLifetime` and the typed logger from the DI container automatically:
-
-```csharp
-builder.AddMigrationWorker<SampleDbContext>();
-```
-
-### Configurable Seed Directory
-
-The seed directory is now configurable through `AddMigrationWorker`. Pass a directory path as the second argument to override the default `SeedData` folder:
-
-```csharp
-builder.AddMigrationWorker<SampleDbContext>("ReferenceData");
-```
-
-The path is relative to the working directory. If the directory does not exist at runtime the worker logs a warning and skips seeding without throwing.
-
-### MigrationWorker No Longer Abstract
-
-`MigrationWorker<TContext>` is no longer abstract. `SeedAsync` is now a `virtual` method with a built-in default implementation that delegates to `SeedFromDirectoryAsync`. Consuming projects that rely entirely on convention-based JSON seeding no longer need to create a subclass. Subclassing is still available when custom seed logic is required: override `SeedAsync` and call `SeedFromDirectoryAsync` or `SeedEntitiesAsync<T>` as needed.
-
----
-
-## Sample Application
-
-### Updated: Sample.Data.MigrationService
-
-The `SampleMigrationWorker` subclass has been removed. The migration service now registers `MigrationWorker<SampleDbContext>` directly in `Program.cs` using `AddMigrationWorker`:
-
-```csharp
-builder.AddMigrationWorker<SampleDbContext>();
-```
-
-The worker scans the `SeedData/` output directory automatically. Adding a new seed file no longer requires any code change in the migration service: create the JSON file, name it after the fully qualified entity type (for example `Sample.Api.WeatherForecasts.Models.WeatherForecast.json`), and add it to the `.csproj` with `CopyToOutputDirectory: PreserveNewest`.
-
----
-
-## CoreDesign.Identity.Server 1.0.7
 
 ### Authorization Code with PKCE
 
@@ -246,7 +183,7 @@ Each `ClientRecord` in `clients.json` controls:
 | `allowedScopes` | Scopes this client may request. |
 | `requirePkce` | When `true`, `/connect/authorize` rejects requests without a valid `code_challenge`. Always set to `true` for browser-based clients. |
 
-To use a custom backing store (database, in-memory list, etc.) implement `IClientStore` and register it directly:
+To use a custom backing store implement `IClientStore` and register it directly:
 
 ```csharp
 builder.Services.AddSingleton<IClientStore, MyClientStore>();
@@ -349,85 +286,104 @@ The `GET /connect/userinfo` endpoint now logs bearer token validation failures a
 
 ### Breaking Changes
 
+- The `roles` property on `IdentityRecord` is removed. The `roles` claim is no longer emitted in any token. APIs that relied on `User.IsInRole()` or a role claim type of `roles` must migrate to the `permissions` claim using `PermissionAuthorizationHandler` from `CoreDesign.Identity.Client`.
 - `response_types_supported` in the OIDC discovery document no longer includes `"token"` or `"id_token"`. Clients that rely on the discovery document to confirm implicit flow support will see a change.
 - The authorization endpoint now validates clients against the client store. A `client_id` that is not registered in `clients.json` (or a custom `IClientStore`) is rejected with an error page.
 
 ---
 
-## CoreDesign.Identity.Client 1.0.7
+## Sample Application (Permissions Refactor)
 
-### Dual Configuration Section Support
+### Updated: Sample.Api
 
-The client now reads issuer and audience from both `CoreDesign:Identity` and `CoreDesign:IdentityWebHost` configuration sections. `CoreDesign:IdentityWebHost` takes precedence when both are present. This makes client configuration symmetric with the server's standalone web host pattern: a single `CoreDesign:IdentityWebHost` block configures both sides without duplication.
+`Authorization.cs` and `EnvironmentName.cs` have been removed from `Infrastructure/`. They are replaced by `Permissions.cs`, which defines the permission constants used by all endpoints:
 
-### Dependency Updates
+```csharp
+public static class Permissions
+{
+    public const string WeatherRead  = "weather:read";
+    public const string WeatherWrite = "weather:write";
+}
+```
 
-- `Microsoft.AspNetCore.Authentication.JwtBearer` upgraded from 10.0.6 to 10.0.7.
-- `Microsoft.Extensions.Http` upgraded from 10.0.0 to 10.0.7.
+Each endpoint passes the appropriate constant to `RequireAuthorization()` directly:
+
+```csharp
+app.MapGet(Paths.WeatherForecasts.GetAll, Handler.HandleAsync)
+    .RequireAuthorization(Permissions.WeatherRead);
+
+app.MapPost(Paths.WeatherForecasts.Create, Handler.HandleAsync)
+    .RequireAuthorization(Permissions.WeatherWrite);
+```
+
+The pre-configured development accounts now reflect permissions instead of roles:
+
+| Email | Password | Permissions |
+| --- | --- | --- |
+| admin@sampleapi.local | Password1! | weather:read, weather:write |
+| user@sampleapi.local | Password1! | weather:read |
 
 ---
 
-## CoreDesign.Logging 1.0.3
+## Tests
 
-New package.
+### New: PermissionAuthorizationTests (CoreDesign.Identity.Client.Tests)
 
-`CoreDesign.Logging` provides a `DispatchProxy`-based middleware that wraps any service interface and automatically produces structured log output for every method call, return value, and exception. Service implementation classes require no changes.
+Eleven new tests cover the three types introduced in CoreDesign.Identity.Client 1.0.7:
 
-### Registration
+**`PermissionAuthorizationHandlerTests`**
 
-Replace the standard `AddTransient` (or `AddScoped`) call with `AddWithLogging`:
+- Succeeds when the `permissions` claim matches the required permission.
+- Succeeds when one of multiple `permissions` claims matches.
+- Does not succeed when no `permissions` claim is present.
+- Does not succeed when the claim value does not match.
+- Does not succeed when the user has no claims at all.
 
-```csharp
-services.AddWithLogging<IWeatherForecastService, WeatherForecastService>();
-```
+**`PermissionAuthorizationPolicyProviderTests`**
 
-The DI container resolves `IWeatherForecastService` as a proxy-wrapped instance. The concrete class is unaware of the proxy.
+- Returns an existing explicitly defined policy unchanged.
+- Returns a permission policy for any unrecognized policy name.
+- Permission policies created on demand include `DenyAnonymousAuthorizationRequirement`.
 
-Pass a different lifetime when needed:
+**`AddPermissionAuthorizationTests`**
 
-```csharp
-services.AddWithLogging<IMyService, MyService>(ServiceLifetime.Scoped);
-```
+- `PermissionAuthorizationPolicyProvider` is resolved as `IAuthorizationPolicyProvider`.
+- `PermissionAuthorizationHandler` is included in the `IAuthorizationHandler` collection.
+- The fallback policy requires an authenticated user.
 
-### Log Levels
+### Fixed: IdentityFakers (CoreDesign.Identity.Server.Tests)
 
-| Situation | Level |
-| --- | --- |
-| Method called | Information (method name and serialized parameters) |
-| Method returned successfully | Information (method name and serialized return value) |
-| Method returned `NotFoundMessage` or `BadRequestMessage` | Warning |
-| Method threw an exception | Error (exception and method name) |
+`IdentityFakers.IdentityRecord()` was referencing the removed `Roles` property. Updated to use `Permissions` with representative permission strings (`items:read`, `items:write`, `items:delete`).
 
-Both synchronous and `Task`/`Task<T>` methods are fully supported.
+### Fixed: ClientFakers (CoreDesign.Identity.Server.Tests)
 
-### Sensitive Data Control
-
-Two attributes control what is written to logs for methods that handle passwords, tokens, or other sensitive information.
-
-`[Redact]` on a parameter replaces that argument with `"[REDACTED]"` in the log output. The real value is passed to the implementation unchanged:
-
-```csharp
-public interface IAuthService
-{
-    Task<LoginResult> LoginAsync(string username, [Redact] string password);
-}
-```
-
-`[Suppress]` on a method skips all logging for that method. No invocation, result, or exception entries are written:
-
-```csharp
-public interface ITokenService
-{
-    [Suppress]
-    Task<string> IssueTokenAsync(string userId);
-}
-```
-
-Use `[Suppress]` when the method name or parameter shape itself would be too revealing, or when call volume is high enough that per-call logging creates more noise than value.
+`ClientFakers.cs` contained a class named `PleseClientFakers` (typo). Renamed to `ClientFakers` to match the name used by `JsonFileClientStoreTests` and `TokenEndpointTests`.
 
 ---
 
 ## CoreDesign.Data 1.0.2
+
+### `AddMigrationWorker` Extension Method
+
+A new `AddMigrationWorker<TContext>` extension method on `IHostApplicationBuilder` replaces the previous manual hosted-service registration. It creates and registers a `MigrationWorker<TContext>` instance in a single call, resolving `IHostApplicationLifetime` and the typed logger from the DI container automatically:
+
+```csharp
+builder.AddMigrationWorker<SampleDbContext>();
+```
+
+### Configurable Seed Directory
+
+The seed directory is now configurable through `AddMigrationWorker`. Pass a directory path as the second argument to override the default `SeedData` folder:
+
+```csharp
+builder.AddMigrationWorker<SampleDbContext>("ReferenceData");
+```
+
+The path is relative to the working directory. If the directory does not exist at runtime the worker logs a warning and skips seeding without throwing.
+
+### `MigrationWorker` No Longer Abstract
+
+`MigrationWorker<TContext>` is no longer abstract. `SeedAsync` is now a `virtual` method with a built-in default implementation that delegates to `SeedFromDirectoryAsync`. Consuming projects that rely entirely on convention-based JSON seeding no longer need to create a subclass. Subclassing is still available when custom seed logic is required: override `SeedAsync` and call `SeedFromDirectoryAsync` or `SeedEntitiesAsync<T>` as needed.
 
 ### Convention-Based Seed Data Loading
 
@@ -445,6 +401,16 @@ Each seed file must be named after the fully qualified type of the entity it con
 ---
 
 ## Sample Application
+
+### Updated: Sample.Data.MigrationService
+
+The `SampleMigrationWorker` subclass has been removed. The migration service now registers `MigrationWorker<SampleDbContext>` directly in `Program.cs` using `AddMigrationWorker`:
+
+```csharp
+builder.AddMigrationWorker<SampleDbContext>();
+```
+
+The worker scans the `SeedData/` output directory automatically. Adding a new seed file no longer requires any code change in the migration service: create the JSON file, name it after the fully qualified entity type (for example `Sample.Api.WeatherForecasts.Models.WeatherForecast.json`), and add it to the `.csproj` with `CopyToOutputDirectory: PreserveNewest`.
 
 ### Renamed from SampleApi to Sample
 
@@ -471,7 +437,7 @@ An ASP.NET Core Blazor Server application that authenticates via OpenID Connect 
 
 1. `Blazor:Oidc:Authority` (explicit override)
 2. `services:SampleIdentityWeb:https:0` (Aspire service discovery, normalized format)
-3. `services__SampleIdentityWeb__https__0` (Aspire raw environment variable)
+3. `services__SampleIdentityWeb__https__0` (Aspire service discovery, raw environment variable)
 4. Connection string named `"SampleIdentityWeb"`
 5. `IdentityApi:BaseUrl` (fallback for non-Aspire environments)
 
@@ -489,10 +455,6 @@ The Blazor app is pinned to HTTPS port 7070 so the redirect URI registered in `c
 
 - `Infrastructure/Configuration.cs` reorganized into focused setup methods (`AddIdentityAuthentication`, `AddAzureEntraAuthentication`, `AddDatabase`, `AddCache`, etc.).
 - API is pinned to a fixed HTTPS port for consistent testing.
-
-### Updated: Sample.Data.MigrationService
-
-`SampleMigrationWorker.SeedAsync` now delegates entirely to `SeedFromDirectoryAsync`, pointing at the `SeedData` output directory and passing `typeof(SampleDbContext).Assembly` for type resolution. The previous implementation loaded each entity type by hand using a `CoreDesign.Shared.ExtensionMethods` helper and required an explicit reference to every model class. Adding a new seed file no longer requires any code change in the migration service.
 
 ### Updated: Sample.Aspire.AppHost
 
@@ -565,3 +527,63 @@ Client and identity store JSON files are now in a single `Sample/src/Shared/` fo
 - Valid bearer token returns expected claims.
 - Invalid or expired token returns HTTP 401.
 - Claims mapping is validated for `sub`, `email`, `name`, and `permissions`.
+
+---
+
+## CoreDesign.Logging 1.0.3
+
+New package.
+
+`CoreDesign.Logging` provides a `DispatchProxy`-based middleware that wraps any service interface and automatically produces structured log output for every method call, return value, and exception. Service implementation classes require no changes.
+
+### Registration
+
+Replace the standard `AddTransient` (or `AddScoped`) call with `AddWithLogging`:
+
+```csharp
+services.AddWithLogging<IWeatherForecastService, WeatherForecastService>();
+```
+
+The DI container resolves `IWeatherForecastService` as a proxy-wrapped instance. The concrete class is unaware of the proxy.
+
+Pass a different lifetime when needed:
+
+```csharp
+services.AddWithLogging<IMyService, MyService>(ServiceLifetime.Scoped);
+```
+
+### Log Levels
+
+| Situation | Level |
+| --- | --- |
+| Method called | Information (method name and serialized parameters) |
+| Method returned successfully | Information (method name and serialized return value) |
+| Method returned `NotFoundMessage` or `BadRequestMessage` | Warning |
+| Method threw an exception | Error (exception and method name) |
+
+Both synchronous and `Task`/`Task<T>` methods are fully supported.
+
+### Sensitive Data Control
+
+Two attributes control what is written to logs for methods that handle passwords, tokens, or other sensitive information.
+
+`[Redact]` on a parameter replaces that argument with `"[REDACTED]"` in the log output. The real value is passed to the implementation unchanged:
+
+```csharp
+public interface IAuthService
+{
+    Task<LoginResult> LoginAsync(string username, [Redact] string password);
+}
+```
+
+`[Suppress]` on a method skips all logging for that method. No invocation, result, or exception entries are written:
+
+```csharp
+public interface ITokenService
+{
+    [Suppress]
+    Task<string> IssueTokenAsync(string userId);
+}
+```
+
+Use `[Suppress]` when the method name or parameter shape itself would be too revealing, or when call volume is high enough that per-call logging creates more noise than value.

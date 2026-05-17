@@ -16,7 +16,7 @@ public interface ITestService
     [TruncateLog(10)] Task<string> FetchWithLimitAsync(string input);
 }
 
-public class TestService : ITestService
+public class TestService : ITestService, ILoggable
 {
     public string GetValue(string input) => input;
     public void Execute(string input) { }
@@ -32,4 +32,14 @@ public class TestService : ITestService
     public string GetValueWithLimit(string input) => input;
     public string GetValueUnlimited(string input) => input;
     public Task<string> FetchWithLimitAsync(string input) => Task.FromResult(input);
+}
+
+public interface IUnloggableService
+{
+    string DoWork();
+}
+
+public class UnloggableService : IUnloggableService
+{
+    public string DoWork() => "done";
 }

@@ -1,6 +1,3 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.OutputCaching;
 using Sample.Api.Data;
 using Sample.Api.WeatherForecasts.Create;
 using Sample.Api.WeatherForecasts.Shared;
@@ -12,45 +9,29 @@ namespace Sample.Api.Tests.WeatherForecasts.Create;
 public class CreateHandlerTests
 {
     private readonly Mock<ICudRepository<SampleDbContext, WeatherForecast>> _mockCud = new();
-    private readonly Mock<IOutputCacheStore> _mockCache = new();
-
-    private static HttpContext BuildContext()
-    {
-        var ctx = new DefaultHttpContext();
-        ctx.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim("oid", Guid.NewGuid().ToString())]));
-        return ctx;
-    }
 
     [Fact]
-    public async Task HandleAsync_WhenRepositorySucceeds_ReturnsCreated()
+    public async Task CreateAsync_WhenRepositorySucceeds_ReturnsWeatherForecast()
     {
         _mockCud.Setup(r => r.InsertAsync(It.IsAny<WeatherForecast>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+        var handler = new CreateForecastHandler(_mockCud.Object);
 
-        var result = await Handler.HandleAsync(
-            WeatherForecastFakers.CreateRequest(),
-            _mockCud.Object,
-            BuildContext(),
-            _mockCache.Object,
-            CancellationToken.None);
+        var result = await handler.CreateAsync(WeatherForecastFakers.CreateRequest(), Guid.NewGuid(), CancellationToken.None);
 
-        Assert.Equal(StatusCodes.Status201Created, ((IStatusCodeHttpResult)result).StatusCode);
+        Assert.True(result.IsT0);
     }
 
     [Fact]
-    public async Task HandleAsync_WhenRepositoryFails_ReturnsBadRequest()
+    public async Task CreateAsync_WhenRepositoryFails_ReturnsBadRequest()
     {
         _mockCud.Setup(r => r.InsertAsync(It.IsAny<WeatherForecast>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
+        var handler = new CreateForecastHandler(_mockCud.Object);
 
-        var result = await Handler.HandleAsync(
-            WeatherForecastFakers.CreateRequest(),
-            _mockCud.Object,
-            BuildContext(),
-            _mockCache.Object,
-            CancellationToken.None);
+        var result = await handler.CreateAsync(WeatherForecastFakers.CreateRequest(), Guid.NewGuid(), CancellationToken.None);
 
-        Assert.Equal(StatusCodes.Status400BadRequest, ((IStatusCodeHttpResult)result).StatusCode);
+        Assert.True(result.IsT1);
     }
 
     [Fact]

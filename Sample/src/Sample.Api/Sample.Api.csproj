@@ -14,7 +14,7 @@
         <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.3.2" />
         <PackageReference Include="CoreDesign.Data" Version="1.0.2" />
         <PackageReference Include="CoreDesign.Identity.Client" Version="1.0.10" />
-        <PackageReference Include="CoreDesign.Logging" Version="1.0.4" />
+        <PackageReference Include="CoreDesign.Logging" Version="1.0.5" />
         <PackageReference Include="CoreDesign.Shared" Version="1.0.2" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.8" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
@@ -58,6 +58,10 @@
 
     <ItemGroup>
       <None Remove="README.docx" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="logs\" />
     </ItemGroup>
 
 </Project>

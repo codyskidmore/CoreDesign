@@ -64,7 +64,7 @@ Cross-cutting configuration that applies to the whole application rather than an
 | File | Purpose |
 |------|---------|
 | `App.cs` | Configures the middleware pipeline: HTTPS, CORS, authentication, authorization, output caching, and endpoint mapping. |
-| `Configuration.cs` | Registers services during builder setup: database, identity, authorization policies, CORS, output caching, and telemetry. Also registers `BearerSecurityTransformer`, which annotates the OpenAPI document with the Bearer security scheme and automatically excludes anonymous endpoints. |
+| `Configuration.cs` | Registers services during builder setup: database, identity, authorization, logging middleware, CORS, output caching, and telemetry. Calls `AddWithLogging(assembly)` so every `ILoggable` class in the project is covered without per-module registration. Also registers `BearerSecurityTransformer`, which annotates the OpenAPI document with the Bearer security scheme and automatically excludes anonymous endpoints. |
 | `Permissions.cs` | Application permission constants (`weather:read`, `weather:write`) passed directly to `RequireAuthorization()`. The underlying policy provider and claim handler live in `CoreDesign.Identity.Client` and are registered automatically by `AddIdentityClient()`. |
 | `Endpoints.cs` | Top-level endpoint registration. Delegates to each feature module's endpoint mapper. |
 | `Cache.cs` | Output cache policy configuration and the `CacheConfig` enum used for tag-based cache invalidation. |

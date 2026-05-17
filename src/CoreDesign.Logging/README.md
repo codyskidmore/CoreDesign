@@ -1,6 +1,6 @@
 # CoreDesign.Logging
 
-`CoreDesign.Logging` provides a `DispatchProxy`-based logging middleware that wraps any service interface and automatically logs every method invocation, return value, and exception. Service classes stay free of log statements while still producing structured, consistent log output for every operation.
+`CoreDesign.Logging` provides a `DispatchProxy`-based logging middleware that wraps any class behind an interface and automatically logs every method invocation, return value, and exception. Classes stay free of log statements while still producing structured, consistent log output for every operation.
 
 ## Installation
 
@@ -10,7 +10,7 @@ dotnet add package CoreDesign.Logging
 
 ## Usage
 
-### Register a service with the logging proxy
+### Register a single class with the logging proxy
 
 Replace the standard `AddTransient` (or `AddScoped`) call with `AddWithLogging`:
 
@@ -19,6 +19,31 @@ services.AddWithLogging<IWeatherForecastService, WeatherForecastService>();
 ```
 
 The DI container will resolve `IWeatherForecastService` as a proxy-wrapped instance. The concrete class needs no changes.
+
+### Automatic registration with `ILoggable`
+
+For larger applications, implement the `ILoggable` marker interface on any class to opt it into automatic logging registration. `ILoggable` can be applied to services, handlers, or any other class in your application regardless of naming convention.
+
+```csharp
+public class CreateForecastHandler(...) : ICreateForecastHandler, ILoggable { ... }
+public class GetForecastHandler(...) : IGetForecastHandler, ILoggable { ... }
+public class OrderProcessingService(...) : IOrderProcessingService, ILoggable { ... }
+```
+
+Then register all marked classes in a single call:
+
+```csharp
+services.AddWithLogging(typeof(Program).Assembly);
+```
+
+The overload scans the assembly for every non-abstract class implementing `ILoggable`, pairs it with each of its non-marker interfaces, and registers a logging proxy for each one. Renaming a class has no effect on whether it gets logging — only the presence of `ILoggable` matters.
+
+### Choosing between the two approaches
+
+| Approach | When to use |
+|---|---|
+| `AddWithLogging<TInterface, TImplementation>()` | Explicit, per-class control. Useful when only a small number of classes need logging, or when you want each registration to be visible at the call site. |
+| `AddWithLogging(assembly)` | Opt-in at the class level via `ILoggable`. Useful when many classes across an assembly should be logged and you want a single registration call. |
 
 ### What gets logged
 
@@ -33,10 +58,11 @@ Both synchronous and `Task`/`Task<T>` methods are fully supported.
 
 ### Lifetime
 
-`AddWithLogging` defaults to `Transient`. Pass a different lifetime when needed:
+Both overloads default to `Transient`. Pass a different lifetime when needed:
 
 ```csharp
 services.AddWithLogging<IMyService, MyService>(ServiceLifetime.Scoped);
+services.AddWithLogging(typeof(Program).Assembly, ServiceLifetime.Scoped);
 ```
 
 ## Sensitive Data

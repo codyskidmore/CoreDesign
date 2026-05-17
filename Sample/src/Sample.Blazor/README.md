@@ -113,6 +113,16 @@ builder.Services.AddHttpClient<SampleClient>(client =>
 
 The base address `https://SampleApi` uses Aspire service discovery so the Blazor app finds Sample.Api automatically without hard-coding a port.
 
+## Home Page and Claims Display
+
+`Home.razor` reads the authenticated user's identity from the cascading `Task<AuthenticationState>` parameter and renders a table of all JWT claims. `AddCascadingAuthenticationState()` is registered in `Configuration.cs`, which makes the auth state available to every component in the tree without each component having to inject `IHttpContextAccessor` individually.
+
+The page also displays the active auth provider name (injected via `IAuthProviderConfigurator`) so it is immediately obvious whether the app is running against the local identity server or Azure Entra.
+
+## Interactive Rendering and Authentication State
+
+`WeatherForecasts.razor` uses `new InteractiveServerRenderMode(prerender: false)` rather than plain `InteractiveServer`. Prerendering runs on the server before the SignalR circuit is established, at which point the authenticated user's identity is not yet available to the component. Disabling prerender ensures the component executes only during the interactive phase, when the full auth context is present and API calls can carry the correct bearer token.
+
 ## Configuration reference
 
 `appsettings.json` (shared from `src/Shared/`):

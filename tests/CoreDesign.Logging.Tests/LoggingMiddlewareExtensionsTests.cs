@@ -12,6 +12,16 @@ public class LoggingMiddlewareExtensionsTests
         return services.BuildServiceProvider();
     }
 
+    private static ServiceProvider BuildProviderFromAssembly(ServiceLifetime lifetime = ServiceLifetime.Transient)
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddWithLogging(typeof(TestService).Assembly, lifetime);
+        return services.BuildServiceProvider();
+    }
+
+    // Explicit registration
+
     [Fact]
     public void AddWithLogging_InterfaceIsResolvable()
     {
@@ -84,6 +94,83 @@ public class LoggingMiddlewareExtensionsTests
     public void AddWithLogging_SingletonLifetime_ReturnsSameInstanceGlobally()
     {
         using var provider = BuildProvider(ServiceLifetime.Singleton);
+
+        var s1 = provider.GetRequiredService<ITestService>();
+        var s2 = provider.GetRequiredService<ITestService>();
+
+        Assert.Same(s1, s2);
+    }
+
+    // Assembly scanning via ILoggable
+
+    [Fact]
+    public void AddWithLogging_Assembly_LoggableInterface_IsResolvable()
+    {
+        using var provider = BuildProviderFromAssembly();
+
+        var service = provider.GetService<ITestService>();
+
+        Assert.NotNull(service);
+    }
+
+    [Fact]
+    public void AddWithLogging_Assembly_LoggableImplementation_IsResolvable()
+    {
+        using var provider = BuildProviderFromAssembly();
+
+        var impl = provider.GetService<TestService>();
+
+        Assert.NotNull(impl);
+    }
+
+    [Fact]
+    public void AddWithLogging_Assembly_LoggableInterface_ResolvesAsProxy_NotConcreteType()
+    {
+        using var provider = BuildProviderFromAssembly();
+
+        var service = provider.GetRequiredService<ITestService>();
+
+        Assert.IsAssignableFrom<ITestService>(service);
+        Assert.IsNotType<TestService>(service);
+    }
+
+    [Fact]
+    public void AddWithLogging_Assembly_NonLoggableType_IsNotRegistered()
+    {
+        using var provider = BuildProviderFromAssembly();
+
+        var service = provider.GetService<IUnloggableService>();
+
+        Assert.Null(service);
+    }
+
+    [Fact]
+    public void AddWithLogging_Assembly_TransientLifetime_ReturnsDifferentInstancesPerResolve()
+    {
+        using var provider = BuildProviderFromAssembly(ServiceLifetime.Transient);
+
+        var s1 = provider.GetRequiredService<ITestService>();
+        var s2 = provider.GetRequiredService<ITestService>();
+
+        Assert.NotSame(s1, s2);
+    }
+
+    [Fact]
+    public void AddWithLogging_Assembly_ScopedLifetime_ReturnsSameInstanceWithinScope()
+    {
+        using var provider = BuildProviderFromAssembly(ServiceLifetime.Scoped);
+        using var scope = provider.CreateScope();
+
+        var s1 = scope.ServiceProvider.GetRequiredService<ITestService>();
+        var s2 = scope.ServiceProvider.GetRequiredService<ITestService>();
+
+        Assert.Same(s1, s2);
+    }
+
+    [Fact]
+    public void AddWithLogging_Assembly_SingletonLifetime_ReturnsSameInstanceGlobally()
+    {
+        using var provider = BuildProviderFromAssembly(ServiceLifetime.Singleton);
 
         var s1 = provider.GetRequiredService<ITestService>();
         var s2 = provider.GetRequiredService<ITestService>();

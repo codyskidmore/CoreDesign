@@ -10,6 +10,10 @@
         <RepositoryUrl>https://github.com/codyskidmore/CoreDesign</RepositoryUrl>
         <PackageTags>logging;proxy;dispatchproxy;middleware;coredesign</PackageTags>
         <PackageReleaseNotes>
+1.0.4
+- Added ILoggable marker interface. Classes implementing ILoggable are discovered by the new assembly-scanning overload of AddWithLogging.
+- Added AddWithLogging(IServiceCollection, Assembly, ServiceLifetime) overload that registers all ILoggable classes in the assembly paired with their interfaces.
+
 1.0.2
 - Renamed [SensitiveParameter] attribute to [Redact] and renamed [NoLog] to [Suppress] for clarity and consistency with other CoreDesign libraries.
 

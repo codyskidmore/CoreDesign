@@ -1,4 +1,4 @@
-# SampleApi.Identity.Web
+# Sample.Identity.Web
 
 A standalone development identity provider built on `CoreDesign.Identity.Server`. It hosts the full OIDC endpoint suite including the browser login form (`/connect/authorize`), so that a Blazor app can authenticate against it using Authorization Code with PKCE.
 
@@ -40,10 +40,10 @@ The `Issuer` must match the URL at which this project runs (port 5003). The `Aud
 
 `identities.json` defines the available login accounts. Two accounts are pre-configured:
 
-| Username | Password | Roles |
+| Username | Password | Permissions |
 | --- | --- | --- |
-| admin@sampleapi.local | Password1! | DevAdmin, DevAppUsers |
-| user@sampleapi.local | Password1! | DevAppUsers |
+| admin@sampleapi.local | Password1! | weather:read, weather:write |
+| user@sampleapi.local | Password1! | weather:read |
 
 The file lives in `src/Shared/` and is linked into the project via an MSBuild `<Content>` item. Each record carries the full claim set:
 
@@ -56,7 +56,7 @@ The file lives in `src/Shared/` and is linked into the project via an MSBuild `<
   "name": "Admin User",
   "givenName": "Admin",
   "familyName": "User",
-  "roles": [ "DevAdmin", "DevAppUsers" ],
+  "permissions": [ "weather:read", "weather:write" ],
   "customClaims": {}
 }
 ```

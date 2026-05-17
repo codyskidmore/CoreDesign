@@ -164,4 +164,35 @@ public static class LoggingMiddlewareExtensions
 
         return services;
     }
+
+    public static IServiceCollection AddWithLogging(
+        this IServiceCollection services,
+        Assembly assembly,
+        ServiceLifetime lifetime = ServiceLifetime.Transient)
+    {
+        var loggableType = typeof(ILoggable);
+        var genericMethod = typeof(LoggingMiddlewareExtensions)
+            .GetMethods()
+            .First(m => m.Name == nameof(AddWithLogging)
+                     && m.IsGenericMethod
+                     && m.GetGenericArguments().Length == 2);
+
+        var loggableTypes = assembly.GetTypes()
+            .Where(t => t.IsClass && !t.IsAbstract && loggableType.IsAssignableFrom(t));
+
+        foreach (var implementation in loggableTypes)
+        {
+            var interfaces = implementation.GetInterfaces()
+                .Where(i => i != loggableType);
+
+            foreach (var iface in interfaces)
+            {
+                genericMethod
+                    .MakeGenericMethod(iface, implementation)
+                    .Invoke(null, [services, lifetime]);
+            }
+        }
+
+        return services;
+    }
 }

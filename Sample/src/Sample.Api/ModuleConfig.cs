@@ -15,13 +15,7 @@ public static class ModuleConfig
         s.AddTransient<IReadRepository<SampleDbContext, WeatherForecast>, ReadRepository<SampleDbContext, WeatherForecast>>();
         s.AddTransient<ICudRepository<SampleDbContext, WeatherForecast>, CudRepository<SampleDbContext, WeatherForecast>>();
 
-        s.AddWithLogging<ICreateForecastHandler, CreateForecastHandler>();
-        s.AddWithLogging<IGetAllForecastsHandler, GetAllForecastsHandler>();
-        s.AddWithLogging<IGetForecastHandler, GetForecastHandler>();
-        s.AddWithLogging<IUpdateForecastHandler, UpdateForecastHandler>();
-        s.AddWithLogging<IDeleteForecastHandler, DeleteForecastHandler>();
-
-        return builder;
+return builder;
     }
 
     public static IEndpointRouteBuilder AddWeatherForecastsModule(this IEndpointRouteBuilder app)
