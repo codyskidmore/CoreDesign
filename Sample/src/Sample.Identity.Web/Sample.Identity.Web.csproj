@@ -7,10 +7,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\..\src\CoreDesign.Identity\CoreDesign.Identity.Server\CoreDesign.Identity.Server.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
         <Content Include="..\Shared\appsettings.json">
             <Link>appsettings.json</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -31,6 +27,10 @@
 
     <ItemGroup>
       <None Remove="README.docx" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="CoreDesign.Identity.Server" Version="1.0.7" />
     </ItemGroup>
 
 </Project>
