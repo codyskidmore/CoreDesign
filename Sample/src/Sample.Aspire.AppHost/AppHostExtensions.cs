@@ -64,6 +64,23 @@ internal static class AppHostExtensions
         return builder;
     }
 
+    internal static IDistributedApplicationBuilder AddSampleReact(
+        this IDistributedApplicationBuilder builder,
+        IResourceBuilder<ProjectResource> identityWeb,
+        IResourceBuilder<ProjectResource> sampleApi)
+    {
+        builder.AddViteApp("SampleReact", "../Sample.React")
+            .WithNpm()
+            .WithHttpEndpoint(port: 5173, env: "PORT", isProxied: false)
+            .WithUrlForEndpoint("http", u => u.DisplayText = "Sample React UI")
+            .WithReference(identityWeb)
+            .WithReference(sampleApi)
+            .WaitFor(identityWeb)
+            .WaitFor(sampleApi);
+
+        return builder;
+    }
+
     internal static IDistributedApplicationBuilder AddSampleBlazor(
         this IDistributedApplicationBuilder builder,
         IResourceBuilder<ProjectResource> identityWeb,
