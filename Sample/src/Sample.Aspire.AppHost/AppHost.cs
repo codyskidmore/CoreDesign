@@ -14,5 +14,6 @@ var sampleApi   = builder.AddSampleApi(database);
 
 builder.AddMigrationService(database);
 builder.AddSampleBlazor(identityWeb, sampleApi);
+builder.AddSampleReact(identityWeb, sampleApi);
 
 builder.Build().Run();

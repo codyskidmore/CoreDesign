@@ -17,7 +17,6 @@
         <EmbeddedResource Include="Templates\login.html" />
         <EmbeddedResource Include="Templates\login-error.html" />
         <EmbeddedResource Include="Templates\landing.html" />
-        <None Remove="README.docx" />
     </ItemGroup>
 
     <ItemGroup>

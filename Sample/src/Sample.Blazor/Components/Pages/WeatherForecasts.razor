@@ -1,7 +1,8 @@
 @page "/weather"
 @attribute [Authorize]
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@rendermode InteractiveServer
 @inject SampleClient ApiClient
+@inject PersistentComponentState ApplicationState
 
 <PageTitle>Weather Forecasts</PageTitle>
 
@@ -46,12 +47,41 @@ else
 }
 
 @code {
+    private const string ForecastsStateKey = "weather-forecasts";
+    private const string ErrorStateKey = "weather-forecasts-error";
+
     private IReadOnlyList<WeatherForecastResponse> forecasts = [];
     private bool isLoading = true;
     private string? errorMessage;
+    private bool hasRestoredState;
+    private PersistingComponentStateSubscription? persistingSubscription;
+
+    protected override void OnInitialized()
+    {
+        persistingSubscription = ApplicationState.RegisterOnPersisting(PersistPageState);
+
+        if (ApplicationState.TryTakeFromJson<List<WeatherForecastResponse>>(ForecastsStateKey, out var restoredForecasts)
+            && restoredForecasts is not null)
+        {
+            forecasts = restoredForecasts;
+            hasRestoredState = true;
+            isLoading = false;
+        }
+
+        if (ApplicationState.TryTakeFromJson<string>(ErrorStateKey, out var restoredError)
+            && !string.IsNullOrWhiteSpace(restoredError))
+        {
+            errorMessage = restoredError;
+            hasRestoredState = true;
+            isLoading = false;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
+        if (hasRestoredState)
+            return;
+
         try
         {
             forecasts = await ApiClient.GetWeatherForecastsAsync();
@@ -65,6 +95,18 @@ else
         {
             isLoading = false;
         }
+    }
+
+    private Task PersistPageState()
+    {
+        ApplicationState.PersistAsJson(ForecastsStateKey, forecasts);
+        ApplicationState.PersistAsJson(ErrorStateKey, errorMessage);
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        persistingSubscription?.Dispose();
     }
 }
 

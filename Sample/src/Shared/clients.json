@@ -9,6 +9,15 @@
     "requirePkce": false
   },
   {
+    "clientId": "sample-react",
+    "tokenEndpointAuthMethod": "none",
+    "allowedGrantTypes": [ "authorization_code" ],
+    "allowedRedirectUris": [ "http://localhost:5173/" ],
+    "allowedPostLogoutRedirectUris": [ "http://localhost:5173/" ],
+    "allowedScopes": [ "openid", "profile", "email", "https://api.sampleapi.local" ],
+    "requirePkce": true
+  },
+  {
     "clientId": "sample-blazor",
     "tokenEndpointAuthMethod": "none",
     "allowedGrantTypes": [ "authorization_code" ],
