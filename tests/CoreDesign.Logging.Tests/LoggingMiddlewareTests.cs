@@ -364,4 +364,49 @@ public class LoggingMiddlewareTests
             e.Message.Contains("returned") &&
             e.Message.Contains("truncated"));
     }
+
+    [Fact]
+    public void Invoke_SyncMethod_WithCircularReference_LogsResultWithoutDepthMarker()
+    {
+        var node = new CircularNode { Name = "root" };
+        node.Child = node;
+        _serviceMock.Setup(s => s.GetCircularNode()).Returns(node);
+
+        _proxy.GetCircularNode();
+
+        Assert.True(_logger.HasEntry(LogLevel.Information, "returned"));
+        Assert.DoesNotContain(_logger.Entries, e => e.Message.Contains("depth limit reached"));
+    }
+
+    [Fact]
+    public void Invoke_SyncMethod_WithDeepNestedObject_LogsDepthLimitReached()
+    {
+        NestedNode? head = null;
+        for (var i = 0; i < 15; i++)
+            head = new NestedNode { Value = i.ToString(), Child = head };
+        _serviceMock.Setup(s => s.GetDeepNode()).Returns(head!);
+
+        _proxy.GetDeepNode();
+
+        Assert.Contains(_logger.Entries, e =>
+            e.Level == LogLevel.Information &&
+            e.Message.Contains("returned") &&
+            e.Message.Contains("depth limit reached"));
+    }
+
+    [Fact]
+    public void Invoke_SyncMethod_WithDeepLongObject_LogsTruncatedAndDepthLimitReached()
+    {
+        NestedNode? head = null;
+        for (var i = 0; i < 15; i++)
+            head = new NestedNode { Value = new string('x', 60), Child = head };
+        _serviceMock.Setup(s => s.GetDeepLongNode()).Returns(head!);
+
+        _proxy.GetDeepLongNode();
+
+        Assert.Contains(_logger.Entries, e =>
+            e.Level == LogLevel.Information &&
+            e.Message.Contains("truncated") &&
+            e.Message.Contains("depth limit reached"));
+    }
 }

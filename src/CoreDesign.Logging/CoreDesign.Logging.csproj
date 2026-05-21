@@ -3,13 +3,16 @@
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <PackageId>CoreDesign.Logging</PackageId>
-        <Version>1.0.4</Version>
+        <Version>1.0.5</Version>
         <Description>DispatchProxy-based logging middleware for .NET services. Wraps any service interface to automatically log invocations, results, warnings, and exceptions without adding log statements to service code.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.Logging</PackageProjectUrl>
         <RepositoryUrl>https://github.com/codyskidmore/CoreDesign</RepositoryUrl>
         <PackageTags>logging;proxy;dispatchproxy;middleware;coredesign</PackageTags>
         <PackageReleaseNotes>
+1.0.5
+- Fixed an issue with log depth and serializaition when there are navigation properties and cicular references.
+
 1.0.4
 - Added ILoggable marker interface. Classes implementing ILoggable are discovered by the new assembly-scanning overload of AddWithLogging.
 - Added AddWithLogging(IServiceCollection, Assembly, ServiceLifetime) overload that registers all ILoggable classes in the assembly paired with their interfaces.
@@ -27,6 +30,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="CoreDesign.Shared" Version="1.0.2" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.8" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
         <PackageReference Include="OneOf" Version="3.0.271" />
