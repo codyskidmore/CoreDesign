@@ -15,6 +15,28 @@ The home page now correctly displays the authenticated user's name and all JWT c
 
 ---
 
+## CoreDesign.Logging 1.0.5
+
+### Serialization Robustness in `FormatResult`
+
+Two cases caused the logging middleware to fail silently or throw during result serialization.
+
+**Circular references.** Objects where a parent holds a reference to a child that holds a reference back to the parent (common in entity graphs and domain models) caused `JsonSerializer` to throw a `JsonException`. That exception propagated out of `FormatResult`, breaking logging for the entire method call. The serializer is now configured with `ReferenceHandler.IgnoreCycles`. When a cycle is detected the back-reference is written as `null` rather than throwing, and serialization completes normally.
+
+**Excessive nesting depth.** Deeply nested objects (recursive trees, deeply composed DTOs) produced either extremely verbose log output or, in extreme cases, stack pressure. The `Utf8JsonWriter` is now configured with `MaxDepth = 8`. When an object exceeds that depth the writer stops and the partial JSON captured so far is used. The log suffix changes to signal the truncation reason:
+
+| Condition | Suffix |
+| --- | --- |
+| Depth limit exceeded, output within length limit | `... [depth limit reached]` |
+| Depth limit exceeded, output also over length limit | `... [truncated, depth limit reached]` |
+| Depth limit not exceeded, output over length limit | `... [truncated, total N chars]` (unchanged) |
+
+### New Dependency
+
+`CoreDesign.Shared` 1.0.2 is now a direct dependency of `CoreDesign.Logging`.
+
+---
+
 ## CoreDesign.Logging 1.0.4
 
 ### `ILoggable` Marker Interface
