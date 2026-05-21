@@ -98,13 +98,17 @@ Use `[Suppress]` when the method name or parameter shape itself would be too rev
 
 ### `[TruncateLog]`
 
-Return values are serialized to JSON and truncated at 500 characters by default. Any result longer than this limit is cut and a note is appended showing the total length:
+Return values are serialized to JSON and truncated at 500 characters by default. The log suffix reflects the reason for any truncation:
 
-```
-WeatherForecastService.GetAllAsync returned [{"id":"..."}... [truncated, total 3842 chars]
-```
+| Suffix | Meaning |
+|---|---|
+| `... [truncated, total N chars]` | Output exceeded the length limit; `N` is the full serialized length |
+| `... [depth limit reached]` | Object nesting exceeded the internal depth cap; partial JSON shown |
+| `... [truncated, depth limit reached]` | Both limits were hit; output is both cut and depth-capped |
 
-Apply `[TruncateLog]` to a method on the interface to override the limit for that method:
+Serialization is cycle-safe. Objects that contain circular references (for example, a parent entity that holds a child which holds back a reference to the parent) are serialized without throwing; the back-reference is written as `null` and serialization continues normally.
+
+Apply `[TruncateLog]` to a method on the interface to override the length limit for that method:
 
 ```csharp
 public interface IWeatherForecastService

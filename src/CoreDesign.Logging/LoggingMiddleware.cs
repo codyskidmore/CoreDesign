@@ -1,3 +1,5 @@
+using CoreDesign.Shared.ExtensionMethods;
+
 namespace CoreDesign.Logging;
 
 public static class LoggingMiddleware
@@ -7,6 +9,16 @@ public static class LoggingMiddleware
 
 public class LoggingMiddleware<T> : DispatchProxy where T : class
 {
+    private static readonly JsonSerializerOptions LoggingJsonOptions = new()
+    {
+        ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
+    };
+
+    private static readonly JsonWriterOptions LoggingWriterOptions = new()
+    {
+        MaxDepth = 8
+    };
+
     private T _service = null!;
     private ILogger _logger = null!;
 
@@ -80,11 +92,32 @@ public class LoggingMiddleware<T> : DispatchProxy where T : class
         if (attr is not null)
             maxLength = attr.MaxLength;
 
-        var json = JsonSerializer.Serialize(result);
-        if (maxLength <= 0 || json.Length <= maxLength)
-            return json;
+        using var stream = new MemoryStream();
+        using var writer = new Utf8JsonWriter(stream, LoggingWriterOptions);
+        var depthExceeded = false;
 
-        return $"{json[..maxLength]}... [truncated, total {json.Length} chars]";
+        try
+        {
+            JsonSerializer.Serialize(writer, result, LoggingJsonOptions);
+            writer.Flush();
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
+        {
+            depthExceeded = true;
+            try { writer.Flush(); } catch { /* best-effort: capture whatever was written */ }
+        }
+
+        var json = Encoding.UTF8.GetString(stream.GetBuffer(), 0, (int)stream.Length);
+        var isLong = maxLength > 0 && json.Length > maxLength;
+        var display = isLong ? json[..maxLength] : json;
+
+        if (depthExceeded && isLong)
+            return $"{display}... [truncated, depth limit reached]";
+        if (depthExceeded)
+            return $"{display}... [depth limit reached]";
+        if (isLong)
+            return $"{display}... [truncated, total {json.Length} chars]";
+        return json;
     }
 
     private object WrapTask(Task task, MethodInfo method)

@@ -14,6 +14,9 @@ public interface ITestService
     [TruncateLog(10)] string GetValueWithLimit(string input);
     [TruncateLog(0)] string GetValueUnlimited(string input);
     [TruncateLog(10)] Task<string> FetchWithLimitAsync(string input);
+    CircularNode GetCircularNode();
+    NestedNode GetDeepNode();
+    NestedNode GetDeepLongNode();
 }
 
 public class TestService : ITestService, ILoggable
@@ -32,6 +35,41 @@ public class TestService : ITestService, ILoggable
     public string GetValueWithLimit(string input) => input;
     public string GetValueUnlimited(string input) => input;
     public Task<string> FetchWithLimitAsync(string input) => Task.FromResult(input);
+
+    public CircularNode GetCircularNode()
+    {
+        var node = new CircularNode { Name = "root" };
+        node.Child = node;
+        return node;
+    }
+
+    public NestedNode GetDeepNode()
+    {
+        NestedNode? head = null;
+        for (var i = 0; i < 15; i++)
+            head = new NestedNode { Value = i.ToString(), Child = head };
+        return head!;
+    }
+
+    public NestedNode GetDeepLongNode()
+    {
+        NestedNode? head = null;
+        for (var i = 0; i < 15; i++)
+            head = new NestedNode { Value = new string('x', 60), Child = head };
+        return head!;
+    }
+}
+
+public class CircularNode
+{
+    public string Name { get; set; } = "";
+    public CircularNode? Child { get; set; }
+}
+
+public class NestedNode
+{
+    public string Value { get; set; } = "";
+    public NestedNode? Child { get; set; }
 }
 
 public interface IUnloggableService
