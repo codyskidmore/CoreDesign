@@ -490,32 +490,37 @@ Log.Logger = new LoggerConfiguration()
     .CreateBootstrapLogger();
 ```
 
-### Service Logging Middleware
+### Service Logging
 
-Service classes in this project contain no log statements. All invocation logging is handled centrally by a `DispatchProxy`-based logging middleware in `CoreDesign.Logging`.
+Handler classes in this project contain no log statements. All invocation logging is handled by generated logging decorators from `CoreDesign.Logging`.
 
-`LoggingMiddleware<T>` wraps any interface and intercepts every method call. On each call it logs:
+Placing `[LoggingDecorator]` on a handler interface instructs the Roslyn source generator to emit a decorator class at compile time. The decorator wraps the concrete handler and logs:
 
-- The method name and serialized parameters before invocation (Information)
-- The serialized return value after successful completion (Information)
-- A warning when the return value indicates a not-found or bad-request outcome
+- The method name and each parameter before invocation (Information)
+- The return value after successful completion (Information)
+- A warning when a `OneOf` arm indicates a not-found, bad-request, or other error outcome
 - The exception and method name if the call throws (Error)
 
-Both synchronous and asynchronous methods are fully supported. For `Task<T>` returns the middleware awaits the result before deciding which log level to use.
+Both synchronous and `Task`/`Task<T>` methods are fully supported. `ValueTask` and `ValueTask<T>` are also supported. Generic interfaces are supported — the decorator carries the type parameters and constraint clauses of the interface. Properties and indexers are implemented as pass-throughs with no logging.
 
-In Sample.Api, each handler class implements `ILoggable` to opt into automatic logging registration. The middleware is registered once in `Configuration.cs` for the entire assembly:
-
-```csharp
-builder.Services.AddWithLogging(typeof(Configuration).Assembly);
-```
-
-The DI container resolves each `ILoggable` class as a middleware-wrapped instance. Concrete handler classes contain no logging code. Adding a new handler that implements `ILoggable` is sufficient to get consistent, structured log output automatically.
-
-For explicit per-class control the generic overload is also available:
+In Sample.Api, each handler interface is marked with `[LoggingDecorator]`:
 
 ```csharp
-services.AddWithLogging<IHandler, Handler>();
+[LoggingDecorator]
+public interface ICreateForecastHandler
+{
+    Task<OneOf<WeatherForecast, BadRequestMessage>> CreateAsync(
+        Request request, Guid userId, CancellationToken ct);
+}
 ```
+
+All generated decorators are registered in one call in `ModuleConfig.cs`:
+
+```csharp
+services.DecorateWithLogging();
+```
+
+`DecorateWithLogging()` is generated alongside the decorator classes. Adding a new handler interface marked with `[LoggingDecorator]` is sufficient to get consistent, structured log output automatically on the next build.
 
 Two attributes on the interface give fine-grained control when needed:
 
@@ -531,7 +536,9 @@ Task<LoginResult> LoginAsync(string username, [Redact] string password);
 Task<string> IssueTokenAsync(string userId);
 ```
 
-For the full attribute reference, lifetime options, and design rationale, see [CoreDesign.Logging/README.md](../src/CoreDesign.Logging/README.md).
+Log output size is controlled through Serilog's destructuring configuration in `appsettings.json` rather than per-method attributes. The `Serilog:Destructure` section sets a maximum depth, maximum string length, and maximum collection count applied uniformly across all handlers and all sinks. The depth limit is the most critical setting: without it, deeply nested object graphs such as EF Core entities with navigation properties will cause Serilog to stream a massive payload and hang. See the `appsettings.json` file for the current values.
+
+For the full attribute reference, generator details, and design rationale, see [CoreDesign.Logging/README.md](../src/CoreDesign.Logging/README.md).
 
 ## Project Configuration
 

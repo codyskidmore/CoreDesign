@@ -1,11 +1,12 @@
 namespace Sample.Api.WeatherForecasts.GetById;
 
+[LoggingDecorator]
 public interface IGetForecastHandler
 {
     Task<OneOf<WeatherForecast, NotFoundMessage>> GetByIdAsync(Ulid id, CancellationToken ct);
 }
 
-public class GetForecastHandler(IReadRepository<SampleDbContext, WeatherForecast> repository) : IGetForecastHandler, ILoggable
+public class GetForecastHandler(IReadRepository<SampleDbContext, WeatherForecast> repository) : IGetForecastHandler
 {
     public async Task<OneOf<WeatherForecast, NotFoundMessage>> GetByIdAsync(Ulid id, CancellationToken ct)
     {
