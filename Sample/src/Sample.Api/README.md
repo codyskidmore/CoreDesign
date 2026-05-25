@@ -72,6 +72,62 @@ Cross-cutting configuration that applies to the whole application rather than an
 | `Scalar.cs` | Registers the OpenAPI and Scalar UI routes in development only. Both routes are marked `AllowAnonymous()` so they are excluded from the Bearer security requirement in the OpenAPI document and accessible without a token. |
 | `Serilog.cs` | Configures Serilog enrichment and the Application Insights sink. |
 
+## Logging
+
+Handler classes in this project contain no log statements. All invocation logging is handled by generated logging decorators from `CoreDesign.Logging`.
+
+Each handler interface is marked with `[LoggingDecorator]`. The Roslyn source generator produces a sealed decorator class at compile time for each marked interface:
+
+```csharp
+[LoggingDecorator]
+public interface ICreateForecastHandler
+{
+    Task<OneOf<WeatherForecast, BadRequestMessage>> CreateAsync(
+        Request request, Guid userId, CancellationToken ct);
+}
+```
+
+The generated decorator logs:
+
+- The method name and each parameter before invocation (Information)
+- The return value after successful completion (Information)
+- A Warning when a `OneOf` arm indicates a not-found, bad-request, or other error outcome
+- The exception and method name if the call throws (Error)
+
+All generated decorators are registered in `ModuleConfig.cs` after the individual handler registrations:
+
+```csharp
+services.AddTransient<ICreateForecastHandler, CreateForecastHandler>();
+// ... other handler registrations ...
+services.DecorateWithLogging();
+```
+
+`DecorateWithLogging()` is generated alongside the decorator classes. Adding a new handler interface marked with `[LoggingDecorator]` produces logging automatically on the next build without any change to `ModuleConfig.cs`.
+
+### Sensitive Data
+
+Two attributes on the interface give fine-grained control when needed:
+
+| Attribute | Target | Effect |
+|---|---|---|
+| `[Redact]` | Parameter | Logs `[REDACTED]` in place of the actual value; real value is forwarded to the implementation |
+| `[Suppress]` | Method | Suppresses all log output for that method entirely |
+
+```csharp
+Task<LoginResult> LoginAsync(string username, [Redact] string password);
+
+[Suppress]
+Task<string> IssueTokenAsync(string userId);
+```
+
+### Log Output Size
+
+Log output size is controlled through Serilog's destructuring configuration in `appsettings.json` rather than per-method attributes. The `Serilog:Destructure` section caps object depth, string length, and collection count uniformly across all handlers and all sinks. Adjust the limits per environment in `appsettings.Development.json` or `appsettings.Production.json` without changing source code.
+
+The depth limit is the most critical setting. Without it, deeply nested object graphs such as EF Core entities with navigation properties will cause Serilog to stream a very large payload into every sink.
+
+---
+
 ## Feature Modules
 
 Each feature is organized by operation rather than by technical role. A developer tracing any single HTTP operation opens one folder and finds everything: the route definition, the request binding, the data access, and the response shape. Adding a new operation means adding a new sub-folder and registering the endpoint in `ModuleConfig.cs`.
