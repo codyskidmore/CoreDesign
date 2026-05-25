@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/CoreDesign.Data/CoreDesign.Data.csproj" />
+    <Project Path="src/CoreDesign.Logging.Generators/CoreDesign.Logging.Generators.csproj" />
     <Project Path="src/CoreDesign.Logging/CoreDesign.Logging.csproj" />
     <Project Path="src/CoreDesign.Shared/CoreDesign.Shared.csproj" />
   </Folder>

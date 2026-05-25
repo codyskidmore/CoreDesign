@@ -8,13 +8,14 @@
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
         <DefineConstants>TRACE</DefineConstants>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.3.2" />
         <PackageReference Include="CoreDesign.Data" Version="1.0.2" />
         <PackageReference Include="CoreDesign.Identity.Client" Version="1.0.7" />
-        <PackageReference Include="CoreDesign.Logging" Version="1.0.5" />
+        <PackageReference Include="CoreDesign.Logging" Version="1.1.0" />
         <PackageReference Include="CoreDesign.Shared" Version="1.0.2" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.8" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />

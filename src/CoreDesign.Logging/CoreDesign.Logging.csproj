@@ -3,13 +3,16 @@
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <PackageId>CoreDesign.Logging</PackageId>
-        <Version>1.0.5</Version>
-        <Description>DispatchProxy-based logging middleware for .NET services. Wraps any service interface to automatically log invocations, results, warnings, and exceptions without adding log statements to service code.</Description>
+        <Version>1.1.0</Version>
+        <Description>Logging infrastructure for .NET services. Includes a DispatchProxy middleware and a source generator that produces compile-time, reflection-free logging decorators for any interface marked with [LoggingDecorator].</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.Logging</PackageProjectUrl>
         <RepositoryUrl>https://github.com/codyskidmore/CoreDesign</RepositoryUrl>
         <PackageTags>logging;proxy;dispatchproxy;middleware;coredesign</PackageTags>
         <PackageReleaseNotes>
+1.1.0
+- Added source generator that produces compile-time, reflection-free logging decorators for any interface marked with [LoggingDecorator]. Decorators log method entry, exit, parameters, return values, and exceptions with zero runtime overhead compared to handwritten logging decorators. See the CoreDesign.Logging.Generators project for details.
+            
 1.0.5
 - Fixed an issue with log depth and serializaition when there are navigation properties and cicular references.
 
@@ -27,6 +30,10 @@
 
     <ItemGroup>
         <None Include="README.md" Pack="true" PackagePath="\" />
+        <None Include="..\CoreDesign.Logging.Generators\bin\$(Configuration)\netstandard2.0\CoreDesign.Logging.Generators.dll"
+              Pack="true"
+              PackagePath="analyzers/dotnet/cs"
+              Visible="false" />
     </ItemGroup>
 
     <ItemGroup>
@@ -38,6 +45,10 @@
 
     <ItemGroup>
         <ProjectReference Include="..\CoreDesign.Shared\CoreDesign.Shared.csproj" />
+        <ProjectReference Include="..\CoreDesign.Logging.Generators\CoreDesign.Logging.Generators.csproj"
+                          ReferenceOutputAssembly="false"
+                          OutputItemType="Analyzer"
+                          SetTargetFramework="TargetFramework=netstandard2.0" />
     </ItemGroup>
 
 </Project>

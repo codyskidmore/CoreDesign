@@ -11,7 +11,6 @@ public static class Configuration
     {
         builder.AddDatabaseConfiguration();
         builder.AddAppSettings();
-        builder.Services.AddWithLogging(typeof(Configuration).Assembly);
 
         builder.AddIdentityAuthentication();
         builder.Services.AddApplicationInsightsTelemetry();

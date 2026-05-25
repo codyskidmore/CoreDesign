@@ -15,6 +15,93 @@ The home page now correctly displays the authenticated user's name and all JWT c
 
 ---
 
+## CoreDesign.Logging 1.1.0
+
+### Source Generator: `[LoggingDecorator]`
+
+A new Roslyn incremental source generator replaces the need to write logging decorators by hand. Place `[LoggingDecorator]` on any interface and the generator produces a complete decorator class at compile time.
+
+```csharp
+[LoggingDecorator]
+public interface ICreateForecastHandler
+{
+    Task<OneOf<WeatherForecast, BadRequestMessage>> CreateAsync(Request request, Guid userId, CancellationToken ct);
+}
+```
+
+The generated decorator (`CreateForecastHandlerLoggingDecorator`) is a plain sealed class that:
+
+- Accepts `ILoggerFactory` in its constructor and creates a logger named after the interface
+- Logs each method invocation at Information with all parameter values
+- Logs successful return values at Information
+- Logs `Task` (non-generic) completions at Information as "completed"
+- Logs `OneOf<...>` arms at Information or Warning depending on the arm type name (Warning for types containing `NotFound`, `BadRequest`, `Error`, `Failure`, `Unauthorized`, `Forbidden`, `Conflict`, or `InvalidOperation`)
+- Catches any exception, logs it at Error, and rethrows
+- Honors `[Suppress]` (skips all logging for a method) and `[Redact]` (replaces a parameter value with `"[REDACTED]"`)
+
+### `DecorateWithLogging()` Extension
+
+A companion `LoggingDecoratorExtensions.g.cs` is also generated containing a `DecorateWithLogging()` extension method on `IServiceCollection`. It calls `LoggingDecoratorRegistration.Decorate<TInterface, TDecorator>(services)` for every interface marked with `[LoggingDecorator]` in the project. A single call during startup registers all decorators:
+
+```csharp
+services.DecorateWithLogging();
+```
+
+### Generator Project
+
+The generator ships as a separate `CoreDesign.Logging.Generators` project targeting `netstandard2.0`. It is embedded in the `CoreDesign.Logging` NuGet package as a Roslyn analyzer so consuming projects do not need an explicit reference to the generator project. The generator uses incremental generation (`IIncrementalGenerator`) and `ForAttributeWithMetadataName` for efficient builds.
+
+### Native AOT Compatibility
+
+Generated decorators contain no reflection, no `DispatchProxy`, and no `MakeGenericMethod` calls. They are fully compatible with .NET Native AOT publishing targets.
+
+### Generic Interface Support
+
+The generator fully supports generic interfaces. The generated decorator class carries the same type parameters and constraint clauses as the interface:
+
+```csharp
+[LoggingDecorator]
+public interface IRepository<T> where T : class
+{
+    Task<T?> GetByIdAsync(Guid id, CancellationToken ct);
+    Task SaveAsync(T entity, CancellationToken ct);
+}
+```
+
+Produces `RepositoryLoggingDecorator<T> : IRepository<T> where T : class`. The generated `DecorateWithLogging()` extension uses `LoggingDecoratorRegistration.Decorate(services, typeof(IRepository<>), typeof(RepositoryLoggingDecorator<>))` so all concrete registrations of a generic interface are covered by a single call.
+
+### Interface Properties and Indexers
+
+Properties and indexers declared on a decorated interface are implemented as pure pass-throughs in the generated decorator. They compile correctly and delegate to the inner implementation. No logging is emitted for property access — logging applies only to ordinary methods.
+
+### Sample Application Updated
+
+The Sample API was updated to use the source generator. Each handler interface is marked with `[LoggingDecorator]` and the `ILoggable` marker interface has been removed from implementations. The `AddWithLogging(assembly)` call in the infrastructure configuration was replaced with a single `services.DecorateWithLogging()` call in the module configuration.
+
+Log output size is now controlled through Serilog's `Destructure` configuration in `appsettings.json` rather than per-method `[TruncateLog]` attributes:
+
+```json
+"Serilog": {
+  "Destructure": [
+    { "Name": "ToMaximumDepth", "Args": { "maximumDestructuringDepth": 5 } },
+    { "Name": "ToMaximumStringLength", "Args": { "maximumStringLength": 500 } },
+    { "Name": "ToMaximumCollectionCount", "Args": { "maximumCollectionCount": 10 } }
+  ]
+}
+```
+
+This applies consistently across all handlers and all sinks, and the limits can be overridden per environment in the appropriate `appsettings.{Environment}.json` file.
+
+### `[TruncateLog]` Not Supported by Generator
+
+The `[TruncateLog]` attribute is specific to `LoggingMiddleware` and is not supported by the generated decorators. The Serilog `Destructure` configuration shown above is the recommended replacement. It operates at the sink level rather than the decorator level, which means limits are configured once, apply uniformly, and require no interface changes to adjust.
+
+### Proxy Middleware Retained
+
+`LoggingMiddleware<T>`, `ILoggable`, and all related proxy infrastructure remain available. Existing projects using the proxy do not need to migrate.
+
+---
+
 ## CoreDesign.Logging 1.0.5
 
 ### Serialization Robustness in `FormatResult`

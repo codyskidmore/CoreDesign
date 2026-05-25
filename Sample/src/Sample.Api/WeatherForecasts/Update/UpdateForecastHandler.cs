@@ -1,5 +1,6 @@
 namespace Sample.Api.WeatherForecasts.Update;
 
+[LoggingDecorator]
 public interface IUpdateForecastHandler
 {
     Task<OneOf<WeatherForecast, NotFoundMessage, BadRequestMessage>> UpdateAsync(
@@ -8,7 +9,7 @@ public interface IUpdateForecastHandler
 
 public class UpdateForecastHandler(
     IReadRepository<SampleDbContext, WeatherForecast> readRepository,
-    ICudRepository<SampleDbContext, WeatherForecast> cudRepository) : IUpdateForecastHandler, ILoggable
+    ICudRepository<SampleDbContext, WeatherForecast> cudRepository) : IUpdateForecastHandler
 {
     public async Task<OneOf<WeatherForecast, NotFoundMessage, BadRequestMessage>> UpdateAsync(
         Ulid id, Request request, Guid userId, CancellationToken ct)
