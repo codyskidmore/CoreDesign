@@ -15,7 +15,7 @@
         <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.3.2" />
         <PackageReference Include="CoreDesign.Data" Version="1.0.2" />
         <PackageReference Include="CoreDesign.Identity.Client" Version="1.0.7" />
-        <!-- Switch to PackageReference once CoreDesign.Logging 1.1.0 is repacked with the updated generator. -->
+        <PackageReference Include="CoreDesign.Logging" Version="1.1.0" />
         <PackageReference Include="CoreDesign.Shared" Version="1.0.2" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.8" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
@@ -55,11 +55,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Sample.Aspire.ServiceDefaults\Sample.Aspire.ServiceDefaults.csproj" />
-        <ProjectReference Include="..\..\..\src\CoreDesign.Logging\CoreDesign.Logging.csproj" />
-        <ProjectReference Include="..\..\..\src\CoreDesign.Logging.Generators\CoreDesign.Logging.Generators.csproj"
-                          ReferenceOutputAssembly="false"
-                          OutputItemType="Analyzer"
-                          SetTargetFramework="TargetFramework=netstandard2.0" />
     </ItemGroup>
 
     <ItemGroup>
