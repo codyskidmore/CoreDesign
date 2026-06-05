@@ -9,4 +9,23 @@
     <Project Path="src/Sample.Data.MigrationService/Sample.Data.MigrationService.csproj" />
     <Project Path="src/Sample.Blazor/Sample.Blazor.csproj" />
   </Folder>
+  <Folder Name="/src/Sample.React/">
+    <File Path="src/Sample.React/.env.development" />
+    <File Path="src/Sample.React/index.html" />
+    <File Path="src/Sample.React/package-lock.json" />
+    <File Path="src/Sample.React/package.json" />
+    <File Path="src/Sample.React/src/api.ts" />
+    <File Path="src/Sample.React/src/api/weatherApi.ts" />
+    <File Path="src/Sample.React/src/App.tsx" />
+    <File Path="src/Sample.React/src/auth.ts" />
+    <File Path="src/Sample.React/src/components/Layout.tsx" />
+    <File Path="src/Sample.React/src/components/WeatherForecasts.tsx" />
+    <File Path="src/Sample.React/src/main.tsx" />
+    <File Path="src/Sample.React/src/pages/Home.tsx" />
+    <File Path="src/Sample.React/src/vite-env.d.ts" />
+    <File Path="src/Sample.React/tsconfig.app.json" />
+    <File Path="src/Sample.React/tsconfig.json" />
+    <File Path="src/Sample.React/tsconfig.node.json" />
+    <File Path="src/Sample.React/vite.config.ts" />
+  </Folder>
 </Solution>
