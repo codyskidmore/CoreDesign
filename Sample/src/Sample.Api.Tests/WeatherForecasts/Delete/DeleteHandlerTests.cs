@@ -13,11 +13,11 @@ public class DeleteHandlerTests
     [Fact]
     public async Task DeleteAsync_WhenForecastExists_ReturnsSuccess()
     {
-        _mockCud.Setup(r => r.DeleteAsync(It.IsAny<Ulid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+        _mockCud.Setup(r => r.SoftDeleteAsync(It.IsAny<Ulid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         var handler = new DeleteForecastHandler(_mockCud.Object);
 
-        var result = await handler.DeleteAsync(Ulid.NewUlid(), Guid.NewGuid(), CancellationToken.None);
+        var result = await handler.DeleteAsync(Ulid.NewUlid(), CancellationToken.None);
 
         Assert.True(result.IsT0);
     }
@@ -25,11 +25,11 @@ public class DeleteHandlerTests
     [Fact]
     public async Task DeleteAsync_WhenForecastNotFound_ReturnsNotFound()
     {
-        _mockCud.Setup(r => r.DeleteAsync(It.IsAny<Ulid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+        _mockCud.Setup(r => r.SoftDeleteAsync(It.IsAny<Ulid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         var handler = new DeleteForecastHandler(_mockCud.Object);
 
-        var result = await handler.DeleteAsync(Ulid.NewUlid(), Guid.NewGuid(), CancellationToken.None);
+        var result = await handler.DeleteAsync(Ulid.NewUlid(), CancellationToken.None);
 
         Assert.True(result.IsT1);
     }

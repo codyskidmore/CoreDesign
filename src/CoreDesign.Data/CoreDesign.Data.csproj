@@ -6,7 +6,7 @@
         <Nullable>enable</Nullable>
         <LangVersion>default</LangVersion>
         <PackageId>CoreDesign.Data</PackageId>
-        <Version>1.0.2</Version>
+        <Version>1.1.0</Version>
         <Description>A generic, reusable Entity Framework Core data access layer providing base entity infrastructure and repository abstractions for .NET projects.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.Data</PackageProjectUrl>
@@ -20,7 +20,8 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.8" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.8" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.8" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.8" />
         <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.8" />
         <PackageReference Include="Ulid" Version="1.4.1" />
     </ItemGroup>

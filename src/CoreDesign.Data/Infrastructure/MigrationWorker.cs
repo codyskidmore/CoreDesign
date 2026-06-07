@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -20,7 +19,8 @@ public class MigrationWorker<TContext>(
     IServiceProvider serviceProvider,
     IHostApplicationLifetime lifetime,
     ILogger<MigrationWorker<TContext>> logger,
-    string seedDirectory = "SeedData") : BackgroundService
+    string seedDirectory = "SeedData",
+    ISet<string>? purgeBeforeSeed = null) : BackgroundService
     where TContext : DbContext
 {
     public const string ActivitySourceName = "Migrations";
@@ -64,6 +64,11 @@ public class MigrationWorker<TContext>(
     /// <see cref="BaseEntity"/> subclass in <paramref name="typeAssembly"/>, for example
     /// <c>MyApp.Orders.Models.Order.json</c>. Files whose name cannot be resolved to a
     /// type are skipped with a warning.
+    /// <para>
+    /// Types listed in <c>purgeBeforeSeed</c> (by short or fully qualified name) have
+    /// their table cleared before the seed file is applied. Configure this at runtime via
+    /// <c>MigrationWorker:PurgeBeforeSeed</c> in appsettings or environment variables.
+    /// </para>
     /// </summary>
     protected async Task SeedFromDirectoryAsync(
         TContext dbContext,
@@ -86,6 +91,8 @@ public class MigrationWorker<TContext>(
 
         var seedMethod = typeof(MigrationWorker<TContext>)
             .GetMethod(nameof(SeedEntitiesAsync), BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var purgeMethod = typeof(MigrationWorker<TContext>)
+            .GetMethod(nameof(PurgeEntitiesAsync), BindingFlags.NonPublic | BindingFlags.Instance)!;
 
         foreach (var filePath in files)
         {
@@ -106,6 +113,12 @@ public class MigrationWorker<TContext>(
                     "Type '{TypeName}' does not inherit BaseEntity. Skipping '{FileName}'.",
                     typeName, Path.GetFileName(filePath));
                 continue;
+            }
+
+            if (ShouldPurge(typeName, entityType.Name))
+            {
+                var genericPurgeMethod = purgeMethod.MakeGenericMethod(entityType);
+                await (Task)genericPurgeMethod.Invoke(this, [dbContext, cancellationToken])!;
             }
 
             var json = File.ReadAllText(filePath);
@@ -129,6 +142,15 @@ public class MigrationWorker<TContext>(
                 entities.Count, entityType.Name, Path.GetFileName(filePath));
         }
     }
+
+    /// <summary>
+    /// Returns true if the entity type should be purged before seeding. Matches against
+    /// both the fully qualified type name and the short class name so callers can use
+    /// either form in configuration.
+    /// </summary>
+    private bool ShouldPurge(string fullyQualifiedName, string shortName) =>
+        purgeBeforeSeed is not null &&
+        (purgeBeforeSeed.Contains(fullyQualifiedName) || purgeBeforeSeed.Contains(shortName));
 
     /// <summary>
     /// Inserts each entity that does not already exist in the database, identified by
@@ -167,6 +189,30 @@ public class MigrationWorker<TContext>(
         {
             activity?.AddException(ex);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Removes all rows for <typeparamref name="T"/> from the database, including
+    /// soft-deleted rows. Uses <c>ExecuteDeleteAsync</c> on relational providers for
+    /// efficiency; falls back to load-then-remove on non-relational providers (e.g.,
+    /// in-memory databases used in tests).
+    /// </summary>
+    protected async Task PurgeEntitiesAsync<T>(TContext dbContext, CancellationToken cancellationToken)
+        where T : BaseEntity
+    {
+        if (dbContext.Database.IsRelational())
+        {
+            var deleted = await dbContext.Set<T>().IgnoreQueryFilters().ExecuteDeleteAsync(cancellationToken);
+            logger.LogInformation("Purged {Count} {TypeName} records before seeding.", deleted, typeof(T).Name);
+        }
+        else
+        {
+            var all = await dbContext.Set<T>().IgnoreQueryFilters().ToListAsync(cancellationToken);
+            if (all.Count == 0) return;
+            dbContext.Set<T>().RemoveRange(all);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("Purged {Count} {TypeName} records before seeding.", all.Count, typeof(T).Name);
         }
     }
 

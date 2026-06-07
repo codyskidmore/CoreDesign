@@ -34,7 +34,7 @@ public class GetByIdHandlerTests
                 It.IsAny<Expression<Func<WeatherForecast, bool>>>(),
                 It.IsAny<Func<IQueryable<WeatherForecast>, IQueryable<WeatherForecast>>>(),
                 It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult<WeatherForecast>(null!));
+            .Returns(Task.FromResult<WeatherForecast?>(null));
         var handler = new GetForecastHandler(_mockRead.Object);
 
         var result = await handler.GetByIdAsync(Ulid.NewUlid(), CancellationToken.None);

@@ -9,11 +9,10 @@ public static class Endpoint
         app.MapDelete(Paths.WeatherForecasts.Delete, async (
                 Ulid id,
                 IDeleteForecastHandler handler,
-                HttpContext context,
                 IOutputCacheStore outputCacheStore,
                 CancellationToken ct) =>
             {
-                var result = await handler.DeleteAsync(id, context.GetUserId(), ct);
+                var result = await handler.DeleteAsync(id, ct);
                 return result.Match(
                     success =>
                     {

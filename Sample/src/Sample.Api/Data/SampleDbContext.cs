@@ -1,6 +1,7 @@
 namespace Sample.Api.Data;
 
-public class SampleDbContext(DbContextOptions<SampleDbContext> options) : DbContext(options)
+public class SampleDbContext(DbContextOptions<SampleDbContext> options)
+    : CoreDesignDbContext(options)
 {
     public DbSet<WeatherForecast> WeatherForecasts { get; set; }
 

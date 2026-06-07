@@ -501,7 +501,7 @@ Placing `[LoggingDecorator]` on a handler interface instructs the Roslyn source 
 - A warning when a `OneOf` arm indicates a not-found, bad-request, or other error outcome
 - The exception and method name if the call throws (Error)
 
-Both synchronous and `Task`/`Task<T>` methods are fully supported. `ValueTask` and `ValueTask<T>` are also supported. Generic interfaces are supported — the decorator carries the type parameters and constraint clauses of the interface. Properties and indexers are implemented as pass-throughs with no logging.
+Both synchronous and `Task`/`Task<T>` methods are fully supported. `ValueTask` and `ValueTask<T>` are also supported. Generic interfaces are supported. The decorator carries the type parameters and constraint clauses of the interface. Properties and indexers are implemented as pass-throughs with no logging.
 
 In Sample.Api, each handler interface is marked with `[LoggingDecorator]`:
 

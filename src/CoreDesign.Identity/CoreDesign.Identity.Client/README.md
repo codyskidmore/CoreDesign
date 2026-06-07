@@ -87,6 +87,7 @@ Two configuration sections are required.
 | Key | Description |
 | --- | --- |
 | `IdentityApi:BaseUrl` | Base URL of the running identity server |
+| `IdentityApi:ClientId` | Client ID sent as `client_id` in the password grant token request |
 | `IdentityApi:Username` | Credential used by the token injection middleware to obtain a token |
 | `IdentityApi:Password` | Credential used by the token injection middleware to obtain a token |
 | `CoreDesign:IdentityWebHost:Issuer` (or `CoreDesign:Identity:Issuer`) | Expected `iss` claim on incoming tokens |

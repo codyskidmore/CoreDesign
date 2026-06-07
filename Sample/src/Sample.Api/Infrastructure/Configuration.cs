@@ -12,6 +12,9 @@ public static class Configuration
         builder.AddDatabaseConfiguration();
         builder.AddAppSettings();
 
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddCoreDesignData<SampleCurrentUserAccessor>();
+
         builder.AddIdentityAuthentication();
         builder.Services.AddApplicationInsightsTelemetry();
 
@@ -24,8 +27,13 @@ public static class Configuration
             .Get<DatabaseOptions>()
             ?? throw new InvalidOperationException("DatabaseOptions configuration is missing.");
 
+        var connectionString = builder.Configuration.GetConnectionString(dbOptions.DatabaseName)
+            ?? throw new InvalidOperationException($"Connection string '{dbOptions.DatabaseName}' is missing.");
+
         builder.AddAspireServiceDefaults();
-        builder.AddSqlServerDbContext<SampleDbContext>(dbOptions.DatabaseName);
+        builder.Services.AddDbContextPool<SampleDbContext>((serviceProvider, options) =>
+            options.UseSqlServer(connectionString)
+                .AddInterceptors(serviceProvider.GetRequiredService<AuditInterceptor>()));
 
         builder.AddCaching();
         builder.AddCors();

@@ -39,14 +39,14 @@ For every class that previously implemented `ILoggable`, move the opt-in from th
 **Before (1.0.5)**
 
 ```csharp
-// Interface — no attribute
+// Interface: no attribute
 public interface ICreateForecastHandler
 {
     Task<OneOf<WeatherForecast, BadRequestMessage>> CreateAsync(
         Request request, Guid userId, CancellationToken ct);
 }
 
-// Implementation — carries ILoggable
+// Implementation: carries ILoggable
 public class CreateForecastHandler(...) : ICreateForecastHandler, ILoggable
 {
     public async Task<OneOf<WeatherForecast, BadRequestMessage>> CreateAsync(
@@ -60,7 +60,7 @@ public class CreateForecastHandler(...) : ICreateForecastHandler, ILoggable
 **After (1.1.0)**
 
 ```csharp
-// Interface — carries [LoggingDecorator]
+// Interface: carries [LoggingDecorator]
 [LoggingDecorator]
 public interface ICreateForecastHandler
 {
@@ -68,7 +68,7 @@ public interface ICreateForecastHandler
         Request request, Guid userId, CancellationToken ct);
 }
 
-// Implementation — no ILoggable, no changes
+// Implementation: no ILoggable, no changes
 public class CreateForecastHandler(...) : ICreateForecastHandler
 {
     public async Task<OneOf<WeatherForecast, BadRequestMessage>> CreateAsync(

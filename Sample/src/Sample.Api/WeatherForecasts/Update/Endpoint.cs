@@ -12,11 +12,10 @@ public static class Endpoint
                 Ulid id,
                 [FromBody] Request request,
                 IUpdateForecastHandler handler,
-                HttpContext context,
                 IOutputCacheStore outputCacheStore,
                 CancellationToken ct) =>
             {
-                var result = await handler.UpdateAsync(id, request, context.GetUserId(), ct);
+                var result = await handler.UpdateAsync(id, request, ct);
                 return result.Match(
                     forecast =>
                     {

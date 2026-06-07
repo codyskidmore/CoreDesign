@@ -199,7 +199,7 @@ The API receives a Bearer token in both flows. Its validation logic, authorizati
 
 ### Step 1: obtain a token
 
-**Development** — POST credentials as JSON to `POST /auth/login` on the identity server:
+**Development**: POST credentials as JSON to `POST /auth/login` on the identity server:
 
 ```js
 const response = await fetch("https://localhost:5003/auth/login", {
@@ -212,7 +212,7 @@ if (!response.ok) { /* show login error */ }
 const { access_token, expires_in } = await response.json();
 ```
 
-**Production** — use `@azure/msal-browser` to acquire a token via the authorization code flow with PKCE. Refer to the [Azure Entra guide](README.AzureEntra.md) for app registration and scope configuration.
+**Production**: use `@azure/msal-browser` to acquire a token via the authorization code flow with PKCE. Refer to the [Azure Entra guide](README.AzureEntra.md) for app registration and scope configuration.
 
 ### Step 2: store the token
 
