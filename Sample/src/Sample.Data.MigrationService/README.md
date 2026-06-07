@@ -17,7 +17,7 @@ On startup the worker runs three steps in order:
 
 1. **Ensure database**: creates the database if it does not exist yet (using `IRelationalDatabaseCreator`).
 2. **Migrate**: applies all pending EF Core migrations via `MigrateAsync`.
-3. **Seed**: scans the configured seed directory (default: `SeedData/`), matches each `*.json` file to a `BaseEntity` subclass by filename, and inserts any records that do not already exist (identified by `Id`). The seed directory can be changed without modifying any code — see [Overriding the seed directory](#overriding-the-seed-directory).
+3. **Seed**: scans the configured seed directory (default: `SeedData/`), matches each `*.json` file to a `BaseEntity` subclass by filename, and inserts any records that do not already exist (identified by `Id`). The seed directory can be changed without modifying any code (see [Overriding the seed directory](#overriding-the-seed-directory)).
 
 When all three steps complete successfully, `IHostApplicationLifetime.StopApplication()` is called and the process exits with code 0. If any step throws, the exception propagates and the process exits with a non-zero code.
 

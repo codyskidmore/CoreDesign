@@ -1,10 +1,231 @@
 # Release Notes
 
+## CoreDesign.SeedTool 1.0.0
+
+New package. A `dotnet tool` for exporting live entity data to `MigrationWorker`-compatible seed files and comparing seed files against a live database.
+
+**Commands:**
+
+| Command | Description |
+|---|---|
+| `dotnet seed setup` | Interactive setup: creates `coredesign.seedtool.json` |
+| `dotnet seed export [entities...]` | Exports entity data from the database to JSON seed files |
+| `dotnet seed diff [entities...]` | Compares seed files to the current database; exit code 2 when differences found |
+| `dotnet seed help <command>` | Shows help for a specific command |
+
+**Setup:** `dotnet seed setup` guides you through choosing a connection mode. Four modes are available:
+
+| Mode | How it works |
+|---|---|
+| Project config | Reads the full connection string (and resolves `{ParameterName}` placeholders) from the app's own config stack: `appsettings.json`, `appsettings.Development.json`, and user secrets. Nothing is stored in `coredesign.seedtool.json`. Works for Aspire AppHost projects and non-Aspire apps alike. |
+| Template + user secrets | Stores a connection string template in `coredesign.seedtool.json` with `{password}` as a placeholder. The password is read at runtime from a specified project's user secrets. |
+| Template only | Stores a template in `coredesign.seedtool.json`. The password is supplied at runtime via `--password` or `SEEDTOOL_PASSWORD`. |
+| Direct | Stores the full connection string including the password. Not suitable for committed config files. |
+
+After setup, `dotnet seed export` and `dotnet seed diff` require no additional flags.
+
+**Factory implementation** (one-time, in the application project):
+
+```csharp
+public class AppSeedFactory : CoreDesignSeedFactory<AppDbContext>
+{
+    protected override void Configure(DbContextOptionsBuilder<AppDbContext> builder, string cs)
+        => builder.UseNpgsql(cs);  // or UseSqlServer, UseSqlite, etc.
+
+    protected override AppDbContext Create(DbContextOptions<AppDbContext> options)
+        => new(options);
+}
+```
+
+### Known issue: entity rename or namespace change breaks seed file matching
+
+Seed files are named using the entity's fully qualified type name. If an entity is renamed or moved to a different namespace, the existing seed file no longer matches and the migration service will silently skip it. Run `dotnet seed diff` after any such refactor to surface the mismatch immediately, then `dotnet seed export` to regenerate the files under the correct names.
+
+### Known issue: SQL Server on Docker for Windows, connection refused when using `localhost`
+
+Docker on Windows binds published ports to `127.0.0.1` by default. On Windows 11, `localhost` may resolve to IPv6 (`::1`) first. Because the Docker listener is IPv4-only, the connection is actively refused even though the container is running.
+
+Use `127.0.0.1` in place of `localhost` in the connection string stored in user secrets or `coredesign.seedtool.json`:
+
+```
+Server=127.0.0.1,1433;Database=mydb;User Id=sa;Password=...;TrustServerCertificate=True
+```
+
+---
+
+## CoreDesign.Data 1.1.0
+
+### Breaking Changes
+
+**Repository methods no longer accept a `userId` parameter.** `AuditInterceptor` (introduced in 1.0.3) sets `CreatedBy` and `UpdatedBy` automatically on every `SaveChanges` call. Passing `userId` manually is no longer needed and the parameter has been removed from all `ICudRepository` methods. This is a compile-time error: update every call site by removing the `userId` argument.
+
+Before:
+```csharp
+await cudRepository.InsertAsync(entity, userId, cancellationToken);
+await cudRepository.UpdateAsync(entity, userId, cancellationToken);
+await cudRepository.DeleteAsync(id, userId, cancellationToken);
+```
+
+After:
+```csharp
+await cudRepository.InsertAsync(entity, cancellationToken);
+await cudRepository.UpdateAsync(entity, cancellationToken);
+await cudRepository.SoftDeleteAsync(id, cancellationToken);
+```
+
+**`DeleteAsync` renamed to `SoftDeleteAsync`; `DeleteRangeAsync` renamed to `SoftDeleteRangeAsync`.** The behavior is unchanged: the entity's `IsDeleted` flag is set to `true` and the row is not removed. The rename reflects that soft-delete is one of several delete strategies now available.
+
+**`BaseEntityExtensionMethods` removed.** The `InitializeAuditFields` and `UpdateAuditFields` extension methods on `BaseEntity` have been removed. `AuditInterceptor` owns all audit field management. Remove any direct calls to these methods.
+
+**`IReadRepository` nullable annotations.** Optional parameters (`whereExpression`, `orderBy`, `includes`) are now annotated `?`. `GetAsync` and `GetAttachedAsync` now return `T?` instead of `T`. Projects with `Nullable` enabled may see new nullability warnings at call sites.
+
+---
+
+### New: Cascade Delete Methods
+
+Two cascade variants have been added to `ICudRepository<TContext, T>`:
+
+| Method | Behavior |
+|---|---|
+| `SoftDeleteCascadeAsync(Ulid id, ...)` | Sets `IsDeleted = true` on the entity and all `BaseEntity`-typed collection navigation children, recursively. |
+| `HardDeleteCascadeAsync(Ulid id, ...)` | Physically removes the entity and all `BaseEntity`-typed collection navigation children. Uses `IgnoreQueryFilters()` so soft-deleted children are also removed. |
+
+Both methods load child collections from the database before acting on them. For large graphs, prefer database-level cascade rules over these methods.
+
+---
+
+### New: `PurgeBeforeSeed` on `MigrationWorker`
+
+`AddMigrationWorker` now accepts an optional `purgeBeforeSeed` parameter and reads a matching configuration array. Entity types listed by short or fully qualified name have their entire table cleared before their seed file is applied.
+
+**Via appsettings:**
+
+```json
+"MigrationWorker": {
+  "PurgeBeforeSeed": [ "SiteContent", "SiteSettings" ]
+}
+```
+
+**Via environment variable (Aspire / Docker):**
+
+```
+MigrationWorker__PurgeBeforeSeed__0=SiteContent
+```
+
+**Via code:**
+
+```csharp
+builder.AddMigrationWorker<AppDbContext>(purgeBeforeSeed: ["SiteContent"]);
+```
+
+Both sources are merged. `PurgeEntitiesAsync` uses `ExecuteDeleteAsync` on relational providers and falls back to load-then-remove on non-relational providers such as the in-memory database used in tests.
+
+This feature enables the `dotnet seed export` → commit → deploy workflow to replace managed content rather than only fill gaps. Add an entity to `PurgeBeforeSeed` before deploying an updated seed file; remove it afterward to restore insert-only behavior.
+
+---
+
+### New Tests
+
+**`MigrationWorkerPurgeTests`** (5 new tests)
+
+- `PurgeEntitiesAsync` removes all rows including soft-deleted rows.
+- `PurgeEntitiesAsync` is idempotent when the table is already empty.
+- `SeedFromDirectoryAsync` clears the table before seeding when matched by fully qualified type name.
+- `SeedFromDirectoryAsync` clears the table before seeding when matched by short class name.
+- `SeedFromDirectoryAsync` does not purge when the type is not listed in `PurgeBeforeSeed`.
+
+---
+
+## CoreDesign.Data 1.0.3
+
+### Audit Infrastructure
+
+`CoreDesign.Data` now ships a complete audit and extensibility layer:
+
+- `AuditInterceptor`: EF Core `SaveChangesInterceptor` that automatically sets `CreatedAt`, `CreatedBy`, `UpdatedAt`, and `UpdatedBy` on every `SaveChanges` call. On insert, audit fields are filled only when `CreatedAt` is at its default value, so seeded data with explicit audit values is preserved unchanged. On update, only `UpdatedAt` and `UpdatedBy` are changed; `CreatedBy` is never overwritten.
+- `ICurrentUserAccessor`: Interface the consuming application implements to supply the current user's ID to the interceptor.
+- `SystemUserAccessor`: Built-in `ICurrentUserAccessor` that returns `Guid.Empty`. Use this in migration services and test projects where there is no authenticated user.
+- `CoreDesignDataExtensions.AddCoreDesignData<TCurrentUserAccessor>()`: Registers `ICurrentUserAccessor` (as a singleton) and `AuditInterceptor` (as a singleton) in a single call. Wire the interceptor into the DbContext via `AddInterceptors(sp.GetRequiredService<AuditInterceptor>())` when configuring the DbContext pool.
+- `CoreDesignDbContext`: Abstract `DbContext` base class. Inherit from this instead of `DbContext` directly.
+
+### Registration
+
+```csharp
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddCoreDesignData<AppCurrentUserAccessor>();
+
+builder.Services.AddDbContextPool<AppDbContext>((sp, options) =>
+    options.UseSqlServer(connectionString)
+        .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
+```
+
+For migration services and background workers where there is no HTTP context, use `SystemUserAccessor` instead of a custom implementation:
+
+```csharp
+builder.Services.AddCoreDesignData<SystemUserAccessor>();
+```
+
+### New Tests
+
+Twelve new tests cover the audit infrastructure:
+
+**`AuditInterceptorTests`**
+
+- Sets `CreatedAt`, `CreatedBy`, `UpdatedAt`, and `UpdatedBy` on insert.
+- Preserves explicit audit values when `CreatedAt` is already set (seed data preservation).
+- Does not modify `CreatedBy` on update.
+- Updates `UpdatedAt` and `UpdatedBy` on update.
+
+**`SystemUserAccessorTests`**
+
+- `UserId` returns `Guid.Empty`.
+- Return value is consistent across multiple calls.
+- Implements `ICurrentUserAccessor`.
+
+**`CoreDesignDataExtensionsTests`**
+
+- `AddCoreDesignData` registers `ICurrentUserAccessor` resolving to the configured type.
+- `AddCoreDesignData` registers `AuditInterceptor`.
+- Both are registered as singletons.
+- Returns `IServiceCollection` for chaining.
+
+**`CudRepositoryTests` (expanded)**
+
+- `HardDeleteAsync` removes the entity from the database.
+- `HardDeleteAsync` returns false when the entity does not exist.
+- `HardDeleteAsync` can delete a previously soft-deleted entity.
+
+---
+
+## CoreDesign.Shared 1.0.3
+
+Dependency update: `Aspire.Hosting.AppHost` updated from 13.3.2 to 13.4.2.
+
+---
+
+## CoreDesign.Logging 1.1.2
+
+Dependency update: `CoreDesign.Shared` dependency updated from 1.0.2 to 1.0.3.
+
+---
+
+## CoreDesign.Identity.Server 1.0.8
+
+Dependency update: `System.IdentityModel.Tokens.Jwt` updated from 8.18.0 to 8.19.1.
+
+---
+
+## CoreDesign.Identity.Client 1.0.8
+
+No new functionality. Minor release for version alignment.
+
+---
+
 ## Sample Application
 
 ### Logging Registration Moved to Infrastructure
 
-`AddWithLogging(assembly)` was moved from `ModuleConfig.cs` into `Configuration.cs` (infrastructure setup). Because it is called during builder configuration rather than inside a feature module registration, every class in the assembly that implements `ILoggable` is covered automatically — including any new features added by developers. Adding a new handler no longer requires a corresponding line in `ModuleConfig.cs`.
+`AddWithLogging(assembly)` was moved from `ModuleConfig.cs` into `Configuration.cs` (infrastructure setup). Because it is called during builder configuration rather than inside a feature module registration, every class in the assembly that implements `ILoggable` is covered automatically, including any new features added by developers. Adding a new handler no longer requires a corresponding line in `ModuleConfig.cs`.
 
 ### Blazor Home Page: Claims Display
 
@@ -72,7 +293,7 @@ Produces `RepositoryLoggingDecorator<T> : IRepository<T> where T : class`. The g
 
 ### Interface Properties and Indexers
 
-Properties and indexers declared on a decorated interface are implemented as pure pass-throughs in the generated decorator. They compile correctly and delegate to the inner implementation. No logging is emitted for property access — logging applies only to ordinary methods.
+Properties and indexers declared on a decorated interface are implemented as pure pass-throughs in the generated decorator. They compile correctly and delegate to the inner implementation. No logging is emitted for property access; logging applies only to ordinary methods.
 
 ### Sample Application Updated
 
@@ -264,10 +485,10 @@ The `POST /connect/token` endpoint now also handles the `authorization_code` gra
 
 New internal types supporting the flow:
 
-- `AuthorizeRequest` — Parses OIDC request parameters from query string or form.
-- `AuthorizationCodeTicket` — Stores the full authorization code state including the PKCE challenge and a five-minute expiration.
-- `AuthorizationCodeStore` — In-memory store with `Issue()` and `TryConsume()` methods. `TryConsume()` validates the PKCE verifier before returning the ticket.
-- `AuthorizeEndpoint` — The full endpoint handler. Renders the login form on GET, validates credentials and issues a code on POST, and redirects to the registered redirect URI on success or re-renders the form with an error on failure.
+- `AuthorizeRequest`: Parses OIDC request parameters from query string or form.
+- `AuthorizationCodeTicket`: Stores the full authorization code state including the PKCE challenge and a five-minute expiration.
+- `AuthorizationCodeStore`: In-memory store with `Issue()` and `TryConsume()` methods. `TryConsume()` validates the PKCE verifier before returning the ticket.
+- `AuthorizeEndpoint`: The full endpoint handler. Renders the login form on GET, validates credentials and issues a code on POST, and redirects to the registered redirect URI on success or re-renders the form with an error on failure.
 
 ### Client Store
 
@@ -361,8 +582,8 @@ All three default templates define colors as CSS custom properties (`--id-*` var
 
 The token endpoint now issues two distinct JWTs per successful authentication:
 
-- **Access token** — audience is the API resource (`CoreDesign:Identity:Audience`). Presented to the API on every request.
-- **ID token** — audience is the `client_id`. Contains the `nonce` from the authorization request. Consumed by the client application only.
+- **Access token**: audience is the API resource (`CoreDesign:Identity:Audience`). Presented to the API on every request.
+- **ID token**: audience is the `client_id`. Contains the `nonce` from the authorization request. Consumed by the client application only.
 
 APIs can validate access tokens without knowing any `client_id` values. The `nonce` claim appears only in the ID token, which is correct per the OIDC specification.
 
@@ -555,8 +776,8 @@ An ASP.NET Core Blazor Server application that authenticates via OpenID Connect 
 **Protected pages.** `RedirectToLogin.razor` replaces Razor's built-in `AuthorizeRouteView` behavior: unauthenticated users are redirected to `/account/login`, which triggers the OIDC challenge and redirects the browser to the identity server's login form.
 
 **Pages:**
-- `Home.razor` — Displays the authenticated user's claims and the active authentication provider name.
-- `WeatherForecasts.razor` — Calls Sample.Api and displays the weather forecast data.
+- `Home.razor`: Displays the authenticated user's claims and the active authentication provider name.
+- `WeatherForecasts.razor`: Calls Sample.Api and displays the weather forecast data.
 
 The Blazor app is pinned to HTTPS port 7070 so the redirect URI registered in `clients.json` remains stable across Aspire restarts.
 
@@ -569,12 +790,12 @@ The Blazor app is pinned to HTTPS port 7070 so the redirect URI registered in `c
 
 `AppHostExtensions.cs` extracts the Aspire wiring into named helper methods:
 
-- `AddSqlDatabase()` — SQL Server container with a persistent named volume.
-- `AddIdentityWeb()` — Sample.Identity.Web at port 5003.
-- `AddIdentityApi()` — Sample.Identity.Api at port 5001 with Scalar UI.
-- `AddSampleApi()` — Main API with database and identity dependencies.
-- `AddMigrationService()` — Migration service that runs before the API.
-- `AddSampleBlazor()` — Blazor app at port 7070 with identity and API dependencies.
+- `AddSqlDatabase()`: SQL Server container with a persistent named volume.
+- `AddIdentityWeb()`: Sample.Identity.Web at port 5003.
+- `AddIdentityApi()`: Sample.Identity.Api at port 5001 with Scalar UI.
+- `AddSampleApi()`: Main API with database and identity dependencies.
+- `AddMigrationService()`: Migration service that runs before the API.
+- `AddSampleBlazor()`: Blazor app at port 7070 with identity and API dependencies.
 
 All services run on fixed HTTPS ports to ensure the OIDC issuer URL and redirect URIs remain stable.
 

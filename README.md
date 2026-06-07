@@ -40,21 +40,23 @@ Full details: [src/CoreDesign.Data/README.md](src/CoreDesign.Data/README.md)
 
 `src/CoreDesign.Logging/`
 
-A `DispatchProxy`-based logging middleware that wraps any class behind an interface and automatically logs every method invocation, return value, and exception. Classes stay free of log statements while still producing structured, consistent log output for every operation.
-
-Implement `ILoggable` on any class to opt it into automatic logging registration, then register every marked class in one call:
+Compile-time logging decorators generated from a single attribute. Place `[LoggingDecorator]` on any interface and the included Roslyn source generator produces a decorator class at compile time that logs every method invocation, return value, and exception. No reflection, no runtime overhead, fully AOT-compatible.
 
 ```csharp
-services.AddWithLogging(typeof(Program).Assembly);
+[LoggingDecorator]
+public interface ICreateForecastHandler
+{
+    Task<OneOf<WeatherForecast, BadRequestMessage>> CreateAsync(Request request, CancellationToken ct);
+}
 ```
 
-For explicit per-class control, use the generic overload instead:
+After marking interfaces, register all decorators in one call during startup:
 
 ```csharp
-services.AddWithLogging<IWeatherForecastService, WeatherForecastService>();
+services.DecorateWithLogging();
 ```
 
-The DI container resolves the interface as a proxy-wrapped instance. Successful calls log at Information, `NotFoundMessage` and `BadRequestMessage` results log at Warning, and exceptions log at Error. Both synchronous and async methods are fully supported.
+A `DispatchProxy`-based proxy middleware is also included for cases where a runtime wrapper is preferred over a generated decorator. Successful calls log at Information, error result arms log at Warning, and exceptions log at Error. Both synchronous and async methods are fully supported.
 
 Full details: [src/CoreDesign.Logging/README.md](src/CoreDesign.Logging/README.md)
 

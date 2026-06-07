@@ -13,11 +13,11 @@ public class CreateHandlerTests
     [Fact]
     public async Task CreateAsync_WhenRepositorySucceeds_ReturnsWeatherForecast()
     {
-        _mockCud.Setup(r => r.InsertAsync(It.IsAny<WeatherForecast>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+        _mockCud.Setup(r => r.InsertAsync(It.IsAny<WeatherForecast>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         var handler = new CreateForecastHandler(_mockCud.Object);
 
-        var result = await handler.CreateAsync(WeatherForecastFakers.CreateRequest(), Guid.NewGuid(), CancellationToken.None);
+        var result = await handler.CreateAsync(WeatherForecastFakers.CreateRequest(), CancellationToken.None);
 
         Assert.True(result.IsT0);
     }
@@ -25,11 +25,11 @@ public class CreateHandlerTests
     [Fact]
     public async Task CreateAsync_WhenRepositoryFails_ReturnsBadRequest()
     {
-        _mockCud.Setup(r => r.InsertAsync(It.IsAny<WeatherForecast>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+        _mockCud.Setup(r => r.InsertAsync(It.IsAny<WeatherForecast>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         var handler = new CreateForecastHandler(_mockCud.Object);
 
-        var result = await handler.CreateAsync(WeatherForecastFakers.CreateRequest(), Guid.NewGuid(), CancellationToken.None);
+        var result = await handler.CreateAsync(WeatherForecastFakers.CreateRequest(), CancellationToken.None);
 
         Assert.True(result.IsT1);
     }

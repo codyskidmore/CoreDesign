@@ -3,7 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <PackageId>CoreDesign.Logging</PackageId>
-        <Version>1.1.0</Version>
+        <Version>1.1.2</Version>
         <Description>Logging infrastructure for .NET services. Includes a DispatchProxy middleware and a source generator that produces compile-time, reflection-free logging decorators for any interface marked with [LoggingDecorator].</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.Logging</PackageProjectUrl>
@@ -37,7 +37,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="CoreDesign.Shared" Version="1.0.2" />
+        <PackageReference Include="CoreDesign.Shared" Version="1.0.3" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.8" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
         <PackageReference Include="OneOf" Version="3.0.271" />

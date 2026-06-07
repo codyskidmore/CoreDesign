@@ -3,7 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <PackageId>CoreDesign.Identity.Server</PackageId>
-        <Version>1.0.7</Version>
+        <Version>1.0.8</Version>
         <Description>ASP.NET Core server library for CoreDesign Identity. Provides OAuth 2.0 and OIDC-compatible endpoints including token issuance, JWKS, and OpenID Connect discovery for embedding a lightweight identity server into an ASP.NET Core application.</Description>
         <PackageTags>identity;authentication;jwt;oauth2;oidc;aspnetcore;coredesign</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -24,7 +24,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
+        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.1" />
     </ItemGroup>
 
 </Project>

@@ -11,17 +11,21 @@ internal static class AppHostExtensions
     {
         var dbOptions = builder.Configuration
             .GetSection(nameof(DatabaseOptions))
-            .Get<DatabaseOptions>();
+            .Get<DatabaseOptions>()!;
 
+        var connResource = builder.AddConnectionString(dbOptions.ConnectionStringName);
         var sqlPassword = builder.AddParameter("SqlPassword", true);
 
-        var dbServer = builder.AddSqlServer(dbOptions.HostName, password: sqlPassword, port: dbOptions.HostPort)
+        var dbServer = builder.AddSqlServer(dbOptions.HostName, password: sqlPassword)
+            // Explicitly publish SQL Server on the configured host port.
+            .WithEndpoint(name: "tcp", port: dbOptions.HostPort, targetPort: 1433, isProxied: false)
             .WithDataVolume("sampledb-data")
             .WithImageTag("latest")
             .WithLifetime(ContainerLifetime.Persistent)
             .WithImagePullPolicy(ImagePullPolicy.Always);
 
-        return dbServer.AddDatabase(dbOptions.DatabaseName);
+        return dbServer.AddDatabase(dbOptions.DatabaseName)
+            .WithConnectionStringRedirection(connResource.Resource);
     }
 
     internal static IResourceBuilder<ProjectResource> AddIdentityWeb(

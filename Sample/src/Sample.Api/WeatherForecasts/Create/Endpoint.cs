@@ -12,11 +12,10 @@ public static class Endpoint
         app.MapPost(Paths.WeatherForecasts.Create, async (
                 [FromBody] Request request,
                 ICreateForecastHandler handler,
-                HttpContext context,
                 IOutputCacheStore outputCacheStore,
                 CancellationToken ct) =>
             {
-                var result = await handler.CreateAsync(request, context.GetUserId(), ct);
+                var result = await handler.CreateAsync(request, ct);
                 return result.Match(
                     forecast =>
                     {

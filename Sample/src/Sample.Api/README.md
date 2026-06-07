@@ -145,7 +145,7 @@ Holds only what is genuinely shared across all operations: the entity class and 
 
 #### Create
 
-`POST /WeatherForecasts` — requires `weather:write` permission.
+`POST /WeatherForecasts`: requires `weather:write` permission.
 
 | File | Purpose |
 |------|---------|
@@ -156,7 +156,7 @@ Holds only what is genuinely shared across all operations: the entity class and 
 
 #### Delete
 
-`DELETE /WeatherForecasts/{id}` — requires `weather:write` permission.
+`DELETE /WeatherForecasts/{id}`: requires `weather:write` permission.
 
 | File | Purpose |
 |------|---------|
@@ -165,7 +165,7 @@ Holds only what is genuinely shared across all operations: the entity class and 
 
 #### GetAll
 
-`GET /WeatherForecasts` — requires `weather:read` permission, output cached.
+`GET /WeatherForecasts`: requires `weather:read` permission, output cached.
 
 | File | Purpose |
 |------|---------|
@@ -175,7 +175,7 @@ Holds only what is genuinely shared across all operations: the entity class and 
 
 #### GetById
 
-`GET /WeatherForecasts/{id}` — requires `weather:read` permission, output cached.
+`GET /WeatherForecasts/{id}`: requires `weather:read` permission, output cached.
 
 | File | Purpose |
 |------|---------|
@@ -185,7 +185,7 @@ Holds only what is genuinely shared across all operations: the entity class and 
 
 #### Update
 
-`PUT /WeatherForecasts/{id}` — requires `weather:write` permission.
+`PUT /WeatherForecasts/{id}`: requires `weather:write` permission.
 
 | File | Purpose |
 |------|---------|

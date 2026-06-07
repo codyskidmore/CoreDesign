@@ -2,7 +2,7 @@
 
 public class BaseEntity
 {
-    public Ulid Id { get; set; }
+    public Ulid Id { get; set; } = Ulid.NewUlid();
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public Guid CreatedBy { get; set; }

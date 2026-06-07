@@ -1,5 +1,3 @@
-using Bogus;
-using CoreDesign.Data.Infrastructure;
 using CoreDesign.Data.Repositories;
 using CoreDesign.Data.Tests.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -14,11 +12,7 @@ public class ReadRepositoryTests
     private static async Task<string> SeedAsync(params TestEntity[] entities)
     {
         var dbName = Guid.NewGuid().ToString();
-        var opts = DbContextFactory.CreateOptions(dbName);
-        await using var ctx = new TestDbContext(opts);
-        var userId = Guid.NewGuid();
-        foreach (var e in entities)
-            e.InitializeAuditFields(userId);
+        await using var ctx = DbContextFactory.CreateContext(dbName);
         ctx.TestEntities.AddRange(entities);
         await ctx.SaveChangesAsync();
         return dbName;
@@ -28,7 +22,7 @@ public class ReadRepositoryTests
     public async Task GetAllAsync_ReturnsAllNonDeletedEntities()
     {
         var dbName = await SeedAsync(MakeEntity("A"), MakeEntity("B"), MakeEntity("C"));
-        await using var ctx = new TestDbContext(DbContextFactory.CreateOptions(dbName));
+        await using var ctx = DbContextFactory.CreateContext(dbName);
         var repo = new ReadRepository<TestDbContext, TestEntity>(ctx);
 
         var result = await repo.GetAllAsync(whereExpression: null);
@@ -42,14 +36,13 @@ public class ReadRepositoryTests
         var entity = MakeEntity("ToDelete");
         var dbName = await SeedAsync(MakeEntity("Keep"), entity);
 
-        // Soft-delete via raw EF (bypass query filter using IgnoreQueryFilters)
-        await using var deleteCtx = new TestDbContext(DbContextFactory.CreateOptions(dbName));
+        await using var deleteCtx = DbContextFactory.CreateContext(dbName);
         var toDelete = await deleteCtx.TestEntities.IgnoreQueryFilters()
             .FirstAsync(e => e.Name == "ToDelete");
         toDelete.IsDeleted = true;
         await deleteCtx.SaveChangesAsync();
 
-        await using var readCtx = new TestDbContext(DbContextFactory.CreateOptions(dbName));
+        await using var readCtx = DbContextFactory.CreateContext(dbName);
         var repo = new ReadRepository<TestDbContext, TestEntity>(readCtx);
 
         var result = await repo.GetAllAsync(whereExpression: null);
@@ -62,7 +55,7 @@ public class ReadRepositoryTests
     public async Task GetAllAsync_WithFilter_ReturnsMatchingEntities()
     {
         var dbName = await SeedAsync(MakeEntity("Alpha"), MakeEntity("Beta"), MakeEntity("Alpha2"));
-        await using var ctx = new TestDbContext(DbContextFactory.CreateOptions(dbName));
+        await using var ctx = DbContextFactory.CreateContext(dbName);
         var repo = new ReadRepository<TestDbContext, TestEntity>(ctx);
 
         var result = await repo.GetAllAsync(e => e.Name.StartsWith("Alpha"));
@@ -75,7 +68,7 @@ public class ReadRepositoryTests
     public async Task GetAllAsync_WithOrderBy_ReturnsOrderedEntities()
     {
         var dbName = await SeedAsync(MakeEntity("Charlie"), MakeEntity("Alice"), MakeEntity("Bob"));
-        await using var ctx = new TestDbContext(DbContextFactory.CreateOptions(dbName));
+        await using var ctx = DbContextFactory.CreateContext(dbName);
         var repo = new ReadRepository<TestDbContext, TestEntity>(ctx);
 
         var result = await repo.GetAllAsync(orderBy: q => q.OrderBy(e => e.Name));
@@ -88,7 +81,7 @@ public class ReadRepositoryTests
     [Fact]
     public async Task GetAllAsync_Empty_ReturnsEmptyList()
     {
-        await using var ctx = new TestDbContext(DbContextFactory.CreateOptions());
+        await using var ctx = DbContextFactory.CreateContext();
         var repo = new ReadRepository<TestDbContext, TestEntity>(ctx);
 
         var result = await repo.GetAllAsync(whereExpression: null);
@@ -100,7 +93,7 @@ public class ReadRepositoryTests
     public async Task GetAllAsync_NoParams_ReturnsAllNonDeleted()
     {
         var dbName = await SeedAsync(MakeEntity("X"), MakeEntity("Y"));
-        await using var ctx = new TestDbContext(DbContextFactory.CreateOptions(dbName));
+        await using var ctx = DbContextFactory.CreateContext(dbName);
         var repo = new ReadRepository<TestDbContext, TestEntity>(ctx);
 
         var result = await repo.GetAllAsync(CancellationToken.None);
@@ -112,7 +105,7 @@ public class ReadRepositoryTests
     public async Task GetAllAttachedAsync_ReturnsNonDeletedEntities()
     {
         var dbName = await SeedAsync(MakeEntity("Attached"));
-        await using var ctx = new TestDbContext(DbContextFactory.CreateOptions(dbName));
+        await using var ctx = DbContextFactory.CreateContext(dbName);
         var repo = new ReadRepository<TestDbContext, TestEntity>(ctx);
 
         var result = await repo.GetAllAttachedAsync();
@@ -125,7 +118,7 @@ public class ReadRepositoryTests
     {
         var entity = MakeEntity("FindMe");
         var dbName = await SeedAsync(entity, MakeEntity("Other"));
-        await using var ctx = new TestDbContext(DbContextFactory.CreateOptions(dbName));
+        await using var ctx = DbContextFactory.CreateContext(dbName);
         var repo = new ReadRepository<TestDbContext, TestEntity>(ctx);
 
         var result = await repo.GetAsync(e => e.Name == "FindMe");
@@ -138,7 +131,7 @@ public class ReadRepositoryTests
     public async Task GetAsync_WithNoMatch_ReturnsNull()
     {
         var dbName = await SeedAsync(MakeEntity("Existing"));
-        await using var ctx = new TestDbContext(DbContextFactory.CreateOptions(dbName));
+        await using var ctx = DbContextFactory.CreateContext(dbName);
         var repo = new ReadRepository<TestDbContext, TestEntity>(ctx);
 
         var result = await repo.GetAsync(e => e.Name == "DoesNotExist");
@@ -150,7 +143,7 @@ public class ReadRepositoryTests
     public async Task GetAttachedAsync_WithMatchingExpression_ReturnsTrackedEntity()
     {
         var dbName = await SeedAsync(MakeEntity("Tracked"));
-        await using var ctx = new TestDbContext(DbContextFactory.CreateOptions(dbName));
+        await using var ctx = DbContextFactory.CreateContext(dbName);
         var repo = new ReadRepository<TestDbContext, TestEntity>(ctx);
 
         var result = await repo.GetAttachedAsync(e => e.Name == "Tracked");
@@ -162,7 +155,7 @@ public class ReadRepositoryTests
     [Fact]
     public async Task GetAttachedAsync_WithNoMatch_ReturnsNull()
     {
-        await using var ctx = new TestDbContext(DbContextFactory.CreateOptions());
+        await using var ctx = DbContextFactory.CreateContext();
         var repo = new ReadRepository<TestDbContext, TestEntity>(ctx);
 
         var result = await repo.GetAttachedAsync(e => e.Name == "Missing");

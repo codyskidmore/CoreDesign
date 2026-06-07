@@ -25,7 +25,7 @@ Tokens are RS256-signed JWTs containing `sub`, `email`, `preferred_username`, `n
 
 This is the standard flow for Blazor and other browser-based apps. The browser redirects to `/connect/authorize`, the user enters credentials in the hosted login form, and the server redirects back with a short-lived authorization code. The client then exchanges the code for tokens at `/connect/token`.
 
-**Step 1 — browser redirects to the authorization endpoint**
+**Step 1: browser redirects to the authorization endpoint**
 
 ```
 GET /connect/authorize
@@ -46,7 +46,7 @@ The server returns an HTML login form. When the user submits it, the server vali
 
 If credentials are invalid the form is re-rendered with a `401` status and an error message.
 
-**Step 2 — client exchanges the code for tokens**
+**Step 2: client exchanges the code for tokens**
 
 ```http
 POST /connect/token
@@ -379,13 +379,13 @@ The `Issuer` in `appsettings.json` must match the URL at which the identity serv
 
 ```csharp
 // In AppHost
-builder.AddProject<SampleApi_Identity_Web>("SampleApiIdentityApi")
+builder.AddProject<Sample_Identity_Web>("SampleIdentityWeb")
     .WithHttpsEndpoint(port: 5003, name: "https", isProxied: false);
 
 // In Blazor app setup, read the authority from Aspire service discovery:
 var authority =
-    configuration["services:SampleApiIdentityApi:https:0"]  // Aspire-injected
-    ?? configuration["IdentityApi:BaseUrl"]                 // appsettings fallback
+    configuration["services:SampleIdentityWeb:https:0"]  // Aspire-injected
+    ?? configuration["IdentityApi:BaseUrl"]               // appsettings fallback
     ?? throw new InvalidOperationException("OIDC authority not configured");
 ```
 

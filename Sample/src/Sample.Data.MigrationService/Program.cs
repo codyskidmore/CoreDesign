@@ -1,6 +1,8 @@
 var builder = Host.CreateApplicationBuilder(args);
 
+builder.AddAppSettings();
 builder.AddAspireServiceDefaults();
+builder.Services.AddCoreDesignData<SystemUserAccessor>();
 
 // Override the folder where seed files here:  builder.AddMigrationWorker<SampleDbContext>("MySeedFolderLocation");
 builder.AddMigrationWorker<SampleDbContext>();
@@ -12,7 +14,12 @@ var dbOptions = builder.Configuration.GetSection(nameof(DatabaseOptions))
     .Get<DatabaseOptions>()
     ?? throw new InvalidOperationException("DatabaseOptions configuration section is missing.");
 
-builder.AddSqlServerDbContext<SampleDbContext>(dbOptions.DatabaseName);
+var connectionString = builder.Configuration.GetConnectionString(dbOptions.DatabaseName)
+    ?? throw new InvalidOperationException($"Connection string '{dbOptions.DatabaseName}' is missing.");
+
+builder.Services.AddDbContext<SampleDbContext>((serviceProvider, options) =>
+    options.UseSqlServer(connectionString)
+        .AddInterceptors(serviceProvider.GetRequiredService<AuditInterceptor>()));
 
 var host = builder.Build();
 

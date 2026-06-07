@@ -92,7 +92,7 @@ public interface ITokenService
 
 ### Interface properties and indexers
 
-Properties and indexers declared on the interface are implemented as pure pass-throughs in the generated decorator. No logging is emitted for property access — only ordinary methods are logged.
+Properties and indexers declared on the interface are implemented as pure pass-throughs in the generated decorator. No logging is emitted for property access; only ordinary methods are logged.
 
 ```csharp
 [LoggingDecorator]
@@ -122,7 +122,7 @@ With Serilog, add a `Destructure` block to the `Serilog` section of `appsettings
 }
 ```
 
-`ToMaximumDepth` caps how many levels deep Serilog will traverse when destructuring an object. Without this setting, a deeply nested object graph — such as an EF Core entity with navigation properties — will cause Serilog to stream an enormous payload into every sink, which can hang the application. `ToMaximumStringLength` truncates any string value captured during destructuring. `ToMaximumCollectionCount` caps how many elements are captured from arrays and collections. All three settings are tunable per environment: raise limits in `appsettings.Development.json` to see full payloads while debugging, or tighten them in `appsettings.Production.json` under load.
+`ToMaximumDepth` caps how many levels deep Serilog will traverse when destructuring an object. Without this setting, a deeply nested object graph (such as an EF Core entity with navigation properties) will cause Serilog to stream an enormous payload into every sink, which can hang the application. `ToMaximumStringLength` truncates any string value captured during destructuring. `ToMaximumCollectionCount` caps how many elements are captured from arrays and collections. All three settings are tunable per environment: raise limits in `appsettings.Development.json` to see full payloads while debugging, or tighten them in `appsettings.Production.json` under load.
 
 ### AOT compatibility
 
@@ -210,7 +210,7 @@ For new projects, the source generator is recommended. The proxy remains useful 
 
 ## Further Reading
 
-Design rationale and proxy vs. decorator comparison: [proxy-vs-decorator.md](../../proxy-vs-decorator.md)
+Design rationale and proxy vs. decorator comparison: [SerilogVsMiddleware.md](SerilogVsMiddleware.md)
 
 ## Dependencies
 

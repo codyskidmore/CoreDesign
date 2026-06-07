@@ -21,11 +21,11 @@ public class UpdateHandlerTests
                 It.IsAny<Func<IQueryable<WeatherForecast>, IQueryable<WeatherForecast>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(forecast);
-        _mockCud.Setup(r => r.UpdateAsync(It.IsAny<WeatherForecast>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+        _mockCud.Setup(r => r.UpdateAsync(It.IsAny<WeatherForecast>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         var handler = new UpdateForecastHandler(_mockRead.Object, _mockCud.Object);
 
-        var result = await handler.UpdateAsync(forecast.Id, WeatherForecastFakers.UpdateRequest(), Guid.NewGuid(), CancellationToken.None);
+        var result = await handler.UpdateAsync(forecast.Id, WeatherForecastFakers.UpdateRequest(), CancellationToken.None);
 
         Assert.True(result.IsT0);
     }
@@ -37,10 +37,10 @@ public class UpdateHandlerTests
                 It.IsAny<Expression<Func<WeatherForecast, bool>>>(),
                 It.IsAny<Func<IQueryable<WeatherForecast>, IQueryable<WeatherForecast>>>(),
                 It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult<WeatherForecast>(null!));
+            .Returns(Task.FromResult<WeatherForecast?>(null));
         var handler = new UpdateForecastHandler(_mockRead.Object, _mockCud.Object);
 
-        var result = await handler.UpdateAsync(Ulid.NewUlid(), WeatherForecastFakers.UpdateRequest(), Guid.NewGuid(), CancellationToken.None);
+        var result = await handler.UpdateAsync(Ulid.NewUlid(), WeatherForecastFakers.UpdateRequest(), CancellationToken.None);
 
         Assert.True(result.IsT1);
     }
@@ -54,11 +54,11 @@ public class UpdateHandlerTests
                 It.IsAny<Func<IQueryable<WeatherForecast>, IQueryable<WeatherForecast>>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(forecast);
-        _mockCud.Setup(r => r.UpdateAsync(It.IsAny<WeatherForecast>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+        _mockCud.Setup(r => r.UpdateAsync(It.IsAny<WeatherForecast>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         var handler = new UpdateForecastHandler(_mockRead.Object, _mockCud.Object);
 
-        var result = await handler.UpdateAsync(forecast.Id, WeatherForecastFakers.UpdateRequest(), Guid.NewGuid(), CancellationToken.None);
+        var result = await handler.UpdateAsync(forecast.Id, WeatherForecastFakers.UpdateRequest(), CancellationToken.None);
 
         Assert.True(result.IsT2);
     }
