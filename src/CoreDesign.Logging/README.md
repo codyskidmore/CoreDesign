@@ -2,8 +2,6 @@
 
 `CoreDesign.Logging` provides compile-time logging decorators generated from a single attribute. Place `[LoggingDecorator]` on any interface and the included Roslyn source generator produces a decorator class that logs every method invocation, return value, and exception. Implementations stay free of log statements while still producing structured, consistent log output for every operation.
 
-A `DispatchProxy`-based logging middleware is also included for cases where a proxy is preferred over a generated decorator.
-
 ## Installation
 
 ```
@@ -108,7 +106,7 @@ The generated decorator delegates `this[key]` and `Count` directly to `_inner` w
 
 ### Controlling log output size
 
-The proxy middleware's `[TruncateLog]` attribute is not supported by the generator. The equivalent control belongs in the structured logging configuration, where limits apply consistently to all sinks and can be adjusted per environment without a code change.
+Log output size control belongs in the structured logging configuration, where limits apply consistently to all sinks and can be adjusted per environment without a code change.
 
 With Serilog, add a `Destructure` block to the `Serilog` section of `appsettings.json`:
 
@@ -127,90 +125,6 @@ With Serilog, add a `Destructure` block to the `Serilog` section of `appsettings
 ### AOT compatibility
 
 Generated decorators are plain C# classes with direct method calls. There is no reflection, no `DispatchProxy`, and no runtime code generation. They are fully compatible with .NET Native AOT.
-
----
-
-## Proxy Middleware (Alternative)
-
-`LoggingMiddleware<T>` wraps any class behind an interface using `DispatchProxy` and automatically logs every method invocation, return value, and exception. This approach requires no compile step, but uses runtime reflection and is not AOT compatible.
-
-### Register a single class with the proxy
-
-Replace the standard `AddTransient` (or `AddScoped`) call with `AddWithLogging`:
-
-```csharp
-services.AddWithLogging<IWeatherForecastService, WeatherForecastService>();
-```
-
-### Automatic registration with `ILoggable`
-
-Implement the `ILoggable` marker interface on any class to opt it into automatic logging registration:
-
-```csharp
-public class CreateForecastHandler(...) : ICreateForecastHandler, ILoggable { ... }
-public class GetForecastHandler(...) : IGetForecastHandler, ILoggable { ... }
-```
-
-Then register all marked classes in a single call:
-
-```csharp
-services.AddWithLogging(typeof(Program).Assembly);
-```
-
-### Proxy-specific attributes
-
-In addition to `[Redact]` and `[Suppress]`, the proxy middleware supports:
-
-#### `[TruncateLog]`
-
-Return values are serialized to JSON and truncated at 500 characters by default. Apply `[TruncateLog]` to override the limit for a specific method:
-
-```csharp
-[TruncateLog(2000)]
-Task<IReadOnlyList<WeatherForecast>> GetAllAsync(CancellationToken ct);
-
-[TruncateLog(0)]   // disables truncation entirely
-Task<ServiceStatus> GetStatusAsync();
-```
-
-The log suffix reflects the reason for any truncation:
-
-| Suffix | Meaning |
-|---|---|
-| `... [truncated, total N chars]` | Output exceeded the length limit |
-| `... [depth limit reached]` | Object nesting exceeded the internal depth cap |
-| `... [truncated, depth limit reached]` | Both limits were hit |
-
-Serialization is cycle-safe. Circular references are written as `null` rather than throwing.
-
-### Proxy lifetime
-
-Both overloads default to `Transient`. Pass a different lifetime when needed:
-
-```csharp
-services.AddWithLogging<IMyService, MyService>(ServiceLifetime.Scoped);
-services.AddWithLogging(typeof(Program).Assembly, ServiceLifetime.Scoped);
-```
-
----
-
-## Choosing an approach
-
-| Concern | Source Generator | DispatchProxy |
-|---|---|---|
-| Boilerplate | None (one attribute) | None (`ILoggable` or one-line registration) |
-| Async handling | Direct `await` | Runtime reflection via `MakeGenericMethod` |
-| AOT compatibility | Yes | No |
-| Performance | Direct method calls | `MethodInfo.Invoke` on every call |
-| Compile-time safety | Compiler enforces interface completeness | Interface changes are silent |
-| Log output size control | Serilog `Destructure` config (per-environment, no rebuild) | `[TruncateLog]` attribute (per-method, requires code change) |
-For new projects, the source generator is recommended. The proxy remains useful when AOT is not a target or per-method `[TruncateLog]` granularity is specifically needed.
-
----
-
-## Further Reading
-
-Design rationale and proxy vs. decorator comparison: [SerilogVsMiddleware.md](SerilogVsMiddleware.md)
 
 ## Dependencies
 

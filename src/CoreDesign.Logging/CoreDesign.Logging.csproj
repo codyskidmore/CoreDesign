@@ -3,18 +3,21 @@
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <PackageId>CoreDesign.Logging</PackageId>
-        <Version>1.1.2</Version>
-        <Description>Logging infrastructure for .NET services. Includes a DispatchProxy middleware and a source generator that produces compile-time, reflection-free logging decorators for any interface marked with [LoggingDecorator].</Description>
+        <Version>1.2.0</Version>
+        <Description>Logging infrastructure for .NET services. A Roslyn source generator produces compile-time, reflection-free logging decorators for any interface marked with [LoggingDecorator]. Decorators log method entry, parameters, return values, and exceptions with no runtime overhead.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.Logging</PackageProjectUrl>
         <RepositoryUrl>https://github.com/codyskidmore/CoreDesign</RepositoryUrl>
-        <PackageTags>logging;proxy;dispatchproxy;middleware;coredesign</PackageTags>
+        <PackageTags>logging;decorator;source-generator;coredesign</PackageTags>
         <PackageReleaseNotes>
+1.2.0
+- Removed LoggingMiddleware&lt;T&gt;, ILoggable, TruncateLogAttribute, and the AddWithLogging extension methods. These were deprecated in 1.1.0. Use [LoggingDecorator] on interfaces and services.DecorateWithLogging() at startup instead.
+
 1.1.0
 - Added source generator that produces compile-time, reflection-free logging decorators for any interface marked with [LoggingDecorator]. Decorators log method entry, exit, parameters, return values, and exceptions with zero runtime overhead compared to handwritten logging decorators. See the CoreDesign.Logging.Generators project for details.
-            
+
 1.0.5
-- Fixed an issue with log depth and serializaition when there are navigation properties and cicular references.
+- Fixed an issue with log depth and serialization when there are navigation properties and circular references.
 
 1.0.4
 - Added ILoggable marker interface. Classes implementing ILoggable are discovered by the new assembly-scanning overload of AddWithLogging.

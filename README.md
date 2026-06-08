@@ -57,11 +57,9 @@ After marking interfaces, register all decorators in one call during startup:
 services.DecorateWithLogging();
 ```
 
-A `DispatchProxy`-based proxy middleware is also included for cases where a runtime wrapper is preferred over a generated decorator. Successful calls log at Information, error result arms log at Warning, and exceptions log at Error. Both synchronous and async methods are fully supported.
+Successful calls log at Information, error result arms log at Warning, and exceptions log at Error. Both synchronous and async methods are fully supported.
 
 Full details: [src/CoreDesign.Logging/README.md](src/CoreDesign.Logging/README.md)
-
-Design rationale and comparison with Serilog and Serilog.Enrichers.Sensitive: [src/CoreDesign.Logging/SerilogVsMiddleware.md](src/CoreDesign.Logging/SerilogVsMiddleware.md)
 
 ### CoreDesign.Identity
 
