@@ -11,6 +11,7 @@ A collection of reusable .NET 10 libraries for data access, shared infrastructur
 | `CoreDesign.Logging` | [nuget.org/packages/CoreDesign.Logging](https://www.nuget.org/packages/CoreDesign.Logging/) |
 | `CoreDesign.Identity.Server` | [nuget.org/packages/CoreDesign.Identity.Server](https://www.nuget.org/packages/CoreDesign.Identity.Server/) |
 | `CoreDesign.Identity.Client` | [nuget.org/packages/CoreDesign.Identity.Client](https://www.nuget.org/packages/CoreDesign.Identity.Client/) |
+| `CoreDesign.SeedTool` | [nuget.org/packages/CoreDesign.SeedTool](https://www.nuget.org/packages/CoreDesign.SeedTool/) |
 
 ## User Guide
 
@@ -87,6 +88,14 @@ Full details: [src/CoreDesign.Identity/CoreDesign.Identity.Server/README.md](src
 An ASP.NET Core client library for APIs that validate tokens issued by `CoreDesign.Identity.Server` or any standard OIDC provider. Configures JWT Bearer authentication via OIDC discovery, provides a development-only middleware that auto-injects bearer tokens on local requests, and includes an OpenAPI document transformer for the Bearer security scheme.
 
 Full details: [src/CoreDesign.Identity/CoreDesign.Identity.Client/README.md](src/CoreDesign.Identity/CoreDesign.Identity.Client/README.md)
+
+### CoreDesign.SeedTool
+
+`src/CoreDesign.SeedTool/`
+
+A `dotnet tool` for exporting live entity data to `MigrationWorker`-compatible seed files and comparing seed files against a live database. Works with any project using `CoreDesign.Data`. Install globally with `dotnet tool install -g CoreDesign.SeedTool`, then run `dotnet seed setup` from the repository root to generate the config file and `dotnet seed export` to capture the current state of your entities.
+
+Full details: [src/CoreDesign.SeedTool/README.md](src/CoreDesign.SeedTool/README.md)
 
 ## Shared Configuration
 
