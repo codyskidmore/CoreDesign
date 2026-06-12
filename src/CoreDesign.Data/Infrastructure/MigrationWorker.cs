@@ -20,7 +20,9 @@ public class MigrationWorker<TContext>(
     IHostApplicationLifetime lifetime,
     ILogger<MigrationWorker<TContext>> logger,
     string seedDirectory = "SeedData",
-    ISet<string>? purgeBeforeSeed = null) : BackgroundService
+    ISet<string>? purgeBeforeSeed = null,
+    int maxRetryCount = 10,
+    TimeSpan retryDelay = default) : BackgroundService
     where TContext : DbContext
 {
     public const string ActivitySourceName = "Migrations";
@@ -32,19 +34,33 @@ public class MigrationWorker<TContext>(
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
         using var activity = ActivitySource.StartActivity("Migrating database", ActivityKind.Client);
-        try
-        {
-            using var scope = serviceProvider.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<TContext>();
+        var delay = retryDelay == default ? TimeSpan.FromSeconds(3) : retryDelay;
 
-            await EnsureDatabaseAsync(dbContext, cancellationToken);
-            await RunMigrationAsync(dbContext, cancellationToken);
-            await SeedAsync(dbContext, cancellationToken);
-        }
-        catch (Exception ex)
+        for (var attempt = 1; ; attempt++)
         {
-            activity?.AddException(ex);
-            throw;
+            try
+            {
+                using var scope = serviceProvider.CreateScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<TContext>();
+
+                await EnsureDatabaseAsync(dbContext, cancellationToken);
+                await RunMigrationAsync(dbContext, cancellationToken);
+                await SeedAsync(dbContext, cancellationToken);
+                break;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException && attempt < maxRetryCount)
+            {
+                activity?.AddException(ex);
+                logger.LogWarning(ex,
+                    "Migration attempt {Attempt} of {MaxRetries} failed. Retrying in {Delay}s.",
+                    attempt, maxRetryCount, delay.TotalSeconds);
+                await Task.Delay(delay, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                activity?.AddException(ex);
+                throw;
+            }
         }
 
         lifetime.StopApplication();

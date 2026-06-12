@@ -33,7 +33,9 @@ public static class MigrationWorkerExtensions
     public static IHostApplicationBuilder AddMigrationWorker<TContext>(
         this IHostApplicationBuilder builder,
         string seedDirectory = "SeedData",
-        IEnumerable<string>? purgeBeforeSeed = null)
+        IEnumerable<string>? purgeBeforeSeed = null,
+        int maxRetryCount = 10,
+        TimeSpan retryDelay = default)
         where TContext : DbContext
     {
         builder.Services.AddHostedService(sp =>
@@ -55,7 +57,9 @@ public static class MigrationWorkerExtensions
                 sp.GetRequiredService<IHostApplicationLifetime>(),
                 sp.GetRequiredService<ILogger<MigrationWorker<TContext>>>(),
                 seedDirectory,
-                merged.Count > 0 ? merged : null);
+                merged.Count > 0 ? merged : null,
+                maxRetryCount,
+                retryDelay);
         });
 
         return builder;

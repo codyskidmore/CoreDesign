@@ -1,5 +1,51 @@
 # Release Notes
 
+## CoreDesign.Logging 1.2.0
+
+### Breaking Change: Logging Middleware Removed
+
+`LoggingMiddleware<T>`, `ILoggable`, `TruncateLogAttribute`, and the `AddWithLogging` extension methods have been removed. These were deprecated in 1.1.0 when the source-generator-based `[LoggingDecorator]` approach shipped.
+
+**Migration:** Replace `AddWithLogging` registrations with `[LoggingDecorator]` on service interfaces and a single `services.DecorateWithLogging()` call at startup. See the [1.1.0 migration guide](CoreDesign.Logging.1.0.5-to-1.1.0-migration.md) for step-by-step instructions.
+
+---
+
+## CoreDesign.Shared 1.0.4
+
+Security patch: `MessagePack` pinned to 3.1.7 to address a high-severity transitive vulnerability (GHSA-hv8m-jj95-wg3x) introduced through the `Aspire.Hosting.AppHost` dependency chain. All Microsoft packages updated from 10.0.8 to 10.0.9.
+
+---
+
+## CoreDesign.Logging 1.2.2
+
+Dependency updates: `Microsoft.Extensions.DependencyInjection.Abstractions` and `Microsoft.Extensions.Logging.Abstractions` updated from 10.0.8 to 10.0.9. `CoreDesign.Shared` dependency updated to 1.0.4.
+
+---
+
+## CoreDesign.Logging.Generators 1.0.3
+
+Dependency update: `Microsoft.CodeAnalysis.CSharp` updated from 4.3.1 to 5.3.0.
+
+---
+
+## CoreDesign.Data 1.1.1
+
+Dependency updates: `Microsoft.EntityFrameworkCore`, `Microsoft.EntityFrameworkCore.Relational`, `Microsoft.Extensions.Configuration.Abstractions`, and `Microsoft.Extensions.Hosting.Abstractions` updated from 10.0.8 to 10.0.9.
+
+---
+
+## CoreDesign.Identity.Client 1.0.9
+
+Dependency updates: `Microsoft.AspNetCore.Authentication.JwtBearer`, `Microsoft.AspNetCore.OpenApi`, and `Microsoft.Extensions.Http` updated from 10.0.8 to 10.0.9.
+
+---
+
+## CoreDesign.Identity.Server 1.0.9
+
+Minor release for version alignment. No functional changes.
+
+---
+
 ## CoreDesign.SeedTool 1.0.0
 
 New package. A `dotnet tool` for exporting live entity data to `MigrationWorker`-compatible seed files and comparing seed files against a live database.
