@@ -265,8 +265,10 @@ dotnet seed diff SiteContent --password mysecret
 2. Run `dotnet seed export` to capture the current state.
 3. Review changes with `git diff`.
 4. Commit the updated seed files.
-5. Before deploying, add the entity to `MigrationWorker:PurgeBeforeSeed` in the migration service's `appsettings.json` so the updated content replaces existing rows.
-6. Deploy. Remove the entity from `PurgeBeforeSeed` afterward to restore insert-only behavior.
+5. In a non-Production environment (local development or staging), add the entity to `MigrationWorker:PurgeBeforeSeed` in the migration service's `appsettings.json` and run the migration service so the updated content replaces existing rows.
+6. Verify the result, then remove the entity from `PurgeBeforeSeed` again to restore insert-only behavior.
+
+> **Warning:** `PurgeBeforeSeed` is destructive and must never be enabled against a Production database. Production content changes are the administrator's responsibility and should be made directly against the database, not by purging and reseeding on deploy.
 
 See the `CoreDesign.Data` README for documentation on `PurgeBeforeSeed`.
 
@@ -278,7 +280,7 @@ Seed files are named using the entity's fully qualified type name (e.g. `MyApp.F
 
 **Detection:** Run `dotnet seed diff` after any rename or namespace change. The old filename will appear as unmatched and the new filename will be missing entirely, making the break immediately visible.
 
-**Recovery:** Run `dotnet seed export` to regenerate seed files under the correct names, then delete the old files and commit the result. Update `MigrationWorker:PurgeBeforeSeed` in the migration service's `appsettings.json` if the entity's data needs to be replaced rather than appended on the next deploy.
+**Recovery:** Run `dotnet seed export` to regenerate seed files under the correct names, then delete the old files and commit the result. In a non-Production environment, update `MigrationWorker:PurgeBeforeSeed` in the migration service's `appsettings.json` if the entity's data needs to be replaced rather than appended on the next run.
 
 ### SQL Server on Docker for Windows, connection refused when using `localhost`
 

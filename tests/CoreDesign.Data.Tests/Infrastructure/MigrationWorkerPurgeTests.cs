@@ -3,6 +3,7 @@ using CoreDesign.Data.Repositories;
 using CoreDesign.Data.Tests.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
@@ -12,11 +13,36 @@ public class MigrationWorkerPurgeTests
 {
     private static TestMigrationWorker CreateWorker(
         string seedDirectory = "SeedData",
-        ISet<string>? purgeBeforeSeed = null)
+        ISet<string>? purgeBeforeSeed = null,
+        ILogger<MigrationWorker<TestDbContext>>? logger = null)
     {
         var sp = Mock.Of<IServiceProvider>();
         var lifetime = Mock.Of<IHostApplicationLifetime>();
-        return new TestMigrationWorker(sp, lifetime, seedDirectory, purgeBeforeSeed);
+        return new TestMigrationWorker(sp, lifetime, seedDirectory, purgeBeforeSeed, logger);
+    }
+
+    [Fact]
+    public async Task PurgeEntitiesAsync_LogsWarning_WithProductionCaution()
+    {
+        await using var ctx = DbContextFactory.CreateContext();
+        ctx.Set<TestEntity>().Add(new TestEntity { Name = "Active" });
+        await ctx.SaveChangesAsync();
+
+        var loggerMock = new Mock<ILogger<MigrationWorker<TestDbContext>>>();
+        var worker = CreateWorker(logger: loggerMock.Object);
+
+        await worker.ExposedPurgeAsync<TestEntity>(ctx, CancellationToken.None);
+
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, t) =>
+                    state.ToString()!.Contains("destructive") &&
+                    state.ToString()!.Contains("Production")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]
@@ -191,9 +217,10 @@ public class TestMigrationWorker(
     IServiceProvider sp,
     IHostApplicationLifetime lifetime,
     string seedDirectory = "SeedData",
-    ISet<string>? purgeBeforeSeed = null)
+    ISet<string>? purgeBeforeSeed = null,
+    ILogger<MigrationWorker<TestDbContext>>? logger = null)
     : MigrationWorker<TestDbContext>(sp, lifetime,
-        NullLogger<MigrationWorker<TestDbContext>>.Instance,
+        logger ?? NullLogger<MigrationWorker<TestDbContext>>.Instance,
         seedDirectory, purgeBeforeSeed)
 {
     public Task ExposedPurgeAsync<T>(TestDbContext ctx, CancellationToken ct) where T : BaseEntity
