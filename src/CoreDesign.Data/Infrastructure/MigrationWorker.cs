@@ -85,6 +85,12 @@ public class MigrationWorker<TContext>(
     /// their table cleared before the seed file is applied. Configure this at runtime via
     /// <c>MigrationWorker:PurgeBeforeSeed</c> in appsettings or environment variables.
     /// </para>
+    /// <para>
+    /// <b>Warning:</b> purging is destructive and unrecoverable outside of a database
+    /// backup. Use with extreme caution and only in non-Production environments (local
+    /// development, staging seed iteration). Never configure <c>PurgeBeforeSeed</c> for a
+    /// Production database.
+    /// </para>
     /// </summary>
     protected async Task SeedFromDirectoryAsync(
         TContext dbContext,
@@ -214,13 +220,19 @@ public class MigrationWorker<TContext>(
     /// efficiency; falls back to load-then-remove on non-relational providers (e.g.,
     /// in-memory databases used in tests).
     /// </summary>
+    /// <remarks>
+    /// This is destructive and unrecoverable outside of a database backup. Use with
+    /// extreme caution and never enable it against a Production database.
+    /// </remarks>
     protected async Task PurgeEntitiesAsync<T>(TContext dbContext, CancellationToken cancellationToken)
         where T : BaseEntity
     {
         if (dbContext.Database.IsRelational())
         {
             var deleted = await dbContext.Set<T>().IgnoreQueryFilters().ExecuteDeleteAsync(cancellationToken);
-            logger.LogInformation("Purged {Count} {TypeName} records before seeding.", deleted, typeof(T).Name);
+            logger.LogWarning(
+                "Purged {Count} {TypeName} records before reseeding. PurgeBeforeSeed is destructive " +
+                "and must never be enabled against a Production database.", deleted, typeof(T).Name);
         }
         else
         {
@@ -228,7 +240,9 @@ public class MigrationWorker<TContext>(
             if (all.Count == 0) return;
             dbContext.Set<T>().RemoveRange(all);
             await dbContext.SaveChangesAsync(cancellationToken);
-            logger.LogInformation("Purged {Count} {TypeName} records before seeding.", all.Count, typeof(T).Name);
+            logger.LogWarning(
+                "Purged {Count} {TypeName} records before reseeding. PurgeBeforeSeed is destructive " +
+                "and must never be enabled against a Production database.", all.Count, typeof(T).Name);
         }
     }
 

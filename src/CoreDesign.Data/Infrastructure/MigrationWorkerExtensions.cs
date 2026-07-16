@@ -17,6 +17,12 @@ public static class MigrationWorkerExtensions
     /// variables. The <paramref name="purgeBeforeSeed"/> parameter allows the same list to
     /// be supplied in code; both sources are merged.
     /// </para>
+    /// <para>
+    /// <b>Warning:</b> purging is destructive and unrecoverable outside of a database
+    /// backup. Use with extreme caution and only in non-Production environments. Never
+    /// set <c>PurgeBeforeSeed</c> for a Production database, whether in code or in
+    /// <c>appsettings.Production.json</c>.
+    /// </para>
     /// <example>
     /// appsettings.json:
     /// <code>

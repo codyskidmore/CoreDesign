@@ -289,6 +289,8 @@ By default the worker only inserts rows that do not yet exist (identified by `Ba
 
 Pass entity type names to `purgeBeforeSeed` to clear specific tables before their seed file is applied. This lets you replace the content of a table on every migration run without having to manually delete rows first.
 
+> **Warning:** purging is destructive and unrecoverable outside of a database backup. Use it with extreme caution and only in non-Production environments, such as local development or a staging database while iterating toward a final seed data set. Never configure `PurgeBeforeSeed` for a Production database, whether in code or in `appsettings.Production.json`. Production content changes are the administrator's responsibility and should be made directly against the database, not by purging and reseeding on deploy.
+
 Short class names and fully qualified type names are both accepted:
 
 ```csharp

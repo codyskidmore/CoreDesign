@@ -3,7 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <PackageId>CoreDesign.Logging</PackageId>
-        <Version>1.2.2</Version>
+        <Version>1.2.3</Version>
         <Description>Logging infrastructure for .NET services. A Roslyn source generator produces compile-time, reflection-free logging decorators for any interface marked with [LoggingDecorator]. Decorators log method entry, parameters, return values, and exceptions with no runtime overhead.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.Logging</PackageProjectUrl>
@@ -41,8 +41,8 @@
 
     <ItemGroup>
         <PackageReference Include="CoreDesign.Shared" Version="1.0.3" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.9" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
         <PackageReference Include="OneOf" Version="3.0.271" />
     </ItemGroup>
 

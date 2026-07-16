@@ -595,8 +595,10 @@ The factory is discovered by reflection at runtime. It must have a public parame
 2. Run `dotnet seed export` to capture the current state.
 3. Review changes with `git diff`.
 4. Commit the updated seed files.
-5. Before deploying, add the entity to `MigrationWorker:PurgeBeforeSeed` in the migration service `appsettings.json`.
-6. Deploy. Remove the entity from `PurgeBeforeSeed` afterward.
+5. In a non-Production environment (local development or staging), add the entity to `MigrationWorker:PurgeBeforeSeed` in the migration service's `appsettings.json` and run the migration service to replace the existing rows with the updated seed content.
+6. Verify the result, then remove the entity from `PurgeBeforeSeed` again.
+
+> **Warning:** `PurgeBeforeSeed` is destructive and must never be enabled against a Production database. Production content changes are the administrator's responsibility and should be made directly against the database, not by purging and reseeding on deploy. See the `CoreDesign.Data` README for details.
 
 ### Known issue: entity rename breaks seed file matching
 
