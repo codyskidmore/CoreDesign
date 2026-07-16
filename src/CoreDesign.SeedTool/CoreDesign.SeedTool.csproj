@@ -9,7 +9,7 @@
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>dotnet-seed</ToolCommandName>
         <PackageId>CoreDesign.SeedTool</PackageId>
-        <Version>1.0.1</Version>
+        <Version>1.0.2</Version>
         <Description>CLI tool for exporting CoreDesign.Data entity data to MigrationWorker-compatible seed files and comparing seed files to a live database.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.SeedTool</PackageProjectUrl>

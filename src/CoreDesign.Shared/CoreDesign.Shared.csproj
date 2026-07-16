@@ -6,7 +6,7 @@
         <Nullable>enable</Nullable>
         <LangVersion>default</LangVersion>
         <PackageId>CoreDesign.Shared</PackageId>
-        <Version>1.0.4</Version>
+        <Version>1.0.5</Version>
         <Description>Shared infrastructure, error result types, and utility extension methods for .NET projects. Intended to be referenced by both host/API projects and AppHost projects.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.Shared</PackageProjectUrl>
