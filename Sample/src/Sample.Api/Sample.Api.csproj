@@ -12,7 +12,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.4.3" />
+        <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.4.6" />
         <PackageReference Include="CoreDesign.Data" Version="1.1.1" />
         <PackageReference Include="CoreDesign.Identity.Client" Version="1.0.9" />
         <PackageReference Include="CoreDesign.Logging" Version="1.2.2" />
