@@ -1,5 +1,47 @@
 # Release Notes
 
+## CoreDesign.Data 1.1.2
+
+`PurgeBeforeSeed` now logs a `Warning` instead of `Information` when it purges a table, with an explicit message that the operation is destructive and must never be enabled against a Production database. XML documentation on `MigrationWorker`, `AddMigrationWorker`, and the purge method carries the same caution. The `CoreDesign.SeedTool` README and `CoreDesignUserGuide.md` have been corrected: the previously documented "add to PurgeBeforeSeed, then deploy" workflow is now scoped to non-Production environments only. `Microsoft.EntityFrameworkCore`, `Microsoft.EntityFrameworkCore.Relational`, `Microsoft.Extensions.Configuration.Abstractions`, and `Microsoft.Extensions.Hosting.Abstractions` updated from 10.0.9 to 10.0.10.
+
+---
+
+## CoreDesign.SeedTool 1.0.2
+
+Packaged against the updated `CoreDesign.Data` 1.1.2. No changes to the tool itself.
+
+---
+
+## CoreDesign.Shared 1.0.5
+
+Dependency updates: `Aspire.Hosting.AppHost` updated from 13.4.3 to 13.4.6. `Microsoft.EntityFrameworkCore` and related `Microsoft.Extensions.*` packages updated from 10.0.9 to 10.0.10. `MessagePack` updated from 3.1.7 to 3.1.8.
+
+---
+
+## CoreDesign.Logging 1.2.3
+
+Dependency updates: `Microsoft.Extensions.DependencyInjection.Abstractions` and `Microsoft.Extensions.Logging.Abstractions` updated from 10.0.9 to 10.0.10.
+
+---
+
+## CoreDesign.Logging.Generators 1.0.4
+
+Version alignment with this release. Bundled as an analyzer inside the `CoreDesign.Logging` package; not published separately. No dependency changes.
+
+---
+
+## CoreDesign.Identity.Server 1.0.10
+
+Dependency update: `System.IdentityModel.Tokens.Jwt` updated from 8.19.1 to 8.19.2.
+
+---
+
+## CoreDesign.Identity.Client 1.0.10
+
+Dependency updates: `Microsoft.AspNetCore.Authentication.JwtBearer`, `Microsoft.AspNetCore.OpenApi`, and `Microsoft.Extensions.Http` updated from 10.0.9 to 10.0.10.
+
+---
+
 ## CoreDesign.Logging 1.2.0
 
 ### Breaking Change: Logging Middleware Removed
