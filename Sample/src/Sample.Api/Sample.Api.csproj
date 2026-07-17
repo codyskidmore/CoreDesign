@@ -13,24 +13,24 @@
 
     <ItemGroup>
         <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.4.6" />
-        <PackageReference Include="CoreDesign.Data" Version="1.1.1" />
-        <PackageReference Include="CoreDesign.Identity.Client" Version="1.0.9" />
-        <PackageReference Include="CoreDesign.Logging" Version="1.2.2" />
-        <PackageReference Include="CoreDesign.Shared" Version="1.0.4" />
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.9" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
+        <PackageReference Include="CoreDesign.Data" Version="1.1.2" />
+        <PackageReference Include="CoreDesign.Identity.Client" Version="1.0.10" />
+        <PackageReference Include="CoreDesign.Logging" Version="1.2.3" />
+        <PackageReference Include="CoreDesign.Shared" Version="1.0.5" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.10" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.9">
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.10">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="OneOf" Version="3.0.271" />
-        <PackageReference Include="Scalar.AspNetCore" Version="2.16.3" />
-        <PackageReference Include="Scalar.AspNetCore.Microsoft" Version="2.16.3" />
+        <PackageReference Include="Scalar.AspNetCore" Version="2.16.15" />
+        <PackageReference Include="Scalar.AspNetCore.Microsoft" Version="2.16.15" />
         <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
         <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
         <PackageReference Include="Serilog.Enrichers.OpenTelemetry" Version="1.0.1" />
