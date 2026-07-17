@@ -1,5 +1,17 @@
 # Release Notes
 
+## CoreDesign.Identity.Client 1.0.11
+
+Security patch: `Microsoft.OpenApi` pinned to 2.7.5 to remediate a high-severity denial-of-service vulnerability (GHSA-v5pm-xwqc-g5wc / CVE-2026-49451, CVSS 7.5) pulled in transitively through `Microsoft.AspNetCore.OpenApi`. A crafted OpenAPI document containing a circular schema reference could exhaust the call stack and crash the process during parsing; versions 2.7.5+ are patched. Also fixed a nullable-reference warning (CS8602) in the test suite.
+
+---
+
+## CoreDesign.Logging 1.2.4
+
+Fixed the source generator dropping nullable reference-type annotations (`?`) on generated decorator method return, parameter, and property types. This desynced generated signatures from the source interface and produced CS8613/CS8603 warnings when decorating interfaces with nullable members.
+
+---
+
 ## CoreDesign.Data 1.1.2
 
 `PurgeBeforeSeed` now logs a `Warning` instead of `Information` when it purges a table, with an explicit message that the operation is destructive and must never be enabled against a Production database. XML documentation on `MigrationWorker`, `AddMigrationWorker`, and the purge method carries the same caution. The `CoreDesign.SeedTool` README and `CoreDesignUserGuide.md` have been corrected: the previously documented "add to PurgeBeforeSeed, then deploy" workflow is now scoped to non-Production environments only. `Microsoft.EntityFrameworkCore`, `Microsoft.EntityFrameworkCore.Relational`, `Microsoft.Extensions.Configuration.Abstractions`, and `Microsoft.Extensions.Hosting.Abstractions` updated from 10.0.9 to 10.0.10.

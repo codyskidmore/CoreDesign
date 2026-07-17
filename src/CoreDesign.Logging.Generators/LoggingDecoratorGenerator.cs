@@ -15,6 +15,13 @@ public sealed class LoggingDecoratorGenerator : IIncrementalGenerator
     private const string SuppressFullName   = "CoreDesign.Logging.SuppressAttribute";
     private const string RedactFullName     = "CoreDesign.Logging.RedactAttribute";
 
+    // FullyQualifiedFormat omits the '?' nullable-reference-type modifier by default,
+    // which desyncs generated signatures from the source interface (CS8613/CS8603).
+    private static readonly SymbolDisplayFormat FullyQualifiedNullableFormat =
+        SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+            SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions |
+            SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var infos = context.SyntaxProvider
@@ -68,13 +75,13 @@ public sealed class LoggingDecoratorGenerator : IIncrementalGenerator
 
             var suppressed = HasAttr(method, SuppressFullName);
             var returnKind = ClassifyReturn(method.ReturnType, out var arms);
-            var returnType = method.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            var returnType = method.ReturnType.ToDisplayString(FullyQualifiedNullableFormat);
 
             var parameters = ImmutableArray.CreateBuilder<ParamInfo>();
             foreach (var p in method.Parameters)
             {
                 parameters.Add(new ParamInfo(
-                    p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                    p.Type.ToDisplayString(FullyQualifiedNullableFormat),
                     p.Name,
                     HasAttr(p, RedactFullName),
                     IsCancellationToken(p.Type)));
@@ -94,14 +101,14 @@ public sealed class LoggingDecoratorGenerator : IIncrementalGenerator
             foreach (var p in prop.Parameters)
             {
                 indexParams.Add(new ParamInfo(
-                    p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                    p.Type.ToDisplayString(FullyQualifiedNullableFormat),
                     p.Name,
                     false,
                     false));
             }
 
             properties.Add(new PropertyInfo(
-                prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                prop.Type.ToDisplayString(FullyQualifiedNullableFormat),
                 prop.Name,
                 prop.GetMethod is not null,
                 prop.SetMethod is not null,
