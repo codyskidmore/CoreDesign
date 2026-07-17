@@ -55,6 +55,8 @@ public class BearerSecurityTransformerTests
 
         await transformer.TransformAsync(doc, null!, CancellationToken.None);
 
+        Assert.NotNull(doc.Components);
+        Assert.NotNull(doc.Components.SecuritySchemes);
         var scheme = (OpenApiSecurityScheme)doc.Components.SecuritySchemes["Bearer"];
         Assert.Equal(SecuritySchemeType.Http, scheme.Type);
         Assert.Equal("bearer", scheme.Scheme);
