@@ -1,9 +1,11 @@
 namespace CoreDesign.Logging.Tests.Helpers;
 
+public union FindResult(string, NotFoundMessage);
+
 public interface IDecoratorTestService
 {
     Task<string> GetValueAsync(string key);
-    Task<OneOf<string, NotFoundMessage>> FindAsync(string id);
+    Task<FindResult> FindAsync(string id);
     Task RunAsync();
     string Login(string username, [Redact] string password);
     [Suppress] string GetSecret();
@@ -17,8 +19,8 @@ public interface IDecoratorTestService
 public class DecoratorTestService : IDecoratorTestService
 {
     public Task<string> GetValueAsync(string key) => Task.FromResult(key);
-    public Task<OneOf<string, NotFoundMessage>> FindAsync(string id) =>
-        Task.FromResult<OneOf<string, NotFoundMessage>>(id);
+    public Task<FindResult> FindAsync(string id) =>
+        Task.FromResult<FindResult>(id);
     public Task RunAsync() => Task.CompletedTask;
     public string Login(string username, string password) => username;
     public string GetSecret() => "secret";

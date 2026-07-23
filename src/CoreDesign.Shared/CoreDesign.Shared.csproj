@@ -1,12 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFramework>net11.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <LangVersion>default</LangVersion>
         <PackageId>CoreDesign.Shared</PackageId>
-        <Version>1.0.5</Version>
+        <VersionPrefix>1.0.5</VersionPrefix>
         <Description>Shared infrastructure, error result types, and utility extension methods for .NET projects. Intended to be referenced by both host/API projects and AppHost projects.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.Shared</PackageProjectUrl>
@@ -19,23 +18,14 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
-        <Reference Include="Microsoft.Extensions.Hosting.Abstractions">
-            <HintPath>C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\9.0.5\Microsoft.Extensions.Hosting.Abstractions.dll</HintPath>
-        </Reference>
-    </ItemGroup>
-
-    <ItemGroup>
         <PackageReference Include="Aspire.Hosting.AppHost" Version="13.4.6" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.10" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.10" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
-        <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.10" />
         <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.10" />
         <PackageReference Include="MessagePack" Version="3.1.8" />
         <PackageReference Include="Ulid" Version="1.4.1" />
     </ItemGroup>
 
 </Project>
+

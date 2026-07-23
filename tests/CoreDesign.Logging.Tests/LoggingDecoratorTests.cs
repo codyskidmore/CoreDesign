@@ -100,9 +100,9 @@ public class LoggingDecoratorTests
     }
 
     [Fact]
-    public async Task Invoke_OneOf_SuccessArm_LogsInformation()
+    public async Task Invoke_Union_SuccessArm_LogsInformation()
     {
-        OneOf<string, NotFoundMessage> found = "result value";
+        FindResult found = "result value";
         _serviceMock.Setup(s => s.FindAsync("existing")).ReturnsAsync(found);
 
         await _decorator.FindAsync("existing");
@@ -112,9 +112,9 @@ public class LoggingDecoratorTests
     }
 
     [Fact]
-    public async Task Invoke_OneOf_NotFoundArm_LogsWarning()
+    public async Task Invoke_Union_NotFoundArm_LogsWarning()
     {
-        OneOf<string, NotFoundMessage> notFound = new NotFoundMessage("not found");
+        FindResult notFound = new NotFoundMessage("not found");
         _serviceMock.Setup(s => s.FindAsync("missing")).ReturnsAsync(notFound);
 
         await _decorator.FindAsync("missing");
@@ -124,15 +124,15 @@ public class LoggingDecoratorTests
     }
 
     [Fact]
-    public async Task Invoke_OneOf_ReturnsValueFromInner()
+    public async Task Invoke_Union_ReturnsValueFromInner()
     {
-        OneOf<string, NotFoundMessage> found = "the result";
+        FindResult found = "the result";
         _serviceMock.Setup(s => s.FindAsync("id")).ReturnsAsync(found);
 
         var result = await _decorator.FindAsync("id");
 
-        Assert.True(result.IsT0);
-        Assert.Equal("the result", result.AsT0);
+        Assert.True(result is string);
+        Assert.Equal("the result", (string)result.Value!);
     }
 
     [Fact]

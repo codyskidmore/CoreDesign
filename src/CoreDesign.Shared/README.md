@@ -38,7 +38,7 @@ A record that holds the database connection settings read from configuration:
 
 **Error result records**
 
-Lightweight result records for use with discriminated unions (e.g., `OneOf`):
+Lightweight result records for use with discriminated unions (e.g., native C# `union` types):
 
 | Type | Use case |
 | --- | --- |
@@ -125,10 +125,12 @@ var dbOptions = builder.Configuration
 
 ## Usage
 
-**Error results with OneOf**
+**Error results with native unions**
 
 ```csharp
-public async Task<OneOf<Widget, NotFoundMessage>> GetAsync(Ulid id, CancellationToken ct)
+public union GetResult(Widget, NotFoundMessage);
+
+public async Task<GetResult> GetAsync(Ulid id, CancellationToken ct)
 {
     var widget = await repository.GetAsync(w => w.Id == id, null, ct);
     if (widget is null)

@@ -94,7 +94,7 @@ A record that holds the database connection settings read from configuration:
 
 #### Error Result Records
 
-Lightweight result records for use with discriminated unions (e.g., `OneOf`):
+Lightweight result records for use with discriminated unions (e.g., native C# `union` types):
 
 | Type | Use case |
 |---|---|
@@ -155,10 +155,12 @@ var dbOptions = builder.Configuration
 
 ### Usage Examples
 
-**Error results with OneOf**
+**Error results with native unions**
 
 ```csharp
-public async Task<OneOf<Widget, NotFoundMessage>> GetAsync(Ulid id, CancellationToken ct)
+public union GetResult(Widget, NotFoundMessage);
+
+public async Task<GetResult> GetAsync(Ulid id, CancellationToken ct)
 {
     var widget = await repository.GetAsync(w => w.Id == id, null, ct);
     if (widget is null)
@@ -633,10 +635,12 @@ dotnet add package CoreDesign.Logging
 Apply `[LoggingDecorator]` to any interface you want logged:
 
 ```csharp
+public union CreateResult(WeatherForecast, BadRequestMessage);
+
 [LoggingDecorator]
 public interface ICreateForecastHandler
 {
-    Task<OneOf<WeatherForecast, BadRequestMessage>> CreateAsync(
+    Task<CreateResult> CreateAsync(
         Request request, Guid userId, CancellationToken ct);
 }
 ```
@@ -678,7 +682,7 @@ services.DecorateWithLogging();
 | Method returned an error arm (`NotFound`, `BadRequest`, `Error`, `Failure`, etc.) | Warning (method name and return value) |
 | Method threw an exception | Error (exception and method name) |
 
-Both synchronous and `Task`/`Task<T>` methods are fully supported. For `OneOf<T0, T1, ...>` return types, each union arm is logged at the appropriate level: success arms at Information, arms whose type name contains `NotFound`, `BadRequest`, `Error`, `Failure`, `Unauthorized`, `Forbidden`, `Conflict`, or `InvalidOperation` at Warning.
+Both synchronous and `Task`/`Task<T>` methods are fully supported. For native C# `union` return types, each arm is logged at the appropriate level: success arms at Information, arms whose type name contains `NotFound`, `BadRequest`, `Error`, `Failure`, `Unauthorized`, `Forbidden`, `Conflict`, or `InvalidOperation` at Warning.
 
 #### Sensitive Data Control
 
@@ -772,7 +776,6 @@ Using all three together gives intentional logging at the application layer, fle
 ### Dependencies
 
 - `CoreDesign.Shared` for `NotFoundMessage` and `BadRequestMessage` result types
-- `OneOf` for discriminated-union result inspection
 - `Microsoft.Extensions.Logging.Abstractions`
 - `Microsoft.Extensions.DependencyInjection.Abstractions`
 
@@ -1832,10 +1835,12 @@ Classes in Sample.Api contain no log statements. All invocation logging is handl
 Each handler interface is marked with `[LoggingDecorator]`:
 
 ```csharp
+public union CreateResult(WeatherForecast, BadRequestMessage);
+
 [LoggingDecorator]
 public interface ICreateForecastHandler
 {
-    Task<OneOf<WeatherForecast, BadRequestMessage>> CreateAsync(
+    Task<CreateResult> CreateAsync(
         Request request, CancellationToken ct);
 }
 ```
@@ -2174,7 +2179,7 @@ The architecture is best described as **Feature-Sliced Layered Architecture** be
 | Authorization declared on endpoint definitions, not inside handlers | Correct |
 | Cache policy declared on endpoints, eviction called in handlers after writes | Correct |
 | Logging applied via `[LoggingDecorator]` generated decorator, not inline | Correct |
-| `OneOf` discriminated unions with `.Match()` for error handling | Correct |
+| Native C# `union` types with a type-pattern `switch` for error handling | Correct |
 | HTTP-specific types (`HttpContext`, `IResult`) live in handlers, not services | Correct |
 
 ### Target Structure
@@ -2248,10 +2253,12 @@ Sample.Api/
 Apply `[LoggingDecorator]` to each interface that needs logging, then call `services.DecorateWithLogging()` once during startup after all service registrations:
 
 ```csharp
+public union GetByIdResult(Order, NotFoundMessage);
+
 [LoggingDecorator]
 public interface IOrderService
 {
-    Task<OneOf<Order, NotFoundMessage>> GetByIdAsync(Guid id, CancellationToken ct);
+    Task<GetByIdResult> GetByIdAsync(Guid id, CancellationToken ct);
 }
 ```
 
@@ -2330,15 +2337,17 @@ Minor release for version alignment.
 A new Roslyn incremental source generator replaces the need to write logging decorators by hand. Place `[LoggingDecorator]` on any interface and the generator produces a complete decorator class at compile time.
 
 ```csharp
+public union CreateResult(WeatherForecast, BadRequestMessage);
+
 [LoggingDecorator]
 public interface ICreateForecastHandler
 {
-    Task<OneOf<WeatherForecast, BadRequestMessage>> CreateAsync(
+    Task<CreateResult> CreateAsync(
         Request request, Guid userId, CancellationToken ct);
 }
 ```
 
-The generated decorator is a plain sealed class that logs each method invocation at Information with all parameter values, logs successful return values at Information, logs `OneOf` arms at Information or Warning depending on the arm type name, catches any exception and logs it at Error before rethrowing, and honors `[Suppress]` and `[Redact]` exactly as the proxy did.
+The generated decorator is a plain sealed class that logs each method invocation at Information with all parameter values, logs successful return values at Information, logs union arms at Information or Warning depending on the arm type name, catches any exception and logs it at Error before rethrowing, and honors `[Suppress]` and `[Redact]` exactly as the proxy did.
 
 **`DecorateWithLogging()` Extension**
 

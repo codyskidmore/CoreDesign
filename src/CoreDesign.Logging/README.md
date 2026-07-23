@@ -15,10 +15,12 @@ dotnet add package CoreDesign.Logging
 Apply `[LoggingDecorator]` to any interface you want wrapped:
 
 ```csharp
+public union CreateResult(WeatherForecast, BadRequestMessage);
+
 [LoggingDecorator]
 public interface ICreateForecastHandler
 {
-    Task<OneOf<WeatherForecast, BadRequestMessage>> CreateAsync(Request request, Guid userId, CancellationToken ct);
+    Task<CreateResult> CreateAsync(Request request, Guid userId, CancellationToken ct);
 }
 ```
 
@@ -59,7 +61,19 @@ services.DecorateWithLogging();
 | Method returned a `NotFoundMessage`, `BadRequestMessage`, or other error type | Warning (method name and return value) |
 | Method threw an exception | Error (exception and method name) |
 
-Both synchronous and `Task`/`Task<T>` methods are fully supported. For `OneOf<T0, T1, ...>` return types, each union arm is logged at the appropriate level: success arms at Information, arms whose type name contains `NotFound`, `BadRequest`, `Error`, `Failure`, `Unauthorized`, `Forbidden`, `Conflict`, or `InvalidOperation` at Warning.
+Both synchronous and `Task`/`Task<T>` methods are fully supported. For native C# `union` return types (.NET 11 preview), each arm is logged at the appropriate level: success arms at Information, arms whose type name contains `NotFound`, `BadRequest`, `Error`, `Failure`, `Unauthorized`, `Forbidden`, `Conflict`, or `InvalidOperation` at Warning.
+
+```csharp
+public union CreateResult(WeatherForecast, BadRequestMessage);
+
+[LoggingDecorator]
+public interface ICreateForecastHandler
+{
+    Task<CreateResult> CreateAsync(Request request, CancellationToken ct);
+}
+```
+
+The generator recognizes a return type as a union by its `[System.Runtime.CompilerServices.Union]` attribute and derives the arms from its public single-parameter constructors, the same case types the language itself uses for union conversions and pattern matching.
 
 ### Sensitive data
 
@@ -128,8 +142,7 @@ Generated decorators are plain C# classes with direct method calls. There is no 
 
 ## Dependencies
 
-- `CoreDesign.Shared` for `NotFoundMessage` and `BadRequestMessage` result types
-- `OneOf` for discriminated-union result inspection
+- `CoreDesign.Shared` for `NotFoundMessage`, `BadRequestMessage`, and `Success` result types
 - `Microsoft.Extensions.Logging.Abstractions`
 - `Microsoft.Extensions.DependencyInjection.Abstractions`
 

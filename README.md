@@ -44,10 +44,12 @@ Full details: [src/CoreDesign.Data/README.md](src/CoreDesign.Data/README.md)
 Compile-time logging decorators generated from a single attribute. Place `[LoggingDecorator]` on any interface and the included Roslyn source generator produces a decorator class at compile time that logs every method invocation, return value, and exception. No reflection, no runtime overhead, fully AOT-compatible.
 
 ```csharp
+public union CreateResult(WeatherForecast, BadRequestMessage);
+
 [LoggingDecorator]
 public interface ICreateForecastHandler
 {
-    Task<OneOf<WeatherForecast, BadRequestMessage>> CreateAsync(Request request, CancellationToken ct);
+    Task<CreateResult> CreateAsync(Request request, CancellationToken ct);
 }
 ```
 
