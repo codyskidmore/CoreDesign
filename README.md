@@ -9,6 +9,7 @@ A collection of reusable .NET 10 libraries for data access, shared infrastructur
 | `CoreDesign.Shared` | [nuget.org/packages/CoreDesign.Shared](https://www.nuget.org/packages/CoreDesign.Shared/) |
 | `CoreDesign.Data` | [nuget.org/packages/CoreDesign.Data](https://www.nuget.org/packages/CoreDesign.Data/) |
 | `CoreDesign.Logging` | [nuget.org/packages/CoreDesign.Logging](https://www.nuget.org/packages/CoreDesign.Logging/) |
+| `CoreDesign.ExceptionHandling` | [nuget.org/packages/CoreDesign.ExceptionHandling](https://www.nuget.org/packages/CoreDesign.ExceptionHandling/) |
 | `CoreDesign.Identity.Server` | [nuget.org/packages/CoreDesign.Identity.Server](https://www.nuget.org/packages/CoreDesign.Identity.Server/) |
 | `CoreDesign.Identity.Client` | [nuget.org/packages/CoreDesign.Identity.Client](https://www.nuget.org/packages/CoreDesign.Identity.Client/) |
 | `CoreDesign.SeedTool` | [nuget.org/packages/CoreDesign.SeedTool](https://www.nuget.org/packages/CoreDesign.SeedTool/) |
@@ -60,6 +61,27 @@ services.DecorateWithLogging();
 Successful calls log at Information, error result arms log at Warning, and exceptions log at Error. Both synchronous and async methods are fully supported.
 
 Full details: [src/CoreDesign.Logging/README.md](src/CoreDesign.Logging/README.md)
+
+### CoreDesign.ExceptionHandling
+
+`src/CoreDesign.ExceptionHandling/`
+
+Global unhandled exception handling for ASP.NET Core. A Roslyn source generator produces a compile-time dispatch table from exception types marked with `[ProblemMapping]`, mapping them to RFC 7807 `ProblemDetails` responses. Works with zero configuration (a generic 500 for every exception) and layers in per-exception status codes as mappings are added.
+
+```csharp
+[ProblemMapping(404, Title = "Resource not found")]
+public sealed class EntityNotFoundException(string entity, Guid id)
+    : Exception($"{entity} '{id}' was not found.");
+```
+
+```csharp
+builder.Services.AddCoreDesignExceptionHandling();
+builder.Services.AddGeneratedProblemMappings();
+// ...
+app.UseExceptionHandler();
+```
+
+Full details: [src/CoreDesign.ExceptionHandling/README.md](src/CoreDesign.ExceptionHandling/README.md)
 
 ### CoreDesign.Identity
 

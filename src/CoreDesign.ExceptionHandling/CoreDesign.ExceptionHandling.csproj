@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <PackageId>CoreDesign.ExceptionHandling</PackageId>
+        <!-- TODO(cody): placeholder version, unreleased package. Assign the real starting version before packing/publishing. -->
+        <Version>1.0.0</Version>
+        <Description>Global unhandled exception handling for ASP.NET Core. A Roslyn source generator produces a compile-time dispatch table from exception types marked with [ProblemMapping], mapping them to RFC 7807 ProblemDetails responses with no runtime reflection.</Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.ExceptionHandling</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/codyskidmore/CoreDesign</RepositoryUrl>
+        <PackageTags>exception-handling;problemdetails;source-generator;aspnetcore;coredesign</PackageTags>
+        <PackageReleaseNotes>
+1.0.0
+- Initial release
+        </PackageReleaseNotes>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+        <None Include="..\CoreDesign.ExceptionHandling.Generators\bin\$(Configuration)\netstandard2.0\CoreDesign.ExceptionHandling.Generators.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\CoreDesign.ExceptionHandling.Generators\CoreDesign.ExceptionHandling.Generators.csproj" ReferenceOutputAssembly="false" OutputItemType="Analyzer" SetTargetFramework="TargetFramework=netstandard2.0" />
+    </ItemGroup>
+
+</Project>

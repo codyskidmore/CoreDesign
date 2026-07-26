@@ -6,6 +6,7 @@ public static class App
 {
     public static WebApplication AddContextConfiguration(this WebApplication app)
     {
+        app.UseExceptionHandler();
         app.UseHttpsRedirection();
         app.UseCors();
         app.UseLocalBearerTokenInjection();
