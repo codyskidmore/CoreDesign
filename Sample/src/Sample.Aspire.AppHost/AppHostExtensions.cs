@@ -6,7 +6,7 @@ namespace Sample.Aspire.AppHost;
 
 internal static class AppHostExtensions
 {
-    internal static IResourceBuilder<SqlServerDatabaseResource> AddSqlDatabase(
+    internal static IResourceBuilder<PostgresDatabaseResource> AddPostgresDatabase(
         this IDistributedApplicationBuilder builder)
     {
         var dbOptions = builder.Configuration
@@ -14,12 +14,12 @@ internal static class AppHostExtensions
             .Get<DatabaseOptions>()!;
 
         var connResource = builder.AddConnectionString(dbOptions.ConnectionStringName);
-        var sqlPassword = builder.AddParameter("SqlPassword", true);
+        var postgresPassword = builder.AddParameter("PostgresPassword", true);
 
-        var dbServer = builder.AddSqlServer(dbOptions.HostName, password: sqlPassword)
-            // Explicitly publish SQL Server on the configured host port.
-            .WithEndpoint(name: "tcp", port: dbOptions.HostPort, targetPort: 1433, isProxied: false)
-            .WithDataVolume("sampledb-data")
+        var dbServer = builder.AddPostgres(dbOptions.HostName, password: postgresPassword)
+            // Explicitly publish PostgreSQL on the configured host port.
+            .WithEndpoint(name: "tcp", port: dbOptions.HostPort, targetPort: 5432, isProxied: false)
+            .WithDataVolume("sampledb-pg-data")
             .WithImageTag("latest")
             .WithLifetime(ContainerLifetime.Persistent)
             .WithImagePullPolicy(ImagePullPolicy.Always);
@@ -51,7 +51,7 @@ internal static class AppHostExtensions
 
     internal static IResourceBuilder<ProjectResource> AddSampleApi(
         this IDistributedApplicationBuilder builder,
-        IResourceBuilder<SqlServerDatabaseResource> database)
+        IResourceBuilder<PostgresDatabaseResource> database)
     {
         return builder.AddProject<Sample_Api>("SampleApi")
             .WithUrlForEndpoint("https", u => u.DisplayText = "Sample API")
@@ -60,7 +60,7 @@ internal static class AppHostExtensions
 
     internal static IDistributedApplicationBuilder AddMigrationService(
         this IDistributedApplicationBuilder builder,
-        IResourceBuilder<SqlServerDatabaseResource> database)
+        IResourceBuilder<PostgresDatabaseResource> database)
     {
         builder.AddProject<Sample_Data_MigrationService>("SampleMigrations")
             .WithReference(database);
