@@ -34,7 +34,7 @@ public static class Configuration
 
         builder.AddAspireServiceDefaults();
         builder.Services.AddDbContextPool<SampleDbContext>((serviceProvider, options) =>
-            options.UseSqlServer(connectionString)
+            options.UseNpgsql(connectionString)
                 .AddInterceptors(serviceProvider.GetRequiredService<AuditInterceptor>()));
 
         builder.AddCaching();

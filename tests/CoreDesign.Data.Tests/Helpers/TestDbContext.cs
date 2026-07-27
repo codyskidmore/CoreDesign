@@ -10,22 +10,40 @@ public class TestEntity : BaseEntity
     public string Name { get; set; } = string.Empty;
 }
 
+public class TestEntityWithCustomDates : BaseEntity
+{
+    public string Name { get; set; } = string.Empty;
+    public DateTime EventAt { get; set; }
+    public DateTime? ReminderAt { get; set; }
+}
+
 public class TestDbContext : CoreDesignDbContext
 {
     public TestDbContext(DbContextOptions<TestDbContext> options)
         : base(options) { }
 
     public DbSet<TestEntity> TestEntities => Set<TestEntity>();
+    public DbSet<TestEntityWithCustomDates> TestEntitiesWithCustomDates => Set<TestEntityWithCustomDates>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfiguration(new TestEntityConfiguration());
+        modelBuilder.ApplyConfiguration(new TestEntityWithCustomDatesConfiguration());
     }
 }
 
 public class TestEntityConfiguration : BaseEntityConfiguration<TestEntity>
 {
     public override void Configure(EntityTypeBuilder<TestEntity> builder)
+    {
+        base.Configure(builder);
+        builder.Property(e => e.Name).IsRequired();
+    }
+}
+
+public class TestEntityWithCustomDatesConfiguration : BaseEntityConfiguration<TestEntityWithCustomDates>
+{
+    public override void Configure(EntityTypeBuilder<TestEntityWithCustomDates> builder)
     {
         base.Configure(builder);
         builder.Property(e => e.Name).IsRequired();

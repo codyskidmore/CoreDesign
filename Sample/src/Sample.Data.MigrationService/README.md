@@ -71,14 +71,14 @@ The migration service reads its configuration from `appsettings.json` and `appse
 
 ```json
 "DatabaseOptions": {
-  "HostName": "sample-mssql",
+  "HostName": "sample-postgres",
   "DatabaseName": "sample-db",
-  "HostPort": 52881,
+  "HostPort": 55432,
   "ConnectionStringName": "sampledb"
 }
 ```
 
-`DatabaseName` is the connection string key that `AddSqlServerDbContext` looks up in `IConfiguration`. In local development under Aspire this is injected by the AppHost. In a pipeline or non-Aspire environment, set the environment variable:
+`DatabaseName` is the connection string key that `builder.Configuration.GetConnectionString(dbOptions.DatabaseName)` looks up in `IConfiguration`. In local development under Aspire this is injected by the AppHost. In a pipeline or non-Aspire environment, set the environment variable:
 
 ```
 ConnectionStrings__sample-db=<connection-string>
@@ -86,7 +86,7 @@ ConnectionStrings__sample-db=<connection-string>
 
 ## Running locally
 
-The AppHost starts this service automatically and waits for it to complete before marking the other services as healthy. To run it in isolation (requires a reachable SQL Server):
+The AppHost starts this service automatically and waits for it to complete before marking the other services as healthy. To run it in isolation (requires a reachable PostgreSQL server):
 
 ```
 dotnet run --project src/Sample.Data.MigrationService
@@ -99,7 +99,7 @@ Set `ConnectionStrings__sample-db` from a GitHub Secret and run:
 ```yaml
 - name: Run database migrations and seed
   env:
-    ConnectionStrings__sample-db: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+    ConnectionStrings__sample-db: ${{ secrets.AZURE_POSTGRES_CONNECTION_STRING }}
   run: dotnet run --project src/Sample.Data.MigrationService --configuration Release --no-build
 ```
 

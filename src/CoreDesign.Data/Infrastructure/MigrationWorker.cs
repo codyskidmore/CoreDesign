@@ -177,7 +177,7 @@ public class MigrationWorker<TContext>(
     /// <summary>
     /// Inserts each entity that does not already exist in the database, identified by
     /// <see cref="BaseEntity.Id"/>. Existing rows (including soft-deleted ones) are skipped.
-    /// All writes are wrapped in the context's execution strategy so transient SQL Server
+    /// All writes are wrapped in the context's execution strategy so transient provider
     /// errors are retried automatically.
     /// </summary>
     protected async Task SeedEntitiesAsync<T>(

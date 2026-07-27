@@ -12,8 +12,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.4.6" />
-        <PackageReference Include="CoreDesign.Data" Version="1.1.2" />
+        <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.4.6" />
+        <PackageReference Include="CoreDesign.Data" Version="1.2.0" />
         <PackageReference Include="CoreDesign.ExceptionHandling" Version="1.0.0" />
         <PackageReference Include="CoreDesign.Identity.Client" Version="1.0.11" />
         <PackageReference Include="CoreDesign.Logging" Version="1.2.4" />

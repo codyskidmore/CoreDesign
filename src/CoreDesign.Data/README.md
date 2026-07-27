@@ -17,7 +17,7 @@ A generic, reusable Entity Framework Core data access layer providing base entit
 
 - `BaseEntity` - Base class all entities must inherit from. Provides `Id` (Ulid, auto-generated), `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy`, and `IsDeleted` audit fields.
 - `BaseEntityConfiguration<T>` - EF Core `IEntityTypeConfiguration<T>` base that wires up primary key, index, soft-delete query filter, and required audit field constraints.
-- `CoreDesignDbContext` - Abstract `DbContext` base class that wires the `AuditInterceptor` automatically. Your `DbContext` must inherit from this instead of `DbContext` directly.
+- `CoreDesignDbContext` - Abstract `DbContext` base class your `DbContext` must inherit from instead of `DbContext` directly. Its `ConfigureConventions` override normalizes every `DateTime`/`DateTime?` property in the model, not just `BaseEntity`'s `CreatedAt`/`UpdatedAt`, to `DateTimeKind.Utc` on both write and read, regardless of the `Kind` of the value assigned. This keeps entities working across providers with different `DateTime` strictness (PostgreSQL's Npgsql provider rejects non-UTC values for `timestamp with time zone` columns; SQL Server's `datetime2` does not validate `Kind` at all).
 - `AuditInterceptor` - EF Core `SaveChangesInterceptor` that sets audit fields on every save. On insert it sets `CreatedAt`, `CreatedBy`, `UpdatedAt`, and `UpdatedBy` (skipped if `CreatedAt` is already set, allowing seeded data to preserve explicit values). On update it sets `UpdatedAt` and `UpdatedBy`. `CreatedBy` is never modified on update.
 - `ICurrentUserAccessor` - Interface the consuming application implements to supply the current user's ID to the interceptor. Backed by `IHttpContextAccessor` in web apps.
 - `SystemUserAccessor` - Built-in `ICurrentUserAccessor` implementation that returns `Guid.Empty`. Use this in migration services and test projects where there is no authenticated user.
@@ -203,7 +203,7 @@ await cudRepository.HardDeleteCascadeAsync(id, cancellationToken);
 
 When all steps complete, it calls `IHostApplicationLifetime.StopApplication()` and the process exits with code 0. If any step throws, the exception propagates and the process exits with a non-zero code, which blocks deployment pipelines from proceeding.
 
-Both the ensure and migrate steps wrap their database calls in `CreateExecutionStrategy()` so transient SQL Server errors are retried automatically.
+Both the ensure and migrate steps wrap their database calls in `CreateExecutionStrategy()` so transient provider errors (SQL Server, PostgreSQL, or any other EF Core provider with a retrying execution strategy) are retried automatically.
 
 ### Registration
 

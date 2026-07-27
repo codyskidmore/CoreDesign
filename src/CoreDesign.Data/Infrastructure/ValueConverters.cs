@@ -13,4 +13,8 @@ public static class ValueConverters
             v => v.ToString(),
             v => Ulid.Parse(v));
     }
+
+    public static UtcDateTimeConverter GetUtcDateTimeConverter() => new();
+
+    public static UtcNullableDateTimeConverter GetUtcNullableDateTimeConverter() => new();
 }
