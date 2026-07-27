@@ -14,6 +14,8 @@ public static class Configuration
 
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddCoreDesignData<SampleCurrentUserAccessor>();
+        builder.Services.AddCoreDesignExceptionHandling();
+        builder.Services.AddGeneratedProblemMappings();
 
         builder.AddIdentityAuthentication();
         builder.Services.AddApplicationInsightsTelemetry();

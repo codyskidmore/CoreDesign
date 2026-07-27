@@ -1,3 +1,4 @@
+global using CoreDesign.ExceptionHandling;
 global using CoreDesign.Logging;
 global using Sample.Api.Data;
 global using Sample.Api.WeatherForecasts.Shared;
