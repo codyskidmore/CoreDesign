@@ -2,7 +2,7 @@ using Sample.Api.WeatherForecasts.Create;
 using Sample.Api.WeatherForecasts.Delete;
 using Sample.Api.WeatherForecasts.GetAll;
 using Sample.Api.WeatherForecasts.GetById;
-using Sample.Api.WeatherForecasts.GetByIdOrThrow;
+using Sample.Api.WeatherForecasts.SimulateUnhandledException;
 using Sample.Api.WeatherForecasts.Update;
 
 namespace Sample.Api;
@@ -19,7 +19,7 @@ public static class ModuleConfig
         s.AddTransient<ICreateForecastHandler, CreateForecastHandler>();
         s.AddTransient<IGetAllForecastsHandler, GetAllForecastsHandler>();
         s.AddTransient<IGetForecastHandler, GetForecastHandler>();
-        s.AddTransient<IGetForecastOrThrowHandler, GetForecastOrThrowHandler>();
+        s.AddTransient<ISimulateUnhandledExceptionHandler, SimulateUnhandledExceptionHandler>();
         s.AddTransient<IUpdateForecastHandler, UpdateForecastHandler>();
         s.AddTransient<IDeleteForecastHandler, DeleteForecastHandler>();
 
@@ -35,7 +35,7 @@ public static class ModuleConfig
         group.MapDeleteWeatherForecast();
         group.MapGetAllWeatherForecasts();
         group.MapGetWeatherForecast();
-        group.MapGetWeatherForecastOrThrow();
+        group.MapSimulateUnhandledException();
         group.MapUpdateWeatherForecast();
         return app;
     }
@@ -55,7 +55,7 @@ public static class Paths
         public const string Create = Base;
         public const string GetAll = Base;
         public const string GetById = $"{Base}/{{id}}";
-        public const string GetByIdOrThrow = $"{Base}/{{id}}/or-throw";
+        public const string SimulateUnhandledException = $"{Base}/{{id}}/simulate-unhandled-exception";
         public const string Update = $"{Base}/{{id}}";
         public const string Delete = $"{Base}/{{id}}";
     }
