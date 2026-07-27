@@ -1,5 +1,19 @@
 # Release Notes
 
+## CoreDesign.Data 1.2.0
+
+### Breaking Change: UTC DateTime Conversion Now Applies to Every DateTime Property
+
+Database providers that map `DateTime` to a timezone-aware column type (for example, Npgsql's `timestamp with time zone`) reject any `DateTime` with `Kind=Unspecified` or `Kind=Local` on write. SQL Server's `datetime2` never validated `Kind` at all, so this only surfaces once an application runs against a stricter provider, or a value happens to arrive from a source (deserialization, a flat file, a manual `new DateTime(...)`) that doesn't already carry `Kind=Utc`.
+
+Previously, `BaseEntityConfiguration<T>` applied a UTC-normalizing value converter only to `BaseEntity.CreatedAt` and `UpdatedAt`. Any other `DateTime`/`DateTime?` property an application added to its own entities was unprotected and could still throw at the provider boundary.
+
+`CoreDesignDbContext` now registers `UtcDateTimeConverter`/`UtcNullableDateTimeConverter` as a model-wide EF Core convention (`ConfigureConventions`), so every `DateTime` and `DateTime?` property on every entity in a consuming application's model is normalized to UTC on write and stamped `Kind=Utc` on read, automatically. `BaseEntityConfiguration<T>` no longer applies the converter explicitly to `CreatedAt`/`UpdatedAt`, it inherits the same behavior from the convention.
+
+This is a behavior change for any application with its own `DateTime` entity properties, including ones that previously needed a manual `DateTime.SpecifyKind(..., DateTimeKind.Utc)` workaround before saving. See [CoreDesign.Data.1.1.2-to-1.2.0-migration.md](CoreDesign.Data.1.1.2-to-1.2.0-migration.md) for upgrade instructions. No EF Core migration is required, the column store type is unchanged; only how .NET reads and writes the value at the driver boundary changes.
+
+---
+
 ## CoreDesign.Identity.Client 1.0.11
 
 Security patch: `Microsoft.OpenApi` pinned to 2.7.5 to remediate a high-severity denial-of-service vulnerability (GHSA-v5pm-xwqc-g5wc / CVE-2026-49451, CVSS 7.5) pulled in transitively through `Microsoft.AspNetCore.OpenApi`. A crafted OpenAPI document containing a circular schema reference could exhaust the call stack and crash the process during parsing; versions 2.7.5+ are patched. Also fixed a nullable-reference warning (CS8602) in the test suite.

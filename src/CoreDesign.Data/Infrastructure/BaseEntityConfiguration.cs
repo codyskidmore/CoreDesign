@@ -11,9 +11,8 @@ public class BaseEntityConfiguration<T> : IEntityTypeConfiguration<T> where T : 
         builder.Property(e => e.Id).IsRequired();
         builder.HasIndex(e => e.Id);
         builder.HasQueryFilter(e => !e.IsDeleted);
-        var utcConverter = ValueConverters.GetUtcDateTimeConverter();
-        builder.Property(e => e.CreatedAt).IsRequired().HasConversion(utcConverter);
-        builder.Property(e => e.UpdatedAt).IsRequired().HasConversion(utcConverter);
+        builder.Property(e => e.CreatedAt).IsRequired();
+        builder.Property(e => e.UpdatedAt).IsRequired();
         builder.Property(e => e.CreatedBy).IsRequired();
         builder.Property(e => e.UpdatedBy).IsRequired();
         builder.Property(e => e.IsDeleted).IsRequired();

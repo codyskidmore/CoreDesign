@@ -6,8 +6,8 @@
         <Nullable>enable</Nullable>
         <LangVersion>default</LangVersion>
         <PackageId>CoreDesign.Data</PackageId>
-        <!-- TODO(cody): placeholder patch bump for the UTC DateTime converter fix (BaseEntityConfiguration). Assign the real version before packing/publishing. -->
-        <Version>1.1.3</Version>
+        <!-- TODO(cody): placeholder minor bump for the UTC DateTime conversion becoming a model-wide convention (breaking change for apps with their own DateTime entity properties). Assign the real version before packing/publishing. -->
+        <Version>1.2.0</Version>
         <Description>A generic, reusable Entity Framework Core data access layer providing base entity infrastructure and repository abstractions for .NET projects.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.Data</PackageProjectUrl>
