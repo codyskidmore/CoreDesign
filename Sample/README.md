@@ -6,7 +6,7 @@ Sample is a .NET 10 microservices solution that demonstrates how to build a REST
 
 ### Sample.Aspire.AppHost
 
-The Aspire application host that orchestrates all services for local development. It provisions a SQL Server Docker container with a persistent volume, starts the Identity API and main API, and runs the migration service to prepare the database. Run this project to start the full local environment.
+The Aspire application host that orchestrates all services for local development. It provisions a PostgreSQL Docker container with a persistent volume, starts the Identity API and main API, and runs the migration service to prepare the database. Run this project to start the full local environment.
 
 ### Sample.Aspire.ServiceDefaults
 
@@ -44,7 +44,7 @@ xUnit unit tests for the API service layer. Tests use Moq for repository mocking
 ## Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (required for the SQL Server container)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (required for the PostgreSQL container)
 - [.NET Aspire workload](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/setup-tooling)
 
 Install the Aspire workload if you have not already:
@@ -57,7 +57,7 @@ dotnet workload install aspire
 
 ### 1. Add user secrets
 
-The SQL Server container password is supplied via .NET user secrets so it is never stored in source control. Run the following commands from the repository root.
+The PostgreSQL container password is supplied via .NET user secrets so it is never stored in source control. Run the following commands from the repository root.
 
 Initialize user secrets for the AppHost project:
 
@@ -65,10 +65,10 @@ Initialize user secrets for the AppHost project:
 dotnet user-secrets init --project src/Sample.Aspire.AppHost
 ```
 
-Set the SQL Server password:
+Set the PostgreSQL password:
 
 ```
-dotnet user-secrets set "Parameters:SqlPassword" "my-secret-password" --project src/Sample.Aspire.AppHost
+dotnet user-secrets set "Parameters:PostgresPassword" "my-secret-password" --project src/Sample.Aspire.AppHost
 ```
 
 ### 2. Trust the developer SSL certificate
@@ -120,11 +120,11 @@ Provision infrastructure and deploy all services in one command:
 azd up
 ```
 
-`azd` creates the Azure SQL Database, injects the connection string into the migration service, runs migrations and seeding, then deploys Sample.Api and Sample.Blazor. No secrets or connection strings need to be handled manually.
+`azd` creates the Azure Database for PostgreSQL flexible server instance, injects the connection string into the migration service, runs migrations and seeding, then deploys Sample.Api and Sample.Blazor. No secrets or connection strings need to be handled manually.
 
 ### Option B: GitHub Actions
 
-Use this approach when deploying to Azure resources that you provision and manage separately (for example, an existing Azure SQL Database and Azure Container Apps environment).
+Use this approach when deploying to Azure resources that you provision and manage separately (for example, an existing Azure Database for PostgreSQL flexible server and Azure Container Apps environment).
 
 #### Required GitHub Secrets
 
@@ -133,7 +133,7 @@ Use this approach when deploying to Azure resources that you provision and manag
 | `AZURE_CLIENT_ID` | App registration client ID for OIDC federated authentication |
 | `AZURE_TENANT_ID` | Azure Entra tenant ID |
 | `AZURE_SUBSCRIPTION_ID` | Target subscription ID |
-| `AZURE_SQL_CONNECTION_STRING` | Full ADO.NET connection string for the Azure SQL Database |
+| `AZURE_POSTGRES_CONNECTION_STRING` | Full Npgsql connection string for the Azure Database for PostgreSQL flexible server |
 
 The Azure credentials use OIDC federated identity so no client secret needs to be stored in GitHub. Set up the federated credential in your app registration with subject `repo:<org>/<repo>:ref:refs/heads/main`.
 
@@ -177,7 +177,7 @@ jobs:
 
       - name: Run database migrations and seed
         env:
-          ConnectionStrings__sample-db: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+          ConnectionStrings__sample-db: ${{ secrets.AZURE_POSTGRES_CONNECTION_STRING }}
         run: dotnet run --project src/Sample.Data.MigrationService --configuration Release --no-build
 
       - name: Deploy Sample.Api
@@ -201,23 +201,19 @@ jobs:
 
 #### How the migration step works
 
-`dotnet run` on `Sample.Data.MigrationService` starts the `MigrationWorker<SampleDbContext>` background service. It connects to the Azure SQL Database using the `ConnectionStrings__sample-db` environment variable (the double underscore is the environment variable form of the `ConnectionStrings:sample-db` configuration key), applies any pending EF Core migrations, seeds reference data from the `SeedData/` folder, then calls `StopApplication()` and exits. The process exits with code 0 on success and a non-zero code on failure, which causes the workflow step to fail and stops the deployment before any containers are updated.
+`dotnet run` on `Sample.Data.MigrationService` starts the `MigrationWorker<SampleDbContext>` background service. It connects to the Azure Database for PostgreSQL flexible server using the `ConnectionStrings__sample-db` environment variable (the double underscore is the environment variable form of the `ConnectionStrings:sample-db` configuration key), applies any pending EF Core migrations, seeds reference data from the `SeedData/` folder, then calls `StopApplication()` and exits. The process exits with code 0 on success and a non-zero code on failure, which causes the workflow step to fail and stops the deployment before any containers are updated.
 
 The migration step runs before the deploy steps so the database schema is always consistent with the application version being deployed. If migrations fail, the running application is unaffected.
 
 #### Connection string format
 
-For Azure SQL Database with managed identity (recommended):
+For Azure Database for PostgreSQL with username and password:
 
 ```
-Server=<server>.database.windows.net;Database=sample-db;Authentication=Active Directory Default;Encrypt=True;
+Host=<server>.postgres.database.azure.com;Database=sample-db;Username=<user>;Password=<password>;SSL Mode=Require;Trust Server Certificate=true;
 ```
 
-For Azure SQL Database with username and password (if managed identity is not available):
-
-```
-Server=<server>.database.windows.net;Database=sample-db;User Id=<user>;Password=<password>;Encrypt=True;TrustServerCertificate=False;
-```
+For managed identity, Npgsql has no `Authentication=` connection-string keyword equivalent to SQL Server's; acquire an Entra ID access token in code (via `Azure.Identity`) and pass it as the `Password` on each connection, or use `Microsoft.Extensions.Azure`/`Npgsql`'s periodic password provider (`NpgsqlDataSourceBuilder.UsePeriodicPasswordProvider`) so the migration service always has a fresh token.
 
 ## CoreDesign Packages
 
