@@ -12,6 +12,7 @@ public static class App
         app.UseAntiforgery();
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseUserJourney();
 
         // Login endpoint: issues an OIDC challenge and redirects back after sign-in.
         // Accessible without authentication so it cannot create a redirect loop.

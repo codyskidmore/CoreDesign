@@ -7,6 +7,8 @@ public static class Configuration
 {
     public static WebApplicationBuilder AddConfiguration(this WebApplicationBuilder builder)
     {
+        // Before the service defaults, so Blazor clicks are tagged with the user before the OTLP exporter runs.
+        builder.Services.AddUserJourneyBlazor();
         builder.AddAspireServiceDefaults();
 
         // Select and register the auth provider based on configuration.

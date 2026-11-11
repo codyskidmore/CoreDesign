@@ -82,7 +82,7 @@ Each handler interface is marked with `[LoggingDecorator]`. The Roslyn source ge
 [LoggingDecorator]
 public interface ICreateForecastHandler
 {
-    Task<OneOf<WeatherForecast, BadRequestMessage>> CreateAsync(
+    Task<Union<WeatherForecast, BadRequestMessage>> CreateAsync(
         Request request, Guid userId, CancellationToken ct);
 }
 ```
@@ -91,7 +91,7 @@ The generated decorator logs:
 
 - The method name and each parameter before invocation (Information)
 - The return value after successful completion (Information)
-- A Warning when a `OneOf` arm indicates a not-found, bad-request, or other error outcome
+- A Warning when a union result case indicates a not-found, bad-request, or other error outcome
 - The exception and method name if the call throws (Error)
 
 All generated decorators are registered in `ModuleConfig.cs` after the individual handler registrations:

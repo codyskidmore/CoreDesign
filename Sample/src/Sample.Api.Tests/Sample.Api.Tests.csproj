@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFramework>net11.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
@@ -9,7 +9,7 @@
 
     <ItemGroup>
         <PackageReference Include="Bogus" Version="35.6.5" />
-        <PackageReference Include="CoreDesign.Shared" Version="1.0.5" />
+        <PackageReference Include="CoreDesign.Shared" Version="11.0.1" />
         <PackageReference Include="coverlet.collector" Version="10.0.1">
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
           <PrivateAssets>all</PrivateAssets>
@@ -29,6 +29,7 @@
 
     <ItemGroup>
         <Using Include="Xunit" />
+        <Using Include="CoreDesign.Shared.Infrastructure" />
     </ItemGroup>
 
     <ItemGroup>

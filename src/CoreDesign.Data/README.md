@@ -4,12 +4,12 @@ A generic, reusable Entity Framework Core data access layer providing base entit
 
 ## Requirements
 
-- .NET 10.0
-- Microsoft.EntityFrameworkCore 10.x
+- .NET 11.0
+- Microsoft.EntityFrameworkCore 10.x (moves to 11.x once the PostgreSQL provider for EF Core 11 is stable)
 - Microsoft.EntityFrameworkCore.Relational 10.x
-- Microsoft.Extensions.Configuration.Abstractions 10.x
-- Microsoft.Extensions.Hosting.Abstractions 10.x
 - Ulid 1.4.x
+
+`Microsoft.Extensions.Configuration.Abstractions` and `Microsoft.Extensions.Hosting.Abstractions` are part of .NET 11 and need no package reference.
 
 ## What Is Included
 

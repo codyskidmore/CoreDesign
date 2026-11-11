@@ -12,8 +12,10 @@ public static class App
         app.UseLocalBearerTokenInjection();
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseUserJourney();
         app.UseOutputCache();
         app.MapEndpoints();
+        app.MapUserJourneyEvents();
         app.ConfigureScalar();
 
         return app;

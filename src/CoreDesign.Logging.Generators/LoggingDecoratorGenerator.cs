@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -14,6 +15,9 @@ public sealed class LoggingDecoratorGenerator : IIncrementalGenerator
     private const string AttributeFullName = "CoreDesign.Logging.LoggingDecoratorAttribute";
     private const string SuppressFullName   = "CoreDesign.Logging.SuppressAttribute";
     private const string RedactFullName     = "CoreDesign.Logging.RedactAttribute";
+    // [Union] is synthesized only at emit time and isn't visible via GetAttributes() during
+    // same-compilation analysis; IUnion is the compiler's compile-time-visible union marker.
+    private const string UnionInterfaceFullName = "System.Runtime.CompilerServices.IUnion";
 
     // FullyQualifiedFormat omits the '?' nullable-reference-type modifier by default,
     // which desyncs generated signatures from the source interface (CS8613/CS8603).
@@ -165,9 +169,14 @@ public sealed class LoggingDecoratorGenerator : IIncrementalGenerator
             orig == "System.Threading.Tasks.ValueTask<TResult>")
         {
             var inner = named.TypeArguments[0];
-            if (inner is INamedTypeSymbol innerNamed && IsOneOf(innerNamed))
+            if (inner is INamedTypeSymbol innerNamed && IsUnion(innerNamed))
             {
-                arms = BuildArms(innerNamed);
+                arms = BuildUnionArms(innerNamed);
+                return ReturnKind.TaskOfUnion;
+            }
+            if (inner is INamedTypeSymbol oneOfNamed && IsOneOf(oneOfNamed))
+            {
+                arms = BuildOneOfArms(oneOfNamed);
                 return ReturnKind.TaskOfOneOf;
             }
             return ReturnKind.TaskOfValue;
@@ -176,16 +185,38 @@ public sealed class LoggingDecoratorGenerator : IIncrementalGenerator
         return ReturnKind.Value;
     }
 
+    // Matched by name so the generator needs no reference to the OneOf package; the emitted
+    // code compiles against the consumer's own OneOf reference.
     private static bool IsOneOf(INamedTypeSymbol t) =>
         t.Name == "OneOf" && t.ContainingNamespace?.ToDisplayString() == "OneOf";
 
-    private static ImmutableArray<ArmInfo> BuildArms(INamedTypeSymbol oneOf)
+    private static ImmutableArray<ArmInfo> BuildOneOfArms(INamedTypeSymbol oneOf)
     {
         var b = ImmutableArray.CreateBuilder<ArmInfo>(oneOf.TypeArguments.Length);
         foreach (var arg in oneOf.TypeArguments)
             b.Add(new ArmInfo(
                 arg.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                 IsWarningType(arg.Name)));
+        return b.ToImmutable();
+    }
+
+    private static bool IsUnion(INamedTypeSymbol t) =>
+        t.AllInterfaces.Any(i => i.ToDisplayString() == UnionInterfaceFullName);
+
+    // A union's case types are the parameter types of its public single-parameter
+    // constructors (the "union creation members" per the language spec).
+    private static ImmutableArray<ArmInfo> BuildUnionArms(INamedTypeSymbol union)
+    {
+        var b = ImmutableArray.CreateBuilder<ArmInfo>();
+        foreach (var ctor in union.Constructors)
+        {
+            if (ctor.DeclaredAccessibility != Accessibility.Public) continue;
+            if (ctor.Parameters.Length != 1) continue;
+            var caseType = ctor.Parameters[0].Type;
+            b.Add(new ArmInfo(
+                caseType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                IsWarningType(caseType.Name)));
+        }
         return b.ToImmutable();
     }
 
@@ -251,6 +282,7 @@ public sealed class LoggingDecoratorGenerator : IIncrementalGenerator
         var argList     = BuildArgList(method.Parameters);
         var isAsyncKind = method.ReturnKind == ReturnKind.Task ||
                           method.ReturnKind == ReturnKind.TaskOfValue ||
+                          method.ReturnKind == ReturnKind.TaskOfUnion ||
                           method.ReturnKind == ReturnKind.TaskOfOneOf;
         var asyncKw     = !method.IsSuppressed && isAsyncKind ? "async " : "";
 
@@ -294,9 +326,15 @@ public sealed class LoggingDecoratorGenerator : IIncrementalGenerator
                 sb.AppendLine("            return __result;");
                 break;
 
+            case ReturnKind.TaskOfUnion:
+                sb.AppendLine("            var __result = await _inner." + method.Name + "(" + argList + ");");
+                AppendUnionSwitch(sb, method.Arms, method.Name);
+                sb.AppendLine("            return __result;");
+                break;
+
             case ReturnKind.TaskOfOneOf:
                 sb.AppendLine("            var __result = await _inner." + method.Name + "(" + argList + ");");
-                AppendSwitch(sb, method.OneOfArms, method.Name);
+                AppendOneOfSwitch(sb, method.Arms, method.Name);
                 sb.AppendLine("            return __result;");
                 break;
         }
@@ -360,7 +398,21 @@ public sealed class LoggingDecoratorGenerator : IIncrementalGenerator
         }
     }
 
-    private static void AppendSwitch(StringBuilder sb, ImmutableArray<ArmInfo> arms, string methodName)
+    private static void AppendUnionSwitch(StringBuilder sb, ImmutableArray<ArmInfo> arms, string methodName)
+    {
+        sb.AppendLine("            switch (__result)");
+        sb.AppendLine("            {");
+        for (var i = 0; i < arms.Length; i++)
+        {
+            sb.AppendLine("                case " + arms[i].TypeDisplay + " __t" + i + ":");
+            sb.AppendLine("                    _logger.Log" + arms[i].LogLevel +
+                          "(\"{Method} returned {@Result}\", \"" + methodName + "\", __t" + i + ");");
+            sb.AppendLine("                    break;");
+        }
+        sb.AppendLine("            }");
+    }
+
+    private static void AppendOneOfSwitch(StringBuilder sb, ImmutableArray<ArmInfo> arms, string methodName)
     {
         sb.Append("            __result.Switch(");
         for (var i = 0; i < arms.Length; i++)
@@ -501,7 +553,7 @@ public sealed class LoggingDecoratorGenerator : IIncrementalGenerator
 
 // ---- Model -----------------------------------------------------------------
 
-internal enum ReturnKind { Void, Value, Task, TaskOfValue, TaskOfOneOf }
+internal enum ReturnKind { Void, Value, Task, TaskOfValue, TaskOfUnion, TaskOfOneOf }
 
 internal sealed class DecoratorInfo
 {
@@ -551,7 +603,7 @@ internal sealed class MethodInfo
         IsSuppressed      = suppressed;
         ReturnKind        = kind;
         ReturnTypeDisplay = returnType;
-        OneOfArms         = arms;
+        Arms              = arms;
         Parameters        = parameters;
     }
 
@@ -559,7 +611,7 @@ internal sealed class MethodInfo
     public bool       IsSuppressed      { get; }
     public ReturnKind ReturnKind        { get; }
     public string     ReturnTypeDisplay { get; }
-    public ImmutableArray<ArmInfo>   OneOfArms  { get; }
+    public ImmutableArray<ArmInfo>   Arms       { get; }
     public ImmutableArray<ParamInfo> Parameters { get; }
 }
 

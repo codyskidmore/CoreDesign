@@ -1,6 +1,6 @@
 # CoreDesign
 
-A collection of reusable .NET 10 libraries for data access, shared infrastructure, logging, and identity. Each package is independent and can be referenced on its own.
+A collection of reusable .NET 11 libraries for data access, shared infrastructure, logging, and identity. Each package is independent and can be referenced on its own.
 
 ## NuGet Packages
 
@@ -13,10 +13,21 @@ A collection of reusable .NET 10 libraries for data access, shared infrastructur
 | `CoreDesign.Identity.Server` | [nuget.org/packages/CoreDesign.Identity.Server](https://www.nuget.org/packages/CoreDesign.Identity.Server/) |
 | `CoreDesign.Identity.Client` | [nuget.org/packages/CoreDesign.Identity.Client](https://www.nuget.org/packages/CoreDesign.Identity.Client/) |
 | `CoreDesign.SeedTool` | [nuget.org/packages/CoreDesign.SeedTool](https://www.nuget.org/packages/CoreDesign.SeedTool/) |
+| `CoreDesign.UserJourney` | [nuget.org/packages/CoreDesign.UserJourney](https://www.nuget.org/packages/CoreDesign.UserJourney/) |
+| `CoreDesign.UserJourney.Blazor` | [nuget.org/packages/CoreDesign.UserJourney.Blazor](https://www.nuget.org/packages/CoreDesign.UserJourney.Blazor/) |
+| `@coredesign.dev/user-journey` (npm) | [npmjs.com/package/@coredesign.dev/user-journey](https://www.npmjs.com/package/@coredesign.dev/user-journey) |
 
 ## User Guide
 
 For a single consolidated reference covering all packages, the sample application, authentication setup, deployment, and release notes, see [CoreDesignUserGuide.md](CoreDesignUserGuide.md).
+
+## AI Coding Agent Skill
+
+The [`skills/coredesign`](skills/) folder is a skill for AI coding agents such as Claude Code. It teaches an agent to set up a solution with every CoreDesign feature, add features in the vertical slice style, add user journey tracking, and upgrade from 1.x, without the mistakes agents make when guessing. See [skills/README.md](skills/README.md) to install it.
+
+## Upgrading to .NET 11
+
+CoreDesign 11.0.1 targets .NET 11 and supports C# 15 union types, including a general-purpose `Union<...>` that replaces OneOf. It also introduces the CoreDesign.UserJourney packages. (11.0.0 was published briefly and withdrawn.) The previous versions stay available for .NET 10 applications. See [CoreDesign.NET11-migration.md](CoreDesign.NET11-migration.md) for breaking changes and upgrade steps, and [RELEASE_NOTES.md](RELEASE_NOTES.md) for details.
 
 ## Projects
 
@@ -48,7 +59,7 @@ Compile-time logging decorators generated from a single attribute. Place `[Loggi
 [LoggingDecorator]
 public interface ICreateForecastHandler
 {
-    Task<OneOf<WeatherForecast, BadRequestMessage>> CreateAsync(Request request, CancellationToken ct);
+    Task<Union<WeatherForecast, BadRequestMessage>> CreateAsync(Request request, CancellationToken ct);
 }
 ```
 
@@ -58,7 +69,7 @@ After marking interfaces, register all decorators in one call during startup:
 services.DecorateWithLogging();
 ```
 
-Successful calls log at Information, error result arms log at Warning, and exceptions log at Error. Both synchronous and async methods are fully supported.
+Successful calls log at Information, error result cases log at Warning, and exceptions log at Error. Both synchronous and async methods are fully supported, and union results from `Union<...>`, your own C# 15 unions, or OneOf are each logged per case.
 
 Full details: [src/CoreDesign.Logging/README.md](src/CoreDesign.Logging/README.md)
 
@@ -82,6 +93,23 @@ app.UseExceptionHandler();
 ```
 
 Full details: [src/CoreDesign.ExceptionHandling/README.md](src/CoreDesign.ExceptionHandling/README.md)
+
+### CoreDesign.UserJourney
+
+`src/CoreDesign.UserJourney/`, `src/CoreDesign.UserJourney.Blazor/`, `src/CoreDesign.UserJourney.React/`
+
+Per-user activity tracking on OpenTelemetry. Every request, page view, click and data change is linked to the signed-in user, in Application Insights or any OpenTelemetry backend, and an included workbook shows a timeline for any user. `CoreDesign.UserJourney.Blazor` adds Blazor Server clicks; the npm package `@coredesign.dev/user-journey` adds React and other single-page apps.
+
+```csharp
+builder.Services.AddUserJourney();      // AddUserJourneyBlazor() for Blazor Server; before AddServiceDefaults()
+// ...
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseUserJourney();
+app.MapUserJourneyEvents();      // for browser apps
+```
+
+Full details: [src/CoreDesign.UserJourney/README.md](src/CoreDesign.UserJourney/README.md)
 
 ### CoreDesign.Identity
 

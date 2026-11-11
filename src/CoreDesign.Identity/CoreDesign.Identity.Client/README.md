@@ -46,7 +46,7 @@ No policy registration is needed. The `PermissionAuthorizationPolicyProvider` cr
 
 ### 2. Add middleware
 
-Call `UseLocalBearerTokenInjection` in the middleware pipeline after `UseCors` and before `UseAuthentication`. The middleware only activates in the Development environment and only injects tokens on requests that have no existing `Authorization` header and originate from localhost:
+Call `UseLocalBearerTokenInjection` in the middleware pipeline after `UseCors` and before `UseAuthentication`. The middleware only activates when token injection is enabled (by default, in the Development environment only; see below) and only injects tokens on requests that have no existing `Authorization` header and originate from localhost:
 
 ```csharp
 app.UseCors();
@@ -106,7 +106,7 @@ builder.Services.AddOpenApi(options =>
 
 `BearerTokenInjectionMiddleware` runs only when:
 
-- The environment is `Development`
+- Token injection is enabled
 - The request has no `Authorization` header
 - The request originates from localhost (`127.0.0.1`, `::1`, or `::ffff:127.x`)
 - The path is not a public endpoint (`/openapi`, `/swagger`, `/scalar`, `/health`, `/`)
@@ -114,6 +114,16 @@ builder.Services.AddOpenApi(options =>
 When all conditions are met it calls `IdentityApiClient.GetAccessTokenAsync()`, which fetches a token from `/connect/token` on the identity server and caches it until 60 seconds before expiry. The token is set as the `Authorization: Bearer` header on the current request before passing it to the next middleware.
 
 If token acquisition fails (for example, the identity server is not running) the middleware logs a warning and continues without a token.
+
+### Enabling token injection explicitly
+
+`IdentityApi:EnableLocalTokenInjection` controls the middleware. Unset, it is on in `Development` and off elsewhere. Set it explicitly so the behaviour does not depend on the environment name: `true` in local settings, `false` in every deployed environment.
+
+```json
+{ "IdentityApi": { "EnableLocalTokenInjection": false } }
+```
+
+In code: `services.AddIdentityClient(configuration, o => o.EnableLocalTokenInjection = true)`. When it is on outside `Development`, a startup warning explains the risk: behind a reverse proxy on the same machine, every request can appear to come from localhost unless forwarded headers are configured.
 
 ## Token validation
 

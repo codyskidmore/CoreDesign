@@ -30,20 +30,44 @@ public sealed class DecoratorTestServiceLoggingDecorator : IDecoratorTestService
         }
     }
 
-    public async Task<OneOf<string, NotFoundMessage>> FindAsync(string id)
+    public async Task<FindResult> FindAsync(string id)
     {
         _logger.LogInformation("Invoking {Method} with {@id}", "FindAsync", id);
         try
         {
             var __result = await _inner.FindAsync(id);
-            __result.Switch(
-                __t0 => _logger.LogInformation("{Method} returned {@Result}", "FindAsync", __t0),
-                __t1 => _logger.LogWarning("{Method} returned {@Result}", "FindAsync", __t1));
+            switch (__result)
+            {
+                case string __t0:
+                    _logger.LogInformation("{Method} returned {@Result}", "FindAsync", __t0);
+                    break;
+                case NotFoundMessage __t1:
+                    _logger.LogWarning("{Method} returned {@Result}", "FindAsync", __t1);
+                    break;
+            }
             return __result;
         }
         catch (Exception __ex)
         {
             _logger.LogError(__ex, "{Method} threw an exception", "FindAsync");
+            throw;
+        }
+    }
+
+    public async Task<OneOf.OneOf<string, NotFoundMessage>> FindOneOfAsync(string id)
+    {
+        _logger.LogInformation("Invoking {Method} with {@id}", "FindOneOfAsync", id);
+        try
+        {
+            var __result = await _inner.FindOneOfAsync(id);
+            __result.Switch(
+                __t0 => _logger.LogInformation("{Method} returned {@Result}", "FindOneOfAsync", __t0),
+                __t1 => _logger.LogWarning("{Method} returned {@Result}", "FindOneOfAsync", __t1));
+            return __result;
+        }
+        catch (Exception __ex)
+        {
+            _logger.LogError(__ex, "{Method} threw an exception", "FindOneOfAsync");
             throw;
         }
     }

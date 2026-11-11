@@ -1,0 +1,48 @@
+{
+  "name": "@coredesign.dev/user-journey",
+  "version": "11.0.1",
+  "description": "Browser page views and clicks for CoreDesign.UserJourney. Sends signed-in users' activity to your ASP.NET Core API so it joins the same per-user journey as server-side requests. No dependencies; React support included.",
+  "license": "MIT",
+  "author": "CoreDesign",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codyskidmore/CoreDesign.git",
+    "directory": "src/CoreDesign.UserJourney.React"
+  },
+  "homepage": "https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.UserJourney.React",
+  "keywords": ["user-journey", "activity-tracking", "analytics", "react", "opentelemetry", "coredesign"],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": true }
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "jsdom": "^31.0.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "~5.9.3",
+    "vitest": "^5.1.0"
+  }
+}

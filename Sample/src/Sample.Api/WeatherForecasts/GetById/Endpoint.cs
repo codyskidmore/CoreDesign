@@ -12,9 +12,11 @@ public static class Endpoint
                 CancellationToken ct) =>
             {
                 var result = await handler.GetByIdAsync(id, ct);
-                return result.Match(
-                    forecast => TypedResults.Ok(Response.From(forecast)),
-                    error    => Results.NotFound(error.Message));
+                return result switch
+                {
+                    WeatherForecast forecast => Viewed(forecast),
+                    NotFoundMessage error    => Results.NotFound(error.Message),
+                };
             })
             .WithName(Name)
             .Produces<Response>()
@@ -23,6 +25,12 @@ public static class Endpoint
             .RequireAuthorization(Permissions.WeatherRead);
 
         return app;
+    }
+
+    private static IResult Viewed(WeatherForecast forecast)
+    {
+        Journey.Viewed(nameof(WeatherForecast), forecast.Location);
+        return Results.Ok(Response.From(forecast));
     }
 
     private class GetWeatherForecastEndpoint;

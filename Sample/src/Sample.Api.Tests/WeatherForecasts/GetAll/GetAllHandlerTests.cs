@@ -20,8 +20,8 @@ public class GetAllHandlerTests
 
         var result = await handler.GetAllAsync(CancellationToken.None);
 
-        Assert.True(result.IsT0);
-        Assert.Equal(3, result.AsT0.Count);
+        Assert.True(result is List<WeatherForecast>);
+        Assert.Equal(3, Assert.IsType<List<WeatherForecast>>(result.Value).Count);
     }
 
     [Fact]
@@ -33,6 +33,6 @@ public class GetAllHandlerTests
 
         var result = await handler.GetAllAsync(CancellationToken.None);
 
-        Assert.True(result.IsT1);
+        Assert.True(result is NotFoundMessage);
     }
 }

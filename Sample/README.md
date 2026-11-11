@@ -1,6 +1,6 @@
 # Sample
 
-Sample is a .NET 10 microservices solution that demonstrates how to build a REST API using [.NET Aspire](https://learn.microsoft.com/en-us/dotnet/aspire/), Entity Framework Core, and the **CoreDesign** family of packages. It serves as a working reference for setting up CoreDesign.Identity.Server, CoreDesign.Identity.Client, and CoreDesign.Data in a real application.
+Sample is a .NET 11 microservices solution that demonstrates how to build a REST API using [.NET Aspire](https://learn.microsoft.com/en-us/dotnet/aspire/), Entity Framework Core, and the **CoreDesign** family of packages. It serves as a working reference for setting up CoreDesign.Identity.Server, CoreDesign.Identity.Client, and CoreDesign.Data in a real application.
 
 ## Projects
 
@@ -14,7 +14,7 @@ A shared class library referenced by all service projects. It provides common Op
 
 ### Sample.Api
 
-The main ASP.NET Core REST API. It exposes weather forecast CRUD endpoints protected by JWT bearer authentication. In development it validates tokens issued by the local Identity server. In production it validates tokens from Azure Entra ID. It uses CoreDesign.Data for repository-pattern data access and CoreDesign.Identity.Client for authentication setup.
+The main ASP.NET Core REST API. It exposes weather forecast CRUD endpoints protected by JWT bearer authentication. In development it validates tokens issued by the local Identity server. In production it validates tokens from Azure Entra ID. It uses CoreDesign.Data for repository-pattern data access, CoreDesign.Identity.Client for authentication setup, and CoreDesign.UserJourney to tag each request with the signed-in user. It also maps the user journey events endpoint that Sample.React sends page views and clicks to, and records which forecast the GetById endpoint returned with `Journey.Viewed`.
 
 ### Sample.Identity.Web
 
@@ -31,7 +31,11 @@ A second instance of CoreDesign.Identity.Server configured for direct token issu
 
 ### Sample.Blazor
 
-An ASP.NET Core Blazor Server application that authenticates via OpenID Connect (Authorization Code with PKCE) and calls Sample.Api to display weather forecast data. The auth provider is selected at runtime by `Blazor:AuthProvider` in configuration: `"Local"` targets Sample.Identity.Web, `"AzureEntra"` targets Azure Entra ID. Unauthenticated requests to any protected page are redirected to the identity server's login form by the `RedirectToLogin` component. After sign-in the access token is forwarded to Sample.Api on every API call by `BearerTokenHandler`.
+An ASP.NET Core Blazor Server application that authenticates via OpenID Connect (Authorization Code with PKCE) and calls Sample.Api to display weather forecast data. The auth provider is selected at runtime by `Blazor:AuthProvider` in configuration: `"Local"` targets Sample.Identity.Web, `"AzureEntra"` targets Azure Entra ID. Unauthenticated requests to any protected page are redirected to the identity server's login form by the `RedirectToLogin` component. After sign-in the access token is forwarded to Sample.Api on every API call by `BearerTokenHandler`. CoreDesign.UserJourney.Blazor tags its requests and Blazor activity with the signed-in user; open a trace in the Aspire dashboard to see the `enduser.id` tag.
+
+### Sample.React
+
+A React single-page app (Vite) that signs in with OpenID Connect (Authorization Code with PKCE) against Sample.Identity.Web and calls Sample.Api through the Vite proxy (`/api`). It uses the npm package `@coredesign.dev/user-journey` (source in `src/CoreDesign.UserJourney.React`) to send page views and clicks on `data-journey` elements to Sample.Api: see `src/journey.tsx`, `useJourneyPage` in `App.tsx`, and the `data-journey` names in `Layout.tsx`.
 
 ### Sample.Data.MigrationService
 
@@ -43,7 +47,7 @@ xUnit unit tests for the API service layer. Tests use Moq for repository mocking
 
 ## Prerequisites
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- [.NET 11 SDK](https://dotnet.microsoft.com/download)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (required for the PostgreSQL container)
 - [.NET Aspire workload](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/setup-tooling)
 
@@ -160,7 +164,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
+          dotnet-version: '11.x'
 
       - name: Build
         run: dotnet build --configuration Release
@@ -494,7 +498,7 @@ Placing `[LoggingDecorator]` on a handler interface instructs the Roslyn source 
 
 - The method name and each parameter before invocation (Information)
 - The return value after successful completion (Information)
-- A warning when a `OneOf` arm indicates a not-found, bad-request, or other error outcome
+- A warning when a union result case indicates a not-found, bad-request, or other error outcome
 - The exception and method name if the call throws (Error)
 
 Both synchronous and `Task`/`Task<T>` methods are fully supported. `ValueTask` and `ValueTask<T>` are also supported. Generic interfaces are supported. The decorator carries the type parameters and constraint clauses of the interface. Properties and indexers are implemented as pass-throughs with no logging.
@@ -505,7 +509,7 @@ In Sample.Api, each handler interface is marked with `[LoggingDecorator]`:
 [LoggingDecorator]
 public interface ICreateForecastHandler
 {
-    Task<OneOf<WeatherForecast, BadRequestMessage>> CreateAsync(
+    Task<Union<WeatherForecast, BadRequestMessage>> CreateAsync(
         Request request, Guid userId, CancellationToken ct);
 }
 ```
