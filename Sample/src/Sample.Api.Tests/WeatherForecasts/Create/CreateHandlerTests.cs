@@ -19,7 +19,7 @@ public class CreateHandlerTests
 
         var result = await handler.CreateAsync(WeatherForecastFakers.CreateRequest(), CancellationToken.None);
 
-        Assert.True(result.IsT0);
+        Assert.True(result is WeatherForecast);
     }
 
     [Fact]
@@ -31,7 +31,7 @@ public class CreateHandlerTests
 
         var result = await handler.CreateAsync(WeatherForecastFakers.CreateRequest(), CancellationToken.None);
 
-        Assert.True(result.IsT1);
+        Assert.True(result is BadRequestMessage);
     }
 
     [Fact]

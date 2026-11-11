@@ -19,7 +19,7 @@ public class DeleteHandlerTests
 
         var result = await handler.DeleteAsync(Ulid.NewUlid(), CancellationToken.None);
 
-        Assert.True(result.IsT0);
+        Assert.True(result is Success);
     }
 
     [Fact]
@@ -31,6 +31,6 @@ public class DeleteHandlerTests
 
         var result = await handler.DeleteAsync(Ulid.NewUlid(), CancellationToken.None);
 
-        Assert.True(result.IsT1);
+        Assert.True(result is NotFoundMessage);
     }
 }

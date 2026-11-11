@@ -136,6 +136,42 @@ public class LoggingDecoratorTests
     }
 
     [Fact]
+    public async Task Invoke_OneOf_SuccessArm_LogsInformation()
+    {
+        OneOf.OneOf<string, NotFoundMessage> found = "result value";
+        _serviceMock.Setup(s => s.FindOneOfAsync("existing")).ReturnsAsync(found);
+
+        await _decorator.FindOneOfAsync("existing");
+
+        Assert.True(_logger.HasEntry(LogLevel.Information, "returned"));
+        Assert.False(_logger.HasEntry(LogLevel.Warning, "returned"));
+    }
+
+    [Fact]
+    public async Task Invoke_OneOf_NotFoundArm_LogsWarning()
+    {
+        OneOf.OneOf<string, NotFoundMessage> notFound = new NotFoundMessage("not found");
+        _serviceMock.Setup(s => s.FindOneOfAsync("missing")).ReturnsAsync(notFound);
+
+        await _decorator.FindOneOfAsync("missing");
+
+        Assert.True(_logger.HasEntry(LogLevel.Warning, "returned"));
+        Assert.False(_logger.HasEntry(LogLevel.Information, "returned"));
+    }
+
+    [Fact]
+    public async Task Invoke_OneOf_ReturnsValueFromInner()
+    {
+        OneOf.OneOf<string, NotFoundMessage> found = "the result";
+        _serviceMock.Setup(s => s.FindOneOfAsync("id")).ReturnsAsync(found);
+
+        var result = await _decorator.FindOneOfAsync("id");
+
+        Assert.True(result.IsT0);
+        Assert.Equal("the result", result.AsT0);
+    }
+
+    [Fact]
     public void Invoke_Redact_ReplacesParameterWithRedacted()
     {
         _serviceMock.Setup(s => s.Login("alice", "s3cr3t")).Returns("alice");

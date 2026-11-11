@@ -4,14 +4,16 @@ Shared infrastructure, error result types, and utility extension methods for .NE
 
 ## Requirements
 
-- .NET 10.0
-- Microsoft.EntityFrameworkCore 10.x
-- Microsoft.Extensions.Configuration.Abstractions 10.x
-- Microsoft.Extensions.Configuration.Json 10.x
-- Microsoft.Extensions.DependencyInjection 10.x
-- Microsoft.Extensions.Options 10.x
-- Aspire.Hosting.AppHost 13.x
+- .NET 11.0 (C# 15)
+- Microsoft.EntityFrameworkCore 10.x (moves to 11.x once the PostgreSQL provider for EF Core 11 is stable)
+- Microsoft.Extensions.Configuration.Json 11.x
+- Microsoft.Extensions.DependencyInjection 11.x
+- Microsoft.Extensions.Options.ConfigurationExtensions 11.x
+- Aspire.Hosting.AppHost 13.6.5 or later
+- MessagePack 3.1.x
 - Ulid 1.4.x
+
+`Microsoft.Extensions.Configuration.Abstractions` and `Microsoft.Extensions.Options` are part of .NET 11 and need no package reference.
 
 ## What Is Included
 
@@ -36,18 +38,25 @@ A record that holds the database connection settings read from configuration:
 | `AddAppSettings` | `IHostApplicationBuilder` | Loads `appsettings.json` and the environment-specific `appsettings.{Environment}.json` |
 | `AddAppSettings` | `IDistributedApplicationBuilder` | Same as above, for use in Aspire AppHost projects |
 
-**Error result records**
+**Result records**
 
-Lightweight result records for use with discriminated unions (e.g., native C# `union` types):
+Lightweight records used as the cases of a result union:
 
 | Type | Use case |
 | --- | --- |
+| `Success` | The operation succeeded and returns no value |
 | `NotFoundMessage` | Resource could not be found |
 | `BadRequestMessage` | The request was invalid |
 | `ErrorMessage` | A general error occurred |
 | `InvalidOperationMessage` | The operation is not valid in the current state |
 
-Each record carries a single `string Message` property.
+Each message record carries a single `string Message` property. `Success` has no properties.
+
+**`Union<...>`**
+
+General-purpose C# 15 unions for returning one of several results: `Union<T0, T1>`, `Union<T0, T1, T2>` and `Union<T0, T1, T2, T3>`. A method returns any case value directly and the conversion to the union is implicit. Callers handle the result with a switch expression, which the compiler checks for exhaustiveness, or with `Match`, which is provided for code migrating from `OneOf<...>`.
+
+For more than four cases, or when a named type reads better, declare your own union instead: `public union CreateResult(WeatherForecast, BadRequestMessage);`.
 
 ### Extension Methods
 
@@ -125,19 +134,26 @@ var dbOptions = builder.Configuration
 
 ## Usage
 
-**Error results with native unions**
+**Results with `Union<...>`**
 
 ```csharp
-public union GetResult(Widget, NotFoundMessage);
-
-public async Task<GetResult> GetAsync(Ulid id, CancellationToken ct)
+public async Task<Union<Widget, NotFoundMessage>> GetAsync(Ulid id, CancellationToken ct)
 {
     var widget = await repository.GetAsync(w => w.Id == id, null, ct);
     if (widget is null)
         return new NotFoundMessage($"Widget {id} not found.");
     return widget;
 }
+
+var result = await service.GetAsync(id, ct);
+return result switch
+{
+    Widget widget         => Results.Ok(widget),
+    NotFoundMessage error => Results.NotFound(error.Message),
+};
 ```
+
+A `default` union holds no value. Add a `null =>` arm to switches that can receive one, such as an uninitialized field. Migrating from OneOf: see [CoreDesign.NET11-migration.md](../../CoreDesign.NET11-migration.md).
 
 **Deep clone**
 

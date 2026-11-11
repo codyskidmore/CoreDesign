@@ -14,6 +14,8 @@ public static class Configuration
 
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddCoreDesignData<SampleCurrentUserAccessor>();
+        builder.Services.AddCoreDesignExceptionHandling();
+        builder.Services.AddGeneratedProblemMappings();
 
         builder.AddIdentityAuthentication();
         builder.Services.AddApplicationInsightsTelemetry();
@@ -32,7 +34,7 @@ public static class Configuration
 
         builder.AddAspireServiceDefaults();
         builder.Services.AddDbContextPool<SampleDbContext>((serviceProvider, options) =>
-            options.UseSqlServer(connectionString)
+            options.UseNpgsql(connectionString)
                 .AddInterceptors(serviceProvider.GetRequiredService<AuditInterceptor>()));
 
         builder.AddCaching();

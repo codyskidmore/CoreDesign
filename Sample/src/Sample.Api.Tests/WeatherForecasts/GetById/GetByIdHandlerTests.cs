@@ -24,7 +24,7 @@ public class GetByIdHandlerTests
 
         var result = await handler.GetByIdAsync(forecast.Id, CancellationToken.None);
 
-        Assert.True(result.IsT0);
+        Assert.True(result is WeatherForecast);
     }
 
     [Fact]
@@ -39,6 +39,6 @@ public class GetByIdHandlerTests
 
         var result = await handler.GetByIdAsync(Ulid.NewUlid(), CancellationToken.None);
 
-        Assert.True(result.IsT1);
+        Assert.True(result is NotFoundMessage);
     }
 }

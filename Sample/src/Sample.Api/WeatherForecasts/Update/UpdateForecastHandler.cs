@@ -3,7 +3,7 @@ namespace Sample.Api.WeatherForecasts.Update;
 [LoggingDecorator]
 public interface IUpdateForecastHandler
 {
-    Task<OneOf<WeatherForecast, NotFoundMessage, BadRequestMessage>> UpdateAsync(
+    Task<Union<WeatherForecast, NotFoundMessage, BadRequestMessage>> UpdateAsync(
         Ulid id, Request request, CancellationToken ct);
 }
 
@@ -11,7 +11,7 @@ public class UpdateForecastHandler(
     IReadRepository<SampleDbContext, WeatherForecast> readRepository,
     ICudRepository<SampleDbContext, WeatherForecast> cudRepository) : IUpdateForecastHandler
 {
-    public async Task<OneOf<WeatherForecast, NotFoundMessage, BadRequestMessage>> UpdateAsync(
+    public async Task<Union<WeatherForecast, NotFoundMessage, BadRequestMessage>> UpdateAsync(
         Ulid id, Request request, CancellationToken ct)
     {
         var forecast = await readRepository.GetAsync(f => f.Id == id, query => query, ct);

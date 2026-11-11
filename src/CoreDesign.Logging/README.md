@@ -15,12 +15,10 @@ dotnet add package CoreDesign.Logging
 Apply `[LoggingDecorator]` to any interface you want wrapped:
 
 ```csharp
-public union CreateResult(WeatherForecast, BadRequestMessage);
-
 [LoggingDecorator]
 public interface ICreateForecastHandler
 {
-    Task<CreateResult> CreateAsync(Request request, Guid userId, CancellationToken ct);
+    Task<Union<WeatherForecast, BadRequestMessage>> CreateAsync(Request request, Guid userId, CancellationToken ct);
 }
 ```
 
@@ -61,19 +59,23 @@ services.DecorateWithLogging();
 | Method returned a `NotFoundMessage`, `BadRequestMessage`, or other error type | Warning (method name and return value) |
 | Method threw an exception | Error (exception and method name) |
 
-Both synchronous and `Task`/`Task<T>` methods are fully supported. For native C# `union` return types (.NET 11 preview), each arm is logged at the appropriate level: success arms at Information, arms whose type name contains `NotFound`, `BadRequest`, `Error`, `Failure`, `Unauthorized`, `Forbidden`, `Conflict`, or `InvalidOperation` at Warning.
+Both synchronous and `Task`/`Task<T>` methods are fully supported.
 
-```csharp
-public union CreateResult(WeatherForecast, BadRequestMessage);
+### Union and OneOf results
 
-[LoggingDecorator]
-public interface ICreateForecastHandler
-{
-    Task<CreateResult> CreateAsync(Request request, CancellationToken ct);
-}
-```
+When an async method returns a union, the decorator logs the case it holds at the appropriate level: success cases at Information, and cases whose type name contains `NotFound`, `BadRequest`, `Error`, `Failure`, `Unauthorized`, `Forbidden`, `Conflict`, or `InvalidOperation` at Warning.
 
-The generator recognizes a return type as a union by its `[System.Runtime.CompilerServices.Union]` attribute and derives the arms from its public single-parameter constructors, the same case types the language itself uses for union conversions and pattern matching.
+Three kinds of union are recognized:
+
+| Return type | Example | How it is recognized |
+| --- | --- | --- |
+| `Union<...>` from `CoreDesign.Shared` | `Task<Union<Cabin, NotFoundMessage>>` | Implements `System.Runtime.CompilerServices.IUnion` |
+| Your own C# 15 union | `public union CreateResult(WeatherForecast, BadRequestMessage);` | Implements `IUnion` (every compiler-generated union does) |
+| OneOf | `Task<OneOf<Cabin, NotFoundMessage>>` | By name (`OneOf.OneOf<...>`); no package reference needed by CoreDesign |
+
+For C# 15 unions, the cases are the parameter types of the union's public single-parameter constructors, the same case types the language uses for union conversions and pattern matching. For OneOf, they are its type arguments.
+
+`CoreDesign.Logging` has no dependency on OneOf. If you use OneOf, reference it in your own project. OneOf and union results can be mixed in the same interface, so a codebase can move to `Union<>` one method at a time. See [CoreDesign.NET11-migration.md](../../CoreDesign.NET11-migration.md).
 
 ### Sensitive data
 
@@ -140,11 +142,14 @@ With Serilog, add a `Destructure` block to the `Serilog` section of `appsettings
 
 Generated decorators are plain C# classes with direct method calls. There is no reflection, no `DispatchProxy`, and no runtime code generation. They are fully compatible with .NET Native AOT.
 
+## Requirements
+
+- .NET 11.0 (C# 15)
+
 ## Dependencies
 
-- `CoreDesign.Shared` for `NotFoundMessage`, `BadRequestMessage`, and `Success` result types
-- `Microsoft.Extensions.Logging.Abstractions`
-- `Microsoft.Extensions.DependencyInjection.Abstractions`
+- `CoreDesign.Shared` for `Union<...>`, `Success`, `NotFoundMessage`, `BadRequestMessage`, and the other result types
+- `Microsoft.Extensions.Logging.Abstractions` and `Microsoft.Extensions.DependencyInjection.Abstractions` come from the .NET 11 base framework, so no package references are needed
 
 ## Feedback
 

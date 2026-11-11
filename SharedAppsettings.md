@@ -82,7 +82,7 @@ Repeat the same block in `CoreDesign.Identity.Client.csproj`, adjusting the rela
 
 ## How It Works at Runtime
 
-MSBuild resolves the `Include` path at build time and copies the physical file from `shared/` into the project's output directory (`bin/Debug/net10.0/`) under the name given by `Link`. ASP.NET Core's configuration system then finds `appsettings.json` and the environment-specific overlay exactly as if each project owned its own copy.
+MSBuild resolves the `Include` path at build time and copies the physical file from `shared/` into the project's output directory (`bin/Debug/net11.0/`) under the name given by `Link`. ASP.NET Core's configuration system then finds `appsettings.json` and the environment-specific overlay exactly as if each project owned its own copy.
 
 Editing `shared/appsettings.Development.json` propagates to every linked project on the next build.
 

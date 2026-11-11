@@ -1,3 +1,4 @@
+global using CoreDesign.ExceptionHandling;
 global using CoreDesign.Logging;
 global using Sample.Api.Data;
 global using Sample.Api.WeatherForecasts.Shared;
@@ -10,4 +11,3 @@ global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.AspNetCore.OutputCaching;
 global using Microsoft.EntityFrameworkCore;
 global using Microsoft.EntityFrameworkCore.Metadata.Builders;
-global using OneOf;

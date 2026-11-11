@@ -27,7 +27,7 @@ public class UpdateHandlerTests
 
         var result = await handler.UpdateAsync(forecast.Id, WeatherForecastFakers.UpdateRequest(), CancellationToken.None);
 
-        Assert.True(result.IsT0);
+        Assert.True(result is WeatherForecast);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class UpdateHandlerTests
 
         var result = await handler.UpdateAsync(Ulid.NewUlid(), WeatherForecastFakers.UpdateRequest(), CancellationToken.None);
 
-        Assert.True(result.IsT1);
+        Assert.True(result is NotFoundMessage);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public class UpdateHandlerTests
 
         var result = await handler.UpdateAsync(forecast.Id, WeatherForecastFakers.UpdateRequest(), CancellationToken.None);
 
-        Assert.True(result.IsT2);
+        Assert.True(result is BadRequestMessage);
     }
 
     [Fact]

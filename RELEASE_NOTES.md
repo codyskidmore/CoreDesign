@@ -1,5 +1,104 @@
 # Release Notes
 
+## CoreDesign 11.0.0 (.NET 11 Release)
+
+Every CoreDesign package now targets .NET 11 and C# 15, and CoreDesign gains first-class support for C# 15 union types. Applications on .NET 10, or that want to keep their code unchanged, can stay on the previous versions: they target .NET 10 and also run on the .NET 11 runtime.
+
+Upgrade guide: [CoreDesign.NET11-migration.md](CoreDesign.NET11-migration.md).
+
+**Versioning:** starting with this release, every CoreDesign package shares one version number, and the major version matches the .NET version it targets. CoreDesign 11.x targets .NET 11. Minor and patch releases (11.1.0, 11.0.1) never contain breaking changes; breaking changes wait for the next .NET major version, and anything being removed is marked obsolete first.
+
+### Breaking Changes
+
+- **All packages target `net11.0` only.** Consuming projects must target `net11.0` and build with the .NET 11 SDK.
+- **`CoreDesign.Logging` no longer depends on OneOf.** Projects that use OneOf without referencing it directly fail with CS0246 until they add `dotnet add package OneOf`. OneOf results are still logged per case.
+- **`CoreDesign.Shared` adds a `Success` record.** Files that import both `OneOf.Types` and `CoreDesign.Shared.Infrastructure` and mention `Success` fail with CS0104 (ambiguous reference).
+- **`CoreDesign.SeedTool` requires the .NET 11 runtime.**
+- **`CoreDesign.Identity.Client` requires `Microsoft.OpenApi` 3.x** (required by `Microsoft.AspNetCore.OpenApi` 11). Projects that reference or pin `Microsoft.OpenApi` 2.x fail restore with NU1605 until they move to 3.x.
+
+### Also Worth Knowing
+
+- **Security:** Aspire packages move from 13.4.6 to 13.6.5, fixing CVE-2026-120006 (GHSA-f7vh-h5g3-7jrh, high). `MessagePack` moves to 3.1.12, fixing GHSA-qhrr-8q5h-9q3h.
+- Microsoft ASP.NET Core and `Microsoft.Extensions.*` packages move to 11.0.0. EF Core stays on 10.0.x (10.0.15) until the Npgsql provider for EF Core 11 ships a stable release.
+
+- .NET 11 moved nine `Microsoft.Extensions.*.Abstractions` assemblies (including Logging, DependencyInjection, Configuration and Hosting) into the base framework. Projects that still reference them as packages get NU1510 warnings; remove those references. See the upgrade guide for the full list.
+
+---
+
+## CoreDesign.Shared 11.0.0
+
+- Targets .NET 11.
+- New `Union<T0, T1>`, `Union<T0, T1, T2>` and `Union<T0, T1, T2, T3>`: general-purpose C# 15 unions for service results, such as `Union<Cabin, NotFoundMessage>`. Each includes a `Match` method so code migrating from `OneOf<...>` keeps compiling; switch expressions are recommended for new code because the compiler checks them for exhaustiveness.
+- New `Success` record, the success case for results that carry no value (replaces `OneOf.Types.Success` and `bool` success markers).
+- Security fix: `MessagePack` updated from 3.1.8 to 3.1.12 to remediate a moderate-severity vulnerability (GHSA-qhrr-8q5h-9q3h).
+
+---
+
+## CoreDesign.Logging 11.0.0
+
+- Targets .NET 11.
+- The source generator logs C# 15 union results per case: success cases at Information, error cases at Warning, using the same type-name rules as before. It recognizes any type implementing `System.Runtime.CompilerServices.IUnion`, which covers `Union<...>` from `CoreDesign.Shared` and every union declared with the `union` keyword.
+- OneOf results are still logged per case. The generator recognizes OneOf by name and emits OneOf code only for methods that already return OneOf, so it needs no reference to the package.
+- Breaking: the `OneOf` package dependency has been removed. CoreDesign never used it; it was only installed for convenience. Add `OneOf` to your own project if you use it.
+- The `Microsoft.Extensions.Logging.Abstractions` and `Microsoft.Extensions.DependencyInjection.Abstractions` package references were removed; .NET 11 includes both in the base framework.
+
+---
+
+## CoreDesign.Logging.Generators 11.0.0
+
+Adds C# 15 union support alongside the existing OneOf support. Bundled as an analyzer inside the `CoreDesign.Logging` package; not published separately.
+
+---
+
+## CoreDesign.Data, CoreDesign.ExceptionHandling, CoreDesign.Identity.Client, CoreDesign.Identity.Server 11.0.0
+
+Retargeted to .NET 11. No API changes.
+
+- `CoreDesign.Identity.Client` now depends on `Microsoft.OpenApi` 3.11.0 (was 2.7.5), because `Microsoft.AspNetCore.OpenApi` 11 requires 3.x. See Breaking Changes above.
+- `CoreDesign.Data` drops its `Microsoft.Extensions.Configuration.Abstractions` and `Microsoft.Extensions.Hosting.Abstractions` package references (now part of .NET 11) and moves EF Core to 10.0.15.
+
+---
+
+## CoreDesign.SeedTool 11.0.0
+
+Retargeted to .NET 11. Breaking for tool users: running `dotnet seed` now requires the .NET 11 runtime.
+
+---
+
+## CoreDesign.ExceptionHandling 1.0.0
+
+New package. A single global `IExceptionHandler` for ASP.NET Core that maps unhandled exceptions to RFC 7807 `ProblemDetails` responses. A Roslyn source generator collects every `[ProblemMapping]` usage in the compilation, applied directly to an exception type you own, or at the assembly level with `ExceptionType` set for BCL/third-party types, and emits a compile-time dispatch table. No reflection, no hand-maintained switch statement to keep in sync with your exception types.
+
+Zero-config out of the box: `AddCoreDesignExceptionHandling()` alone registers a fallback that returns a generic RFC 7807 500 response (`detail` included only in `Development`). `AddGeneratedProblemMappings()`, generated by the source generator and always available once the package is referenced, supersedes it as `[ProblemMapping]` attributes are added; call order between the two does not matter.
+
+`MatchDerived` (default `true`) lets a mapping on a base exception type also cover subtypes that have no mapping of their own; the generator orders the dispatch table by inheritance depth, most derived first, so a subtype's own mapping always wins regardless of declaration order. Two `[ProblemMapping]` attributes targeting the same concrete exception type is a build error (`CDEH001`), and an assembly-level `[ProblemMapping]` missing `ExceptionType` is a build error (`CDEH002`), not a silent pick.
+
+This is a distinct concern from `CoreDesign.Logging`: the logging decorator logs and rethrows at the service layer, while `CoreDesign.ExceptionHandling` is the last line of defense at the edge of the HTTP pipeline, catching anything that escapes and turning it into a response the caller can act on.
+
+Full documentation: [CoreDesignUserGuide.md, Section 6](CoreDesignUserGuide.md#6-coredesignexceptionhandling).
+
+---
+
+## CoreDesign.ExceptionHandling.Generators 1.0.0
+
+New package. The Roslyn source generator behind `CoreDesign.ExceptionHandling`. Bundled as an analyzer inside the `CoreDesign.ExceptionHandling` package; not published separately.
+
+---
+
+## CoreDesign.Data 1.2.0
+
+### Breaking Change: UTC DateTime Conversion Now Applies to Every DateTime Property
+
+Database providers that map `DateTime` to a timezone-aware column type (for example, Npgsql's `timestamp with time zone`) reject any `DateTime` with `Kind=Unspecified` or `Kind=Local` on write. SQL Server's `datetime2` never validated `Kind` at all, so this only surfaces once an application runs against a stricter provider, or a value happens to arrive from a source (deserialization, a flat file, a manual `new DateTime(...)`) that doesn't already carry `Kind=Utc`.
+
+Previously, `BaseEntityConfiguration<T>` applied a UTC-normalizing value converter only to `BaseEntity.CreatedAt` and `UpdatedAt`. Any other `DateTime`/`DateTime?` property an application added to its own entities was unprotected and could still throw at the provider boundary.
+
+`CoreDesignDbContext` now registers `UtcDateTimeConverter`/`UtcNullableDateTimeConverter` as a model-wide EF Core convention (`ConfigureConventions`), so every `DateTime` and `DateTime?` property on every entity in a consuming application's model is normalized to UTC on write and stamped `Kind=Utc` on read, automatically. `BaseEntityConfiguration<T>` no longer applies the converter explicitly to `CreatedAt`/`UpdatedAt`, it inherits the same behavior from the convention.
+
+This is a behavior change for any application with its own `DateTime` entity properties, including ones that previously needed a manual `DateTime.SpecifyKind(..., DateTimeKind.Utc)` workaround before saving. See [CoreDesign.Data.1.1.2-to-1.2.0-migration.md](CoreDesign.Data.1.1.2-to-1.2.0-migration.md) for upgrade instructions. No EF Core migration is required, the column store type is unchanged; only how .NET reads and writes the value at the driver boundary changes.
+
+---
+
 ## CoreDesign.Identity.Client 1.0.11
 
 Security patch: `Microsoft.OpenApi` pinned to 2.7.5 to remediate a high-severity denial-of-service vulnerability (GHSA-v5pm-xwqc-g5wc / CVE-2026-49451, CVSS 7.5) pulled in transitively through `Microsoft.AspNetCore.OpenApi`. A crafted OpenAPI document containing a circular schema reference could exhaust the call stack and crash the process during parsing; versions 2.7.5+ are patched. Also fixed a nullable-reference warning (CS8602) in the test suite.

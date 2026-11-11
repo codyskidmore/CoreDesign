@@ -18,7 +18,7 @@ var connectionString = builder.Configuration.GetConnectionString(dbOptions.Datab
     ?? throw new InvalidOperationException($"Connection string '{dbOptions.DatabaseName}' is missing.");
 
 builder.Services.AddDbContext<SampleDbContext>((serviceProvider, options) =>
-    options.UseSqlServer(connectionString)
+    options.UseNpgsql(connectionString)
         .AddInterceptors(serviceProvider.GetRequiredService<AuditInterceptor>()));
 
 var host = builder.Build();

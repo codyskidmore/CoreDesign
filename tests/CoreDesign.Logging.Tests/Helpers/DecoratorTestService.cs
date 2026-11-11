@@ -6,6 +6,7 @@ public interface IDecoratorTestService
 {
     Task<string> GetValueAsync(string key);
     Task<FindResult> FindAsync(string id);
+    Task<OneOf.OneOf<string, NotFoundMessage>> FindOneOfAsync(string id);
     Task RunAsync();
     string Login(string username, [Redact] string password);
     [Suppress] string GetSecret();
@@ -21,6 +22,8 @@ public class DecoratorTestService : IDecoratorTestService
     public Task<string> GetValueAsync(string key) => Task.FromResult(key);
     public Task<FindResult> FindAsync(string id) =>
         Task.FromResult<FindResult>(id);
+    public Task<OneOf.OneOf<string, NotFoundMessage>> FindOneOfAsync(string id) =>
+        Task.FromResult<OneOf.OneOf<string, NotFoundMessage>>(id);
     public Task RunAsync() => Task.CompletedTask;
     public string Login(string username, string password) => username;
     public string GetSecret() => "secret";

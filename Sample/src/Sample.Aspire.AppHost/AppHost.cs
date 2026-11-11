@@ -6,7 +6,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.AddDockerComposeEnvironment("docker-compose");
 builder.AddAppSettings();
 
-var database = builder.AddSqlDatabase();
+var database = builder.AddPostgresDatabase();
 
 var identityWeb = builder.AddIdentityWeb();
 builder.AddIdentityApi();

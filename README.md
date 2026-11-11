@@ -1,6 +1,6 @@
 # CoreDesign
 
-A collection of reusable .NET 10 libraries for data access, shared infrastructure, logging, and identity. Each package is independent and can be referenced on its own.
+A collection of reusable .NET 11 libraries for data access, shared infrastructure, logging, and identity. Each package is independent and can be referenced on its own.
 
 ## NuGet Packages
 
@@ -9,6 +9,7 @@ A collection of reusable .NET 10 libraries for data access, shared infrastructur
 | `CoreDesign.Shared` | [nuget.org/packages/CoreDesign.Shared](https://www.nuget.org/packages/CoreDesign.Shared/) |
 | `CoreDesign.Data` | [nuget.org/packages/CoreDesign.Data](https://www.nuget.org/packages/CoreDesign.Data/) |
 | `CoreDesign.Logging` | [nuget.org/packages/CoreDesign.Logging](https://www.nuget.org/packages/CoreDesign.Logging/) |
+| `CoreDesign.ExceptionHandling` | [nuget.org/packages/CoreDesign.ExceptionHandling](https://www.nuget.org/packages/CoreDesign.ExceptionHandling/) |
 | `CoreDesign.Identity.Server` | [nuget.org/packages/CoreDesign.Identity.Server](https://www.nuget.org/packages/CoreDesign.Identity.Server/) |
 | `CoreDesign.Identity.Client` | [nuget.org/packages/CoreDesign.Identity.Client](https://www.nuget.org/packages/CoreDesign.Identity.Client/) |
 | `CoreDesign.SeedTool` | [nuget.org/packages/CoreDesign.SeedTool](https://www.nuget.org/packages/CoreDesign.SeedTool/) |
@@ -16,6 +17,10 @@ A collection of reusable .NET 10 libraries for data access, shared infrastructur
 ## User Guide
 
 For a single consolidated reference covering all packages, the sample application, authentication setup, deployment, and release notes, see [CoreDesignUserGuide.md](CoreDesignUserGuide.md).
+
+## Upgrading to .NET 11
+
+CoreDesign now targets .NET 11 and supports C# 15 union types, including a general-purpose `Union<...>` that replaces OneOf. The previous versions stay available for .NET 10 applications. See [CoreDesign.NET11-migration.md](CoreDesign.NET11-migration.md) for breaking changes and upgrade steps, and [RELEASE_NOTES.md](RELEASE_NOTES.md) for details.
 
 ## Projects
 
@@ -44,12 +49,10 @@ Full details: [src/CoreDesign.Data/README.md](src/CoreDesign.Data/README.md)
 Compile-time logging decorators generated from a single attribute. Place `[LoggingDecorator]` on any interface and the included Roslyn source generator produces a decorator class at compile time that logs every method invocation, return value, and exception. No reflection, no runtime overhead, fully AOT-compatible.
 
 ```csharp
-public union CreateResult(WeatherForecast, BadRequestMessage);
-
 [LoggingDecorator]
 public interface ICreateForecastHandler
 {
-    Task<CreateResult> CreateAsync(Request request, CancellationToken ct);
+    Task<Union<WeatherForecast, BadRequestMessage>> CreateAsync(Request request, CancellationToken ct);
 }
 ```
 
@@ -59,9 +62,30 @@ After marking interfaces, register all decorators in one call during startup:
 services.DecorateWithLogging();
 ```
 
-Successful calls log at Information, error result arms log at Warning, and exceptions log at Error. Both synchronous and async methods are fully supported.
+Successful calls log at Information, error result cases log at Warning, and exceptions log at Error. Both synchronous and async methods are fully supported, and union results from `Union<...>`, your own C# 15 unions, or OneOf are each logged per case.
 
 Full details: [src/CoreDesign.Logging/README.md](src/CoreDesign.Logging/README.md)
+
+### CoreDesign.ExceptionHandling
+
+`src/CoreDesign.ExceptionHandling/`
+
+Global unhandled exception handling for ASP.NET Core. A Roslyn source generator produces a compile-time dispatch table from exception types marked with `[ProblemMapping]`, mapping them to RFC 7807 `ProblemDetails` responses. Works with zero configuration (a generic 500 for every exception) and layers in per-exception status codes as mappings are added.
+
+```csharp
+[ProblemMapping(404, Title = "Resource not found")]
+public sealed class EntityNotFoundException(string entity, Guid id)
+    : Exception($"{entity} '{id}' was not found.");
+```
+
+```csharp
+builder.Services.AddCoreDesignExceptionHandling();
+builder.Services.AddGeneratedProblemMappings();
+// ...
+app.UseExceptionHandler();
+```
+
+Full details: [src/CoreDesign.ExceptionHandling/README.md](src/CoreDesign.ExceptionHandling/README.md)
 
 ### CoreDesign.Identity
 

@@ -16,14 +16,15 @@ public static class Endpoint
                 CancellationToken ct) =>
             {
                 var result = await handler.UpdateAsync(id, request, ct);
-                return result.Match(
-                    forecast =>
-                    {
-                        _ = outputCacheStore.EvictByTagAsync(nameof(CacheConfig.WeatherForecastCache), ct);
-                        return TypedResults.Ok(GetByIdResponse.From(forecast));
-                    },
-                    notFound   => Results.NotFound(notFound.Message),
-                    badRequest => Results.BadRequest(badRequest.Message));
+                if (result is WeatherForecast)
+                    _ = outputCacheStore.EvictByTagAsync(nameof(CacheConfig.WeatherForecastCache), ct);
+
+                return result switch
+                {
+                    WeatherForecast forecast     => Results.Ok(GetByIdResponse.From(forecast)),
+                    NotFoundMessage notFound     => Results.NotFound(notFound.Message),
+                    BadRequestMessage badRequest => Results.BadRequest(badRequest.Message),
+                };
             })
             .WithName(Name)
             .Produces<GetByIdResponse>()

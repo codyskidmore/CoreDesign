@@ -4,7 +4,7 @@ A `dotnet tool` for exporting live entity data to `MigrationWorker`-compatible s
 
 ## Requirements
 
-- .NET 10.0 SDK (includes the `Microsoft.AspNetCore.App` shared runtime)
+- .NET 11.0 SDK (includes the `Microsoft.AspNetCore.App` shared runtime)
 - `CoreDesign.Data` 1.1.0 or later in your application project
 
 ## Installation
@@ -59,7 +59,7 @@ dotnet user-secrets set "Parameters:SqlPassword" "your-password" --project src/M
 
 ```json
 {
-  "assemblyPath": "src/MyApp.Api/bin/Debug/net10.0/MyApp.Api.dll",
+  "assemblyPath": "src/MyApp.Api/bin/Debug/net11.0/MyApp.Api.dll",
   "outputDirectory": "src/MyApp.MigrationService/SeedData",
   "appConfig": {
     "project": "src/MyApp.AppHost",
@@ -91,7 +91,7 @@ Stores a connection string template in `coredesign.seedtool.json` and reads the 
 
 ```json
 {
-  "assemblyPath": "src/MyApp.Api/bin/Debug/net10.0/MyApp.Api.dll",
+  "assemblyPath": "src/MyApp.Api/bin/Debug/net11.0/MyApp.Api.dll",
   "outputDirectory": "src/MyApp.MigrationService/SeedData",
   "connectionString": "Server=localhost,1433;Database=mydb;User Id=sa;Password={password};TrustServerCertificate=True",
   "userSecrets": {

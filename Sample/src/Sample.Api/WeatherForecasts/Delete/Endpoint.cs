@@ -13,13 +13,14 @@ public static class Endpoint
                 CancellationToken ct) =>
             {
                 var result = await handler.DeleteAsync(id, ct);
-                return result.Match(
-                    success =>
-                    {
-                        _ = outputCacheStore.EvictByTagAsync(nameof(CacheConfig.WeatherForecastCache), ct);
-                        return TypedResults.Ok();
-                    },
-                    error => Results.NotFound(error.Message));
+                if (result is Success)
+                    _ = outputCacheStore.EvictByTagAsync(nameof(CacheConfig.WeatherForecastCache), ct);
+
+                return result switch
+                {
+                    Success               => Results.Ok(),
+                    NotFoundMessage error => Results.NotFound(error.Message),
+                };
             })
             .WithName(Name)
             .Produces(StatusCodes.Status200OK)

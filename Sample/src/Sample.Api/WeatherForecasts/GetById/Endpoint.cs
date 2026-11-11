@@ -12,9 +12,11 @@ public static class Endpoint
                 CancellationToken ct) =>
             {
                 var result = await handler.GetByIdAsync(id, ct);
-                return result.Match(
-                    forecast => TypedResults.Ok(Response.From(forecast)),
-                    error    => Results.NotFound(error.Message));
+                return result switch
+                {
+                    WeatherForecast forecast => Results.Ok(Response.From(forecast)),
+                    NotFoundMessage error    => Results.NotFound(error.Message),
+                };
             })
             .WithName(Name)
             .Produces<Response>()
