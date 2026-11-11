@@ -14,7 +14,7 @@ public static class Endpoint
                 var result = await handler.GetByIdAsync(id, ct);
                 return result switch
                 {
-                    WeatherForecast forecast => Results.Ok(Response.From(forecast)),
+                    WeatherForecast forecast => Viewed(forecast),
                     NotFoundMessage error    => Results.NotFound(error.Message),
                 };
             })
@@ -25,6 +25,12 @@ public static class Endpoint
             .RequireAuthorization(Permissions.WeatherRead);
 
         return app;
+    }
+
+    private static IResult Viewed(WeatherForecast forecast)
+    {
+        Journey.Viewed(nameof(WeatherForecast), forecast.Location);
+        return Results.Ok(Response.From(forecast));
     }
 
     private class GetWeatherForecastEndpoint;

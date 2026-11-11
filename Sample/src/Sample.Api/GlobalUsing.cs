@@ -7,6 +7,7 @@ global using CoreDesign.Data.Infrastructure;
 global using CoreDesign.Data.Interfaces;
 global using CoreDesign.Data.Repositories;
 global using CoreDesign.Shared.Infrastructure;
+global using CoreDesign.UserJourney;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.AspNetCore.OutputCaching;
 global using Microsoft.EntityFrameworkCore;

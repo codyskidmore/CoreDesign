@@ -30,7 +30,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="CoreDesign.Identity.Server" Version="11.0.0-net11-ga" />
+      <PackageReference Include="CoreDesign.Identity.Server" Version="11.0.1" />
     </ItemGroup>
 
 </Project>

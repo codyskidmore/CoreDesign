@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net11.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <PackageId>CoreDesign.UserJourney</PackageId>
+        <VersionPrefix>11.0.1</VersionPrefix>
+        <Description>Per-user activity tracking for ASP.NET Core on OpenTelemetry. Links every request, page view, click and data change to the signed-in user so you can follow a user's journey in Application Insights or any OpenTelemetry backend. Includes an endpoint for browser apps (React and other SPAs) and never captures form values or query strings.</Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.UserJourney</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/codyskidmore/CoreDesign</RepositoryUrl>
+        <PackageTags>user-journey;activity-tracking;opentelemetry;application-insights;aspnetcore;coredesign</PackageTags>
+        <PackageReleaseNotes>
+11.0.1
+- Initial release
+        </PackageReleaseNotes>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+        <None Include="workbooks\user-journey.workbook.json" Pack="true" PackagePath="workbooks\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.21.0" />
+    </ItemGroup>
+
+</Project>

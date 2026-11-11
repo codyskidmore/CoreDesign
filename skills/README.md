@@ -14,10 +14,11 @@ The `coredesign` folder is an agent skill that teaches AI coding agents (Claude 
 | `references/exception-handling.md` | Global ProblemDetails and `[ProblemMapping]` |
 | `references/identity.md` | Development identity server, permissions, Entra, Blazor and SPA sign-in |
 | `references/seedtool.md` | `dotnet seed export` and `diff` |
+| `references/user-journey.md` | Per-user activity tracking: API, Blazor and React setup, options, workbook, troubleshooting |
 | `references/testing.md` | Handler and endpoint tests |
 | `references/upgrading.md` | Moving from CoreDesign 1.x and OneOf to 11.x |
 
-The code in `project-setup.md` and `testing.md` was compiled and run on .NET 11 against the CoreDesign 11.0.0 packages: the solution builds, EF tooling creates the migration, the migration service migrates and seeds, and every endpoint, permission and error path returns the documented result.
+The code in `project-setup.md` and `testing.md` was compiled and run on .NET 11 against the CoreDesign 11.0.1 packages: the solution builds, EF tooling creates the migration, the migration service migrates and seeds, and every endpoint, permission and error path returns the documented result.
 
 ## Install
 
@@ -35,4 +36,4 @@ Or copy it into a repository's `.claude/skills/` folder to share it with everyon
 
 ## Versions
 
-The skill matches CoreDesign 11.x on .NET 11. Update it with each CoreDesign release.
+The skill matches CoreDesign 11.0.1 and later 11.x releases on .NET 11. Update it with each CoreDesign release.

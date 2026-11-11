@@ -5,7 +5,7 @@
         <Nullable>enable</Nullable>
         <PackageId>CoreDesign.ExceptionHandling</PackageId>
         <!-- TODO(cody): placeholder version, unreleased package. Assign the real starting version before packing/publishing. -->
-        <VersionPrefix>11.0.0</VersionPrefix>
+        <VersionPrefix>11.0.1</VersionPrefix>
         <Description>Global unhandled exception handling for ASP.NET Core. A Roslyn source generator produces a compile-time dispatch table from exception types marked with [ProblemMapping], mapping them to RFC 7807 ProblemDetails responses with no runtime reflection.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.ExceptionHandling</PackageProjectUrl>

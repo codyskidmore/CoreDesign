@@ -25,6 +25,7 @@ export default function Layout({ page, onNavigate, children }: Props) {
           <li className="nav-item">
             <button
               className={`nav-link btn btn-link text-start w-100 px-2 ${page === 'home' ? 'text-white fw-semibold' : 'text-white-50'}`}
+              data-journey="nav-home"
               onClick={() => onNavigate('home')}
             >
               Home
@@ -33,6 +34,7 @@ export default function Layout({ page, onNavigate, children }: Props) {
           <li className="nav-item">
             <button
               className={`nav-link btn btn-link text-start w-100 px-2 ${page === 'weather' ? 'text-white fw-semibold' : 'text-white-50'}`}
+              data-journey="nav-weather"
               onClick={() => onNavigate('weather')}
             >
               Weather Forecasts
@@ -49,6 +51,7 @@ export default function Layout({ page, onNavigate, children }: Props) {
           <span className="me-3 small">Hello, {userName}!</span>
           <button
             className="btn btn-sm btn-outline-secondary"
+            data-journey="sign-out"
             onClick={() => void auth.signoutRedirect()}
           >
             Sign out

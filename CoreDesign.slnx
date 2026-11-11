@@ -7,6 +7,8 @@
     <Project Path="src/CoreDesign.ExceptionHandling.Generators/CoreDesign.ExceptionHandling.Generators.csproj" />
     <Project Path="src/CoreDesign.ExceptionHandling/CoreDesign.ExceptionHandling.csproj" />
     <Project Path="src/CoreDesign.Shared/CoreDesign.Shared.csproj" />
+    <Project Path="src/CoreDesign.UserJourney/CoreDesign.UserJourney.csproj" />
+    <Project Path="src/CoreDesign.UserJourney.Blazor/CoreDesign.UserJourney.Blazor.csproj" />
   </Folder>
   <Folder Name="/src/CoreDesign.Identity/">
     <File Path="src/CoreDesign.Identity/README.AzureEntra.md" />
@@ -20,6 +22,7 @@
     <Project Path="tests/CoreDesign.Logging.Tests/CoreDesign.Logging.Tests.csproj" />
     <Project Path="tests/CoreDesign.ExceptionHandling.Tests/CoreDesign.ExceptionHandling.Tests.csproj" />
     <Project Path="tests/CoreDesign.Shared.Tests/CoreDesign.Shared.Tests.csproj" />
+    <Project Path="tests/CoreDesign.UserJourney.Tests/CoreDesign.UserJourney.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/CoreDesign.Identity/">
     <Project Path="tests/CoreDesign.Identity.Server.Tests/CoreDesign.Identity.Server.Tests.csproj" />

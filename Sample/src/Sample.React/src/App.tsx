@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from 'react-oidc-context'
+import { useJourneyPage } from '@coredesign.dev/user-journey/react'
 import Layout, { type Page } from './components/Layout'
 import Home from './pages/Home'
 import WeatherForecasts from './components/WeatherForecasts'
@@ -7,6 +8,8 @@ import WeatherForecasts from './components/WeatherForecasts'
 export default function App() {
   const auth = useAuth()
   const [page, setPage] = useState<Page>('home')
+  // This app switches pages with state rather than a router, so the page name stands in for the path.
+  useJourneyPage(`/${page}`)
 
   if (auth.isLoading) {
     return (

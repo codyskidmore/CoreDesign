@@ -1,12 +1,24 @@
 # Release Notes
 
-## CoreDesign 11.0.0 (.NET 11 Release)
+## CoreDesign 11.0.1 (.NET 11 Release)
 
-Every CoreDesign package now targets .NET 11 and C# 15, and CoreDesign gains first-class support for C# 15 union types. Applications on .NET 10, or that want to keep their code unchanged, can stay on the previous versions: they target .NET 10 and also run on the .NET 11 runtime.
+Every CoreDesign package now targets .NET 11 and C# 15. This release adds first-class support for C# 15 union types, a new user journey package family for following what each signed-in user views and does, and more control over configuration. Applications on .NET 10, or that want to keep their code unchanged, can stay on the previous versions: they target .NET 10 and also run on the .NET 11 runtime.
 
 Upgrade guide: [CoreDesign.NET11-migration.md](CoreDesign.NET11-migration.md).
 
-**Versioning:** starting with this release, every CoreDesign package shares one version number, and the major version matches the .NET version it targets. CoreDesign 11.x targets .NET 11. Minor and patch releases (11.1.0, 11.0.1) never contain breaking changes; breaking changes wait for the next .NET major version, and anything being removed is marked obsolete first.
+**11.0.0 was withdrawn.** It was published briefly, before the configuration and user journey features below were finished, and unlisted before anyone downloaded it. 11.0.1 is the first supported .NET 11 release. Reference 11.0.1 or later.
+
+**Versioning:** starting with this release, every CoreDesign package shares one version number, and the major version matches the .NET version it targets. CoreDesign 11.x targets .NET 11. Minor and patch releases (11.1.0, 11.0.2) never contain breaking changes; breaking changes wait for the next .NET major version, and anything being removed is marked obsolete first.
+
+### New
+
+- **CoreDesign.UserJourney** (new package): per-user activity tracking on OpenTelemetry. Tags every request with the signed-in user and client IP, drops health probes, strips query strings, records what a page showed (`Journey.Viewed`), and maps an endpoint browser apps send page views and clicks to. Includes an Application Insights workbook.
+- **CoreDesign.UserJourney.Blazor** (new package): links Blazor Server clicks and navigation, which travel over SignalR, to the signed-in user; adds the `JourneyView` component.
+- **@coredesign.dev/user-journey** (new npm package): page views and `data-journey` clicks from React and other single-page apps, with no dependencies.
+- **`AddAppSettings(o => o.SettingsName = "LOCAL")`**: choose the settings file name independently of the environment name, also through the `AppSettings:Name` configuration value. The loaded file is logged at startup.
+- **`IdentityApi:EnableLocalTokenInjection`**: an explicit switch for local bearer token injection, instead of relying only on the environment name.
+- **`IPAddress.IsPrivate()` and `IsInternal()`** in CoreDesign.Shared, for exempting internal traffic from rate limiting.
+- **CoreDesign skill for AI coding agents** (`skills/coredesign` in the repository): teaches agents such as Claude Code to set up and extend CoreDesign projects correctly. See [skills/README.md](skills/README.md).
 
 ### Breaking Changes
 
@@ -14,6 +26,7 @@ Upgrade guide: [CoreDesign.NET11-migration.md](CoreDesign.NET11-migration.md).
 - **`CoreDesign.Logging` no longer depends on OneOf.** Projects that use OneOf without referencing it directly fail with CS0246 until they add `dotnet add package OneOf`. OneOf results are still logged per case.
 - **`CoreDesign.Shared` adds a `Success` record.** Files that import both `OneOf.Types` and `CoreDesign.Shared.Infrastructure` and mention `Success` fail with CS0104 (ambiguous reference).
 - **`CoreDesign.SeedTool` requires the .NET 11 runtime.**
+- **`AddAppSettings` no longer overrides environment variables, user secrets or command-line arguments.** Its `appsettings` files used to be added after every other configuration source, so they won over App Service settings, Docker environment variables and user secrets. They now sit where .NET's own `appsettings` files do, so those sources override them as in any .NET app. If you relied on a JSON value beating an environment variable, remove the environment variable.
 - **`CoreDesign.Identity.Client` requires `Microsoft.OpenApi` 3.x** (required by `Microsoft.AspNetCore.OpenApi` 11). Projects that reference or pin `Microsoft.OpenApi` 2.x fail restore with NU1605 until they move to 3.x.
 
 ### Also Worth Knowing
@@ -25,43 +38,79 @@ Upgrade guide: [CoreDesign.NET11-migration.md](CoreDesign.NET11-migration.md).
 
 ---
 
-## CoreDesign.Shared 11.0.0
+## CoreDesign.Shared 11.0.1
 
 - Targets .NET 11.
 - New `Union<T0, T1>`, `Union<T0, T1, T2>` and `Union<T0, T1, T2, T3>`: general-purpose C# 15 unions for service results, such as `Union<Cabin, NotFoundMessage>`. Each includes a `Match` method so code migrating from `OneOf<...>` keeps compiling; switch expressions are recommended for new code because the compiler checks them for exhaustiveness.
 - New `Success` record, the success case for results that carry no value (replaces `OneOf.Types.Success` and `bool` success markers).
+- `AddAppSettings` accepts `Action<AppSettingsOptions>`: `SettingsName` picks `appsettings.{SettingsName}.json` (falling back to the `AppSettings:Name` configuration value, then the environment name). The chosen file is logged at Information level when the host starts. With no options, the same files load as before.
+- Breaking: `AddAppSettings` inserts its files directly after the host's own `appsettings` files instead of after every source, so user secrets, environment variables and command-line arguments override them.
+- New `IpAddressExtensionMethods`: `IsPrivate()` (10/8, 172.16/12, 192.168/16, IPv6 fc00::/7) and `IsInternal()` (private, loopback and link-local). Both recognize IPv4 addresses in IPv6 form.
 - Security fix: `MessagePack` updated from 3.1.8 to 3.1.12 to remediate a moderate-severity vulnerability (GHSA-qhrr-8q5h-9q3h).
 
 ---
 
-## CoreDesign.Logging 11.0.0
+## CoreDesign.Logging 11.0.1
 
 - Targets .NET 11.
 - The source generator logs C# 15 union results per case: success cases at Information, error cases at Warning, using the same type-name rules as before. It recognizes any type implementing `System.Runtime.CompilerServices.IUnion`, which covers `Union<...>` from `CoreDesign.Shared` and every union declared with the `union` keyword.
 - OneOf results are still logged per case. The generator recognizes OneOf by name and emits OneOf code only for methods that already return OneOf, so it needs no reference to the package.
 - Breaking: the `OneOf` package dependency has been removed. CoreDesign never used it; it was only installed for convenience. Add `OneOf` to your own project if you use it.
 - The `Microsoft.Extensions.Logging.Abstractions` and `Microsoft.Extensions.DependencyInjection.Abstractions` package references were removed; .NET 11 includes both in the base framework.
+- Removed a leftover package reference to an old CoreDesign.Shared version; the package depends on the matching CoreDesign.Shared release.
 
 ---
 
-## CoreDesign.Logging.Generators 11.0.0
+## CoreDesign.Logging.Generators 11.0.1
 
 Adds C# 15 union support alongside the existing OneOf support. Bundled as an analyzer inside the `CoreDesign.Logging` package; not published separately.
 
 ---
 
-## CoreDesign.Data, CoreDesign.ExceptionHandling, CoreDesign.Identity.Client, CoreDesign.Identity.Server 11.0.0
+## CoreDesign.Data, CoreDesign.ExceptionHandling, CoreDesign.Identity.Client, CoreDesign.Identity.Server 11.0.1
 
-Retargeted to .NET 11. No API changes.
+Retargeted to .NET 11.
 
+- `CoreDesign.Identity.Client`: new `IdentityApiOptions.EnableLocalTokenInjection` (configuration key `IdentityApi:EnableLocalTokenInjection`, or the new `configure` callback on `AddIdentityClient`). Unset, injection stays on in Development only, as before. When it is on outside Development, a startup warning explains the reverse proxy risk.
 - `CoreDesign.Identity.Client` now depends on `Microsoft.OpenApi` 3.11.0 (was 2.7.5), because `Microsoft.AspNetCore.OpenApi` 11 requires 3.x. See Breaking Changes above.
 - `CoreDesign.Data` drops its `Microsoft.Extensions.Configuration.Abstractions` and `Microsoft.Extensions.Hosting.Abstractions` package references (now part of .NET 11) and moves EF Core to 10.0.15.
 
 ---
 
-## CoreDesign.SeedTool 11.0.0
+## CoreDesign.SeedTool 11.0.1
 
 Retargeted to .NET 11. Breaking for tool users: running `dotnet seed` now requires the .NET 11 runtime.
+
+---
+
+## CoreDesign.UserJourney 11.0.1
+
+New package. See its [README](src/CoreDesign.UserJourney/README.md).
+
+- `AddUserJourney()`, `UseUserJourney()` and `MapUserJourneyEvents()`.
+- Tags requests with `enduser.id`, `user.email`, `user.name` and the client IP; configurable claims, IP headers and tag name.
+- Drops `/alive` and `/health` telemetry; removes query strings from recorded URLs.
+- `Journey.Viewed(type, item)` records what a page showed.
+- Browser events endpoint for single-page apps (signed-in users only, validated and size limited).
+- Ships `workbooks/user-journey.workbook.json` for Application Insights.
+
+---
+
+## CoreDesign.UserJourney.Blazor 11.0.1
+
+New package. See its [README](src/CoreDesign.UserJourney.Blazor/README.md).
+
+- `AddUserJourneyBlazor()` maps each Blazor circuit to its signed-in user and adds the user to Blazor event traces.
+- `JourneyView` component.
+
+---
+
+## @coredesign.dev/user-journey 11.0.1 (npm)
+
+New npm package. See its [README](src/CoreDesign.UserJourney.React/README.md).
+
+- `createUserJourney()` for any framework; `UserJourneyProvider`, `useJourneyPage` and `useUserJourney` for React.
+- Batches events, sends them with the user's access token, and records `data-journey` clicks. No dependencies.
 
 ---
 

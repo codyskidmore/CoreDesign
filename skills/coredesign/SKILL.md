@@ -1,6 +1,6 @@
 ---
 name: coredesign
-description: How to build .NET 11 applications with the CoreDesign NuGet packages (CoreDesign.Shared, CoreDesign.Data, CoreDesign.Logging, CoreDesign.ExceptionHandling, CoreDesign.Identity.Server, CoreDesign.Identity.Client, CoreDesign.SeedTool) the way they are designed to be used. Use this skill whenever code references a CoreDesign namespace or package, or uses BaseEntity, CoreDesignDbContext, IReadRepository, ICudRepository, MigrationWorker, Union<...>, NotFoundMessage, BadRequestMessage, Success, [LoggingDecorator], DecorateWithLogging, [ProblemMapping], AddIdentityClient, RequireAuthorization with permission strings, or the dotnet seed tool. Also use it when creating a new solution or API that should use CoreDesign (including Aspire AppHost, migration service and local identity server setup), when adding a feature, endpoint, entity, handler, seed file or test to a CoreDesign-based API, when upgrading CoreDesign from 1.x or OneOf to 11.x, or when debugging missing logs, missing seed data, soft-delete surprises or 401/403 errors in such a project, even if the user does not name CoreDesign.
+description: How to build .NET 11 applications with the CoreDesign NuGet packages (CoreDesign.Shared, CoreDesign.Data, CoreDesign.Logging, CoreDesign.ExceptionHandling, CoreDesign.Identity.Server, CoreDesign.Identity.Client, CoreDesign.SeedTool, CoreDesign.UserJourney, CoreDesign.UserJourney.Blazor and the npm package @coredesign.dev/user-journey) the way they are designed to be used. Use this skill whenever code references a CoreDesign namespace or package, or uses BaseEntity, CoreDesignDbContext, IReadRepository, ICudRepository, MigrationWorker, Union<...>, NotFoundMessage, BadRequestMessage, Success, [LoggingDecorator], DecorateWithLogging, [ProblemMapping], AddIdentityClient, RequireAuthorization with permission strings, AddAppSettings, AddUserJourney, UseUserJourney, Journey.Viewed, JourneyView, MapUserJourneyEvents, or the dotnet seed tool. Also use it when creating a new solution or API that should use CoreDesign (including Aspire AppHost, migration service and local identity server setup), when adding a feature, endpoint, entity, handler, seed file or test to a CoreDesign-based API, when adding per-user activity or user journey tracking to an ASP.NET Core, Blazor or React app, when upgrading CoreDesign from 1.x or OneOf to 11.x, or when debugging missing logs, missing seed data, soft-delete surprises, missing user tags in telemetry or 401/403 errors in such a project, even if the user does not name CoreDesign.
 ---
 
 # CoreDesign
@@ -9,7 +9,7 @@ CoreDesign is a set of NuGet packages for ASP.NET Core APIs on .NET 11: result u
 
 ## Versions and platform
 
-- All packages share one version. **The major version matches .NET: CoreDesign 11.x targets `net11.0` only.** Minor and patch releases never break; breaking changes wait for the next .NET major.
+- All packages share one version. **The major version matches .NET: CoreDesign 11.x targets `net11.0` only.** Use 11.0.1 or later; 11.0.0 was withdrawn. Minor and patch releases never break; breaking changes wait for the next .NET major.
 - Do not set `<LangVersion>`; C# 15 is the default for `net11.0` and unions need it.
 - EF Core is 10.x in CoreDesign 11.0.x (the PostgreSQL provider for EF Core 11 was not yet stable). It runs on .NET 11. Do not add EF Core 11 packages to a PostgreSQL project until Npgsql 11 is stable.
 - Projects still on CoreDesign 1.x target .NET 10. If you see `OneOf<...>`, `.AsT0`, `FromT0` or 1.x versions, read `references/upgrading.md` before changing anything.
@@ -22,18 +22,20 @@ CoreDesign is a set of NuGet packages for ASP.NET Core APIs on .NET 11: result u
 | Add a feature to a CoreDesign API | The recipe below, then the reference for each package you touch |
 | Upgrade from CoreDesign 1.x or OneOf | `references/upgrading.md` |
 | Write tests | `references/testing.md` |
-| Something is missing at runtime (logs, seed rows, auth) | The rules below, then the troubleshooting table in the relevant reference |
+| Track what users view and do | `references/user-journey.md` |
+| Something is missing at runtime (logs, seed rows, auth, user tags) | The rules below, then the troubleshooting table in the relevant reference |
 
 ## Which package does what
 
 | Package | Use it for | Reference |
 |---|---|---|
-| CoreDesign.Shared | `Union<...>`, `Success`, `NotFoundMessage` and other result records, `DatabaseOptions`, `AddAppSettings` | `references/shared-and-unions.md` |
+| CoreDesign.Shared | `Union<...>`, `Success`, `NotFoundMessage` and other result records, `DatabaseOptions`, `AddAppSettings`, `IsPrivate()` / `IsInternal()` | `references/shared-and-unions.md` |
 | CoreDesign.Data | `BaseEntity`, `CoreDesignDbContext`, read and CUD repositories, audit interceptor, `MigrationWorker` and JSON seeding | `references/data.md` |
 | CoreDesign.Logging | `[LoggingDecorator]` on interfaces, generated decorators, `[Redact]`, `[Suppress]` | `references/logging.md` |
 | CoreDesign.ExceptionHandling | Global RFC 7807 responses for unexpected exceptions, `[ProblemMapping]` | `references/exception-handling.md` |
 | CoreDesign.Identity.Server / .Client | Local OIDC server for development, JWT validation, permission-based authorization, switching to Entra | `references/identity.md` |
 | CoreDesign.SeedTool | `dotnet seed export` and `diff` between a live database and seed files | `references/seedtool.md` |
+| CoreDesign.UserJourney (+ .Blazor, npm `@coredesign.dev/user-journey`) | Per-user activity tracking: user tags on traces, items viewed, Blazor clicks, browser page views and clicks | `references/user-journey.md` |
 
 Read only the reference files the task needs.
 
@@ -106,6 +108,9 @@ These come from real projects. Each one explains what breaks if it is ignored.
 - **Never enable `PurgeBeforeSeed` against Production.** It deletes the whole table before reseeding. It is for local development and staging only.
 - **Seed file names are fully qualified type names** (`MyApp.Orders.Models.Order.json`). A wrong name is skipped with only a warning, and renaming an entity silently breaks the match.
 - **Use named constants for permissions and paths.** Endpoints pass permission strings to `RequireAuthorization(Permissions.X)`; keep them in one `Permissions` class so they match the Entra app role values exactly.
+- **Register UserJourney before the service defaults, and `UseUserJourney()` after authentication.** Registered after `AddServiceDefaults()` or `UseAzureMonitor()`, Blazor clicks are exported before the user is added; placed before authentication, requests have no user.
+- **Configuration precedence is standard.** `AddAppSettings` files are overridden by user secrets, environment variables and command-line arguments. To name settings files after deployment environments, use `AddAppSettings(o => o.SettingsName = ...)` rather than renaming the environment, because user secrets and development-only features need `Development`.
+- **Set local token injection explicitly.** `IdentityApi:EnableLocalTokenInjection` is `true` in local settings and `false` in every deployed environment; never rely on the environment name alone for a sign-in shortcut.
 - **Remove NU1510 package references.** On .NET 11 the `Microsoft.Extensions.*.Abstractions` packages are part of the framework; referencing them only adds warnings.
 
 ## Before you finish

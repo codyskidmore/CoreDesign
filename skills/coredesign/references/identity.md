@@ -113,7 +113,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 ```
 
-`UseLocalBearerTokenInjection` adds a bearer token for the configured user to requests that are local, in Development, have no `Authorization` header, and are not public paths (`/openapi`, `/scalar`, `/swagger`, `/health`, `/`). That makes Scalar and curl work without signing in. To test as a different user, send your own token (from `/get-token`) and the middleware steps aside.
+`UseLocalBearerTokenInjection` adds a bearer token for the configured user to requests that are local, have no `Authorization` header, and are not public paths (`/openapi`, `/scalar`, `/swagger`, `/health`, `/`), when injection is enabled. That makes Scalar and curl work without signing in. To test as a different user, send your own token (from `/get-token`) and the middleware steps aside.
+
+Enable it explicitly with `IdentityApi:EnableLocalTokenInjection`: `true` in local settings and `false` in every deployed settings file. Unset, it is on in Development only. In code: `AddIdentityClient(configuration, o => o.EnableLocalTokenInjection = true)`. Outside Development it logs a startup warning, because behind a reverse proxy on the same machine every request can look local unless forwarded headers are configured.
 
 Token validation uses `MapInboundClaims = false` and `email` as the name claim, so claims keep their JWT names (`oid`, `email`, `permissions`).
 

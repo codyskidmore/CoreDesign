@@ -14,7 +14,7 @@ A shared class library referenced by all service projects. It provides common Op
 
 ### Sample.Api
 
-The main ASP.NET Core REST API. It exposes weather forecast CRUD endpoints protected by JWT bearer authentication. In development it validates tokens issued by the local Identity server. In production it validates tokens from Azure Entra ID. It uses CoreDesign.Data for repository-pattern data access and CoreDesign.Identity.Client for authentication setup.
+The main ASP.NET Core REST API. It exposes weather forecast CRUD endpoints protected by JWT bearer authentication. In development it validates tokens issued by the local Identity server. In production it validates tokens from Azure Entra ID. It uses CoreDesign.Data for repository-pattern data access, CoreDesign.Identity.Client for authentication setup, and CoreDesign.UserJourney to tag each request with the signed-in user. It also maps the user journey events endpoint that Sample.React sends page views and clicks to, and records which forecast the GetById endpoint returned with `Journey.Viewed`.
 
 ### Sample.Identity.Web
 
@@ -31,7 +31,11 @@ A second instance of CoreDesign.Identity.Server configured for direct token issu
 
 ### Sample.Blazor
 
-An ASP.NET Core Blazor Server application that authenticates via OpenID Connect (Authorization Code with PKCE) and calls Sample.Api to display weather forecast data. The auth provider is selected at runtime by `Blazor:AuthProvider` in configuration: `"Local"` targets Sample.Identity.Web, `"AzureEntra"` targets Azure Entra ID. Unauthenticated requests to any protected page are redirected to the identity server's login form by the `RedirectToLogin` component. After sign-in the access token is forwarded to Sample.Api on every API call by `BearerTokenHandler`.
+An ASP.NET Core Blazor Server application that authenticates via OpenID Connect (Authorization Code with PKCE) and calls Sample.Api to display weather forecast data. The auth provider is selected at runtime by `Blazor:AuthProvider` in configuration: `"Local"` targets Sample.Identity.Web, `"AzureEntra"` targets Azure Entra ID. Unauthenticated requests to any protected page are redirected to the identity server's login form by the `RedirectToLogin` component. After sign-in the access token is forwarded to Sample.Api on every API call by `BearerTokenHandler`. CoreDesign.UserJourney.Blazor tags its requests and Blazor activity with the signed-in user; open a trace in the Aspire dashboard to see the `enduser.id` tag.
+
+### Sample.React
+
+A React single-page app (Vite) that signs in with OpenID Connect (Authorization Code with PKCE) against Sample.Identity.Web and calls Sample.Api through the Vite proxy (`/api`). It uses the npm package `@coredesign.dev/user-journey` (source in `src/CoreDesign.UserJourney.React`) to send page views and clicks on `data-journey` elements to Sample.Api: see `src/journey.tsx`, `useJourneyPage` in `App.tsx`, and the `data-journey` names in `Layout.tsx`.
 
 ### Sample.Data.MigrationService
 

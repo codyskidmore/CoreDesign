@@ -134,10 +134,13 @@ All projects link one set of settings files from `src/Shared/` so values never d
     "BaseUrl": "https://localhost:5003",
     "ClientId": "myapp-api-dev",
     "Username": "admin@myapp.local",
-    "Password": "Password1!"
+    "Password": "Password1!",
+    "EnableLocalTokenInjection": true
   }
 }
 ```
+
+Set `"IdentityApi": { "EnableLocalTokenInjection": false }` in every deployed environment's settings, so the sign-in shortcut never depends on the environment name alone.
 
 The Serilog `Destructure` limits matter: the logging decorators log whole return values, and without a depth cap an EF entity with navigation properties can produce enormous log entries.
 
@@ -151,11 +154,12 @@ Create it from the Aspire template (`dotnet new aspire-servicedefaults -n MyApp.
 
 ```xml
 <ItemGroup>
-    <PackageReference Include="CoreDesign.Shared" Version="11.0.0" />
-    <PackageReference Include="CoreDesign.Data" Version="11.0.0" />
-    <PackageReference Include="CoreDesign.Logging" Version="11.0.0" />
-    <PackageReference Include="CoreDesign.ExceptionHandling" Version="11.0.0" />
-    <PackageReference Include="CoreDesign.Identity.Client" Version="11.0.0" />
+    <PackageReference Include="CoreDesign.Shared" Version="11.0.1" />
+    <PackageReference Include="CoreDesign.Data" Version="11.0.1" />
+    <PackageReference Include="CoreDesign.Logging" Version="11.0.1" />
+    <PackageReference Include="CoreDesign.ExceptionHandling" Version="11.0.1" />
+    <PackageReference Include="CoreDesign.Identity.Client" Version="11.0.1" />
+    <PackageReference Include="CoreDesign.UserJourney" Version="11.0.1" />
 
     <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.6.5" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0" />
@@ -185,6 +189,7 @@ global using CoreDesign.Data.Repositories;
 global using CoreDesign.ExceptionHandling;
 global using CoreDesign.Logging;
 global using CoreDesign.Shared.Infrastructure;
+global using CoreDesign.UserJourney;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.AspNetCore.OutputCaching;
 global using Microsoft.EntityFrameworkCore;
@@ -343,6 +348,9 @@ public static class Configuration
         // CoreDesign.Shared: appsettings and DatabaseOptions
         builder.AddAppSettings();
         builder.AddDatabaseConfiguration();
+
+        // CoreDesign.UserJourney: before the service defaults, so it runs before their exporter.
+        builder.Services.AddUserJourney();
         builder.AddServiceDefaults();
 
         // CoreDesign.Data: current user + audit interceptor
@@ -458,9 +466,11 @@ public static class App
         app.UseLocalBearerTokenInjection();   // Development only; no effect elsewhere
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseUserJourney();               // after authentication: tags each request with the user
         app.UseOutputCache();
 
         app.MapWidgetsModule();
+        app.MapUserJourneyEvents();         // for a React or other browser front end
 
         if (app.Environment.IsDevelopment())
         {
@@ -475,7 +485,7 @@ public static class App
 
 ## 8. Identity server project
 
-`MyApp.Identity.Web` (SDK `Microsoft.NET.Sdk.Web`) references `CoreDesign.Identity.Server` 11.0.0 and links the shared settings plus `identities.json` and `clients.json` the same way as section 3.
+`MyApp.Identity.Web` (SDK `Microsoft.NET.Sdk.Web`) references `CoreDesign.Identity.Server` 11.0.1 and links the shared settings plus `identities.json` and `clients.json` the same way as section 3.
 
 `Program.cs`:
 
@@ -595,7 +605,7 @@ global using MyApp.Api.Data;
 
 ## 10. AppHost
 
-`MyApp.AppHost.csproj` uses `<Project Sdk="Aspire.AppHost.Sdk/13.6.5">`, has a `UserSecretsId`, references `Aspire.Hosting.PostgreSQL` 13.6.5 and `CoreDesign.Shared` 11.0.0, references the API, migration service and identity projects, and links the shared settings.
+`MyApp.AppHost.csproj` uses `<Project Sdk="Aspire.AppHost.Sdk/13.6.5">`, has a `UserSecretsId`, references `Aspire.Hosting.PostgreSQL` 13.6.5 and `CoreDesign.Shared` 11.0.1, references the API, migration service and identity projects, and links the shared settings.
 
 `AppHost.cs`:
 
@@ -852,6 +862,8 @@ public class GetWidgetHandler(IReadRepository<MyAppDbContext, Widget> repository
         var widget = await repository.GetAsync(w => w.Id == id, null, ct);
         if (widget is null)
             return new NotFoundMessage($"Widget {id} not found.");
+
+        Journey.Viewed(nameof(Widget), widget.Name);   // the workbook's "Items viewed" report
         return widget;
     }
 }
@@ -1125,5 +1137,9 @@ Use this to confirm a project uses every CoreDesign feature correctly.
 | `BearerSecurityTransformer` | `AddOpenApi` | Scalar shows the Bearer scheme |
 | `MigrationWorker` | Migration service | Exits 0 after migrate and seed |
 | Seed files | `SeedData/` with a glob include | Fully qualified type names, fixed Ids |
+| `AddUserJourney` / `UseUserJourney` | Before the service defaults; after authentication | Request traces carry `enduser.id` |
+| `Journey.Viewed` | Handlers that show one item | Traces carry `view.type` and `view.item` |
+| `MapUserJourneyEvents` + npm `@coredesign.dev/user-journey` | API, plus a React front end if any | Browser page views and clicks appear with the user |
+| `IdentityApi:EnableLocalTokenInjection` | Local settings `true`, deployed settings `false` | Token injection never depends on the environment name alone |
 | `CoreDesignSeedFactory` + `dotnet seed` | API project, repo root `coredesign.seedtool.json` | `dotnet seed diff` runs cleanly |
 | Tests | `MyApp.Api.Tests` | Handlers tested with mocked repositories (`references/testing.md`) |

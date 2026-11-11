@@ -32,6 +32,8 @@ public static class Configuration
         var connectionString = builder.Configuration.GetConnectionString(dbOptions.DatabaseName)
             ?? throw new InvalidOperationException($"Connection string '{dbOptions.DatabaseName}' is missing.");
 
+        // Before the service defaults, so user tagging runs before the OTLP exporter.
+        builder.Services.AddUserJourney();
         builder.AddAspireServiceDefaults();
         builder.Services.AddDbContextPool<SampleDbContext>((serviceProvider, options) =>
             options.UseNpgsql(connectionString)

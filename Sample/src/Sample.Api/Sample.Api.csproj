@@ -13,11 +13,12 @@
 
     <ItemGroup>
         <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.6.5" />
-        <PackageReference Include="CoreDesign.Data" Version="11.0.0-net11-ga" />
-        <PackageReference Include="CoreDesign.ExceptionHandling" Version="11.0.0-net11-ga" />
-        <PackageReference Include="CoreDesign.Identity.Client" Version="11.0.0-net11-ga" />
-        <PackageReference Include="CoreDesign.Logging" Version="11.0.0-net11-ga" />
-        <PackageReference Include="CoreDesign.Shared" Version="11.0.0-net11-ga" />
+        <PackageReference Include="CoreDesign.Data" Version="11.0.1" />
+        <PackageReference Include="CoreDesign.ExceptionHandling" Version="11.0.1" />
+        <PackageReference Include="CoreDesign.Identity.Client" Version="11.0.1" />
+        <PackageReference Include="CoreDesign.Logging" Version="11.0.1" />
+        <PackageReference Include="CoreDesign.Shared" Version="11.0.1" />
+        <PackageReference Include="CoreDesign.UserJourney" Version="11.0.1" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.15" />

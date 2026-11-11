@@ -1,6 +1,6 @@
 # Migrating CoreDesign to .NET 11
 
-This release moves every CoreDesign package to .NET 11 and C# 15, and adds first-class support for C# 15 union types. It is the release new CoreDesign features will build on, including the upcoming activity tracking packages.
+This release moves every CoreDesign package to .NET 11 and C# 15, and adds first-class support for C# 15 union types. It is the release new CoreDesign features build on, starting with the new CoreDesign.UserJourney packages. The first supported version is 11.0.1; 11.0.0 was published briefly and withdrawn.
 
 **You do not have to upgrade to keep running on .NET 11.** The current CoreDesign packages target .NET 10, and .NET 10 libraries run on the .NET 11 runtime. Stay on the current versions if you are on .NET 10 LTS, or if you want to keep your code exactly as it is for now. Upgrade when you want the new features.
 
@@ -13,6 +13,7 @@ This release moves every CoreDesign package to .NET 11 and C# 15, and adds first
 | `CoreDesign.Shared` adds `Success`, which can clash with `OneOf.Types.Success` | Yes, if a file imports both namespaces | Remove `using OneOf.Types;` or alias one of them |
 | `CoreDesign.SeedTool` requires the .NET 11 runtime | Yes, for tool users | Install the .NET 11 runtime or SDK |
 | `CoreDesign.Identity.Client` requires `Microsoft.OpenApi` 3.x | Yes, if you reference `Microsoft.OpenApi` 2.x or write OpenAPI transformers | Move your `Microsoft.OpenApi` reference to 3.x |
+| `AddAppSettings` files no longer override environment variables, user secrets or command-line arguments | Yes, if you relied on a JSON value winning | Remove the environment variable or secret that should no longer apply |
 | `Microsoft.Extensions.*.Abstractions` packages are now part of .NET 11 | No, but you will see NU1510 warnings | Remove the redundant package references |
 | `CoreDesign.Shared` adds `Union<...>` | No | Optional: replace OneOf with `Union<>` |
 | `CoreDesign.Logging` logs C# 15 union results per case | No | None, it is automatic |
@@ -23,7 +24,7 @@ This release moves every CoreDesign package to .NET 11 and C# 15, and adds first
 2. Set `<TargetFramework>net11.0</TargetFramework>` in every project that references a CoreDesign package.
 3. If you have a `global.json`, point it at an 11.0 SDK.
 4. Do not set `<LangVersion>`. C# 15 is the default for `net11.0`. Avoid `preview` and `latest`.
-5. Update every CoreDesign package reference to `11.0.0`. All CoreDesign packages now share one version, and the major version matches .NET.
+5. Update every CoreDesign package reference to `11.0.1`. All CoreDesign packages now share one version, and the major version matches .NET.
 
 ## Step 2: Fix what the upgrade breaks
 
@@ -62,6 +63,14 @@ The `dotnet seed` tool now targets .NET 11. Update it with `dotnet tool update -
 ```
 
 If you wrote your own OpenAPI document or operation transformers, rebuild them against 3.x and check for API changes. CoreDesign's own `BearerSecurityTransformer` needed no changes.
+
+### Configuration precedence changed in AddAppSettings
+
+`AddAppSettings()` used to add `appsettings.json` and `appsettings.{Environment}.json` after every other configuration source. That made the JSON files win over user secrets, environment variables (including App Service settings and Docker `environment:` entries) and command-line arguments, which is the opposite of how .NET configuration normally works.
+
+The files are now inserted directly after the host's own `appsettings` files, so the usual order applies: JSON, then user secrets (Development), then environment variables, then command-line arguments, with later sources winning.
+
+Check each deployed environment for a key that is set both in a settings file and as an environment variable. Before, the file won; now the environment variable wins. Remove whichever value should no longer apply. Nothing changes for keys set in only one place.
 
 ### NU1510 warnings for Microsoft.Extensions packages
 
@@ -155,6 +164,15 @@ The logging generator recognizes every type that implements `System.Runtime.Comp
 ### Removing OneOf
 
 Once no code uses OneOf, remove the package reference and any `using OneOf;` and `using OneOf.Types;` directives. Nothing in CoreDesign needs it.
+
+## New in this release
+
+These need no migration; adopt them when useful.
+
+- **CoreDesign.UserJourney** and **CoreDesign.UserJourney.Blazor**: follow what each signed-in user viewed and did. See the package READMEs and section 7 of the user guide. The npm package `@coredesign.dev/user-journey` covers React and other single-page apps.
+- **Choose the settings file name**: `builder.AddAppSettings(o => o.SettingsName = "LOCAL")` loads `appsettings.LOCAL.json` while the environment stays `Development`, so settings files can be named after deployment environments. The `AppSettings:Name` configuration value (for example `AppSettings__Name=LOCAL` in launchSettings.json) does the same without code. The loaded file is logged at startup.
+- **Explicit local token injection**: set `IdentityApi:EnableLocalTokenInjection` to `true` in local settings and `false` in every deployed environment, so the behaviour no longer depends only on the environment name. Unset, nothing changes.
+- **`IsPrivate()` and `IsInternal()`** on `IPAddress` (CoreDesign.Shared): replace hand-written private range checks, for example when exempting internal callers from rate limiting.
 
 ## Dependency versions
 

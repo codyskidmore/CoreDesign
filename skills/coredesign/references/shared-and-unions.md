@@ -77,8 +77,16 @@ public union CheckoutResult(Order, NotFoundMessage, BadRequestMessage, InvalidOp
 
 | Method | On | What it does |
 |---|---|---|
-| `AddAppSettings()` | `IHostApplicationBuilder`, `IDistributedApplicationBuilder` | Loads `appsettings.json` and `appsettings.{Environment}.json` (use it in AppHost projects too) |
+| `AddAppSettings(configure?)` | `IHostApplicationBuilder`, `IDistributedApplicationBuilder` | Loads `appsettings.json` and `appsettings.{name}.json` from the app's output folder (use it in AppHost projects too) |
 | `AddDatabaseConfiguration()` | `IHostApplicationBuilder` | Binds the `DatabaseOptions` section |
+
+The settings file name is `AppSettingsOptions.SettingsName` if set, else the `AppSettings:Name` configuration value (for example `AppSettings__Name=LOCAL` in launchSettings.json), else the environment name. The named file is optional and the loaded file is logged at startup:
+
+```csharp
+builder.AddAppSettings(o => o.SettingsName = builder.Environment.IsDevelopment() ? "LOCAL" : null);
+```
+
+Precedence is the standard .NET order: the JSON files, then user secrets (Development), then environment variables, then command-line arguments, with later sources winning. App Service settings and Docker `environment:` values override the JSON files. (Before 11.0.1 the JSON files were added last and won; don't write code that relies on that.)
 
 `DatabaseOptions` has `HostName` (the Aspire resource name), `DatabaseName`, `HostPort` and `ConnectionStringName` (the user-secrets connection string key used for redirection). Read it with `builder.Configuration.GetSection(nameof(DatabaseOptions)).Get<DatabaseOptions>()`.
 
@@ -91,3 +99,12 @@ public union CheckoutResult(Order, NotFoundMessage, BadRequestMessage, InvalidOp
 | `obj.DeepClone()` | JSON round trip; returns null for null; types need a usable constructor (`[JsonConstructor]` if not default) |
 | `"42".To<int>()` | `TypeDescriptor` conversion; throws `ArgumentException` when unsupported |
 | `s.PadRightWithZeros(width)` | Pads with `'0'` on the right |
+| `address.IsPrivate()` | 10/8, 172.16/12, 192.168/16 and IPv6 fc00::/7; handles `::ffff:` mapped IPv4 |
+| `address.IsInternal()` | Private, loopback or link-local: exempt these from rate limiting (check after `UseForwardedHeaders`) |
+
+The IP helpers are in `CoreDesign.Shared.ExtensionMethods`. Prefer them to hand-written byte checks:
+
+```csharp
+if (context.Connection.RemoteIpAddress?.IsInternal() == true)
+    return RateLimitPartition.GetNoLimiter("internal");
+```
