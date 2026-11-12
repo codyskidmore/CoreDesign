@@ -1,15 +1,18 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <PackageId>CoreDesign.Logging</PackageId>
-        <Version>1.2.4</Version>
+        <VersionPrefix>10.0.0</VersionPrefix>
         <Description>Logging infrastructure for .NET services. A Roslyn source generator produces compile-time, reflection-free logging decorators for any interface marked with [LoggingDecorator]. Decorators log method entry, parameters, return values, and exceptions with no runtime overhead.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.Logging</PackageProjectUrl>
         <RepositoryUrl>https://github.com/codyskidmore/CoreDesign</RepositoryUrl>
         <PackageTags>logging;decorator;source-generator;coredesign</PackageTags>
         <PackageReleaseNotes>
+10.0.0
+- New version scheme: the major version matches the .NET version (CoreDesign 10.x targets .NET 10). Dependency updates. Still depends on OneOf.
+
 1.2.4
 - Fixed source generator dropping nullable reference-type annotations ('?') on generated decorator method return/parameter/property types, causing CS8613/CS8603 warnings when decorating interfaces with nullable members.
 
@@ -43,9 +46,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="CoreDesign.Shared" Version="1.0.3" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.15" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.15" />
         <PackageReference Include="OneOf" Version="3.0.271" />
     </ItemGroup>
 

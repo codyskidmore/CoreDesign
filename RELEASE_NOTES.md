@@ -1,5 +1,46 @@
 # Release Notes
 
+## CoreDesign 10.0.0 (.NET 10 Release)
+
+The .NET 10 line of CoreDesign moves to the version scheme CoreDesign 11 introduced: every package shares one version number, and the major version matches the .NET version it targets. CoreDesign 10.x targets .NET 10; CoreDesign 11.x targets .NET 11. This release replaces the 1.x packages, backports the CoreDesign 11 features that .NET 10 supports, updates dependencies and fixes known vulnerabilities.
+
+The 1.x packages are deprecated but stay on NuGet until the community has had time to upgrade. CoreDesign 10.x is maintained alongside 11.x.
+
+**Not backported:** C# 15 unions (`Union<...>`, `Success`) need C# 15 and .NET 11, so CoreDesign 10.x keeps using OneOf. `CoreDesign.Logging` 10.x still depends on OneOf, and its source generator logs OneOf results per case as before.
+
+### New (backported from 11.x)
+
+- **CoreDesign.UserJourney** (new package): per-user activity tracking on OpenTelemetry. Tags every request with the signed-in user and client IP, drops health probes, strips query strings, records what a page showed (`Journey.Viewed`), and maps an endpoint that browser apps send page views and clicks to. Includes an Application Insights workbook.
+- **CoreDesign.UserJourney.Blazor** (new package): links Blazor Server clicks and navigation, which travel over SignalR, to the signed-in user, and adds the `JourneyView` component.
+- **@coredesign.dev/user-journey** (npm) works with 10.x unchanged. It only talks to the `MapUserJourneyEvents` endpoint.
+- **`AddAppSettings(o => o.SettingsName = "LOCAL")`**: choose the settings file name independently of the environment name, also through the `AppSettings:Name` configuration value. The loaded file is logged at startup.
+- **`IdentityApi:EnableLocalTokenInjection`**: an explicit switch for local bearer token injection, instead of relying only on the environment name.
+- **`IPAddress.IsPrivate()` and `IsInternal()`** in CoreDesign.Shared, for exempting internal traffic from rate limiting.
+
+### Breaking Changes
+
+- **`AddAppSettings` no longer overrides environment variables, user secrets or command-line arguments.** Its `appsettings` files used to be added after every other configuration source, so they won over App Service settings, Docker environment variables and user secrets. They now sit where .NET's own `appsettings` files do, so those sources override them as in any .NET app. If you relied on a JSON value beating an environment variable, remove the environment variable.
+- **`CoreDesign.Identity.Client` requires `Microsoft.OpenApi` 2.13.0 or later** (required by `Microsoft.AspNetCore.OpenApi` 10.0.15). Projects that pin an older 2.x version fail restore with NU1605 until they update the pin.
+
+### Security
+
+- Aspire packages move from 13.4.6 to 13.6.5, fixing CVE-2026-120006 (GHSA-f7vh-h5g3-7jrh, high).
+- `MessagePack` moves from 3.1.8 to 3.1.12, fixing GHSA-qhrr-8q5h-9q3h (moderate).
+
+### Dependency Updates
+
+- Microsoft ASP.NET Core, EF Core and `Microsoft.Extensions.*` packages move from 10.0.10 to 10.0.15.
+- `Microsoft.OpenApi` moves from 2.7.5 to 2.13.0.
+- `System.IdentityModel.Tokens.Jwt` moves from 8.19.2 to 8.23.0.
+- `CoreDesign.Shared` replaces a stray assembly reference to a .NET 9 `Microsoft.Extensions.Hosting.Abstractions` with the 10.0.15 package.
+- `CoreDesign.Logging` drops a leftover package reference to `CoreDesign.Shared` 1.0.3; it depends on the matching CoreDesign.Shared release.
+
+### Upgrading from 1.x
+
+Change every CoreDesign package reference to `10.0.0`. No code changes are needed unless you depended on `AddAppSettings` files overriding environment variables (see Breaking Changes). To move to .NET 11 later, see the CoreDesign 11 upgrade guide on the `main` branch.
+
+---
+
 ## CoreDesign.ExceptionHandling 1.0.0
 
 New package. A single global `IExceptionHandler` for ASP.NET Core that maps unhandled exceptions to RFC 7807 `ProblemDetails` responses. A Roslyn source generator collects every `[ProblemMapping]` usage in the compilation, applied directly to an exception type you own, or at the assembly level with `ExceptionType` set for BCL/third-party types, and emits a compile-time dispatch table. No reflection, no hand-maintained switch statement to keep in sync with your exception types.

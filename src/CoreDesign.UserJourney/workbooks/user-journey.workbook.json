@@ -1,0 +1,161 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# User Journey\nWhat signed-in users viewed and did, from CoreDesign.UserJourney telemetry. Pick an app and a user to see their timeline. Anonymous traffic is not tracked per user; use an aggregate analytics tool for that."
+      },
+      "name": "intro"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "143ea8ca-b0c0-5b73-b69e-3a49d49b6ebc",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "label": "Time range",
+            "type": 4,
+            "isRequired": true,
+            "value": {
+              "durationMs": 604800000
+            },
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 2592000000
+                },
+                {
+                  "durationMs": 7776000000
+                }
+              ]
+            }
+          },
+          {
+            "id": "586471a0-be5d-5a5c-983e-f283d7ad819a",
+            "version": "KqlParameterItem/1.0",
+            "name": "App",
+            "label": "App",
+            "type": 2,
+            "isRequired": true,
+            "query": "requests\n| where isnotempty(cloud_RoleName)\n| distinct cloud_RoleName\n| project value = cloud_RoleName, label = cloud_RoleName\n| union (datatable(value:string, label:string)[\"All\", \"All\"])\n| order by value asc",
+            "value": "All",
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 2592000000
+            },
+            "queryType": 0,
+            "resourceType": "microsoft.insights/components"
+          },
+          {
+            "id": "f52b4bbf-f7e4-5fcf-b760-e6f115336542",
+            "version": "KqlParameterItem/1.0",
+            "name": "UserId",
+            "label": "User",
+            "type": 2,
+            "isRequired": true,
+            "query": "union\n(requests | where isnotempty(user_AuthenticatedId) | extend uid = user_AuthenticatedId),\n(dependencies | extend uid = coalesce(user_AuthenticatedId, tostring(customDimensions[\"enduser.id\"])) | where isnotempty(uid))\n| where '{App}' == \"All\" or cloud_RoleName == '{App}'\n| summarize arg_max(timestamp, displayName = tostring(customDimensions[\"user.name\"])) by uid\n| order by timestamp desc\n| project value = uid, label = iff(isempty(displayName), uid, displayName)",
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "timeContextFromParameter": "TimeRange",
+            "queryType": 0,
+            "resourceType": "microsoft.insights/components"
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components"
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let uid = '{UserId}';\nlet userRequests = requests\n| where user_AuthenticatedId == uid\n| where '{App}' == \"All\" or cloud_RoleName == '{App}';\nlet userEvents = dependencies\n| where type == \"InProc\"\n| where user_AuthenticatedId == uid or tostring(customDimensions[\"enduser.id\"]) == uid\n| where '{App}' == \"All\" or cloud_RoleName == '{App}';\nlet ops = union (userRequests | project operation_Id), (userEvents | project operation_Id) | distinct operation_Id;\nlet viewed = union requests, dependencies\n| where operation_Id in (ops) and isnotempty(customDimensions[\"view.item\"])\n| summarize itemType = take_any(tostring(customDimensions[\"view.type\"])), item = take_any(tostring(customDimensions[\"view.item\"])) by operation_Id;\nlet pages = userRequests\n| where name startswith \"GET /\"\n| extend path = tostring(parse_url(url).Path)\n| where not(path matches regex @\"\\.[A-Za-z0-9]{2,5}$\") and path !startswith \"/_\" \n| project timestamp, operation_Id, Step = \"Viewed page\", What = path, Result = resultCode;\nlet browserPages = userEvents\n| where tostring(customDimensions[\"user_journey.event\"]) == \"page\"\n| project timestamp, operation_Id, Step = \"Viewed page\", What = tostring(customDimensions[\"user_journey.path\"]), Result = \"\";\nlet blazorClicks = userEvents\n| where name startswith \"Event \"\n| extend eventName = tostring(split(name, \" \")[1]), functionName = tostring(customDimensions[\"code.function.name\"]), page = tostring(split(tostring(customDimensions[\"aspnetcore.components.type\"]), \".\")[-1])\n| project timestamp, operation_Id, Step = \"Interacted\", What = strcat(iff(isempty(functionName) or functionName startswith \"<\", eventName, functionName), iff(isempty(page), \"\", strcat(\" on \", page))), Result = \"\";\nlet browserClicks = userEvents\n| where tostring(customDimensions[\"user_journey.event\"]) == \"click\"\n| project timestamp, operation_Id, Step = \"Interacted\", What = strcat(tostring(customDimensions[\"user_journey.target\"]), \" on \", tostring(customDimensions[\"user_journey.path\"])), Result = \"\";\nlet writeRequests = requests\n| where operation_Id in (ops) or user_AuthenticatedId == uid\n| where name matches regex @\"^(POST|PUT|PATCH|DELETE) \" and name !has \"/user-journey/events\"\n| where '{App}' == \"All\" or cloud_RoleName == '{App}'\n| project timestamp, operation_Id, name, Result = resultCode;\nlet writeCalls = dependencies\n| where type == \"HTTP\" and operation_Id in (ops)\n| where name matches regex @\"^(POST|PUT|PATCH|DELETE) \" and name !has \"/user-journey/events\"\n| join kind=leftanti (writeRequests | project operation_Id) on operation_Id\n| project timestamp, operation_Id, name, Result = resultCode;\nlet changes = union writeRequests, writeCalls\n| extend verb = tostring(split(name, \" \")[0]), resource = extract(@\"^\\w+ /?([^/ ]+)\", 1, name)\n| project timestamp, operation_Id, Step = \"Changed data\", What = strcat(case(verb == \"POST\", \"Created \", verb == \"DELETE\", \"Deleted \", \"Updated \"), resource), Result;\nunion pages, browserPages, blazorClicks, browserClicks, changes\n| join kind=leftouter viewed on operation_Id\n| extend What = iff(isempty(item) or Step != \"Viewed page\", What, strcat(What, \" (\", iff(isempty(itemType), \"\", strcat(itemType, \": \")), item, \")\"))\n| order by timestamp asc\n| project Time = timestamp, Step, What, Result",
+        "size": 0,
+        "title": "Timeline for the selected user",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "noDataMessage": "No activity for this user in the selected time range."
+      },
+      "name": "timeline"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "union\n(requests | extend uid = user_AuthenticatedId),\n(dependencies | extend uid = coalesce(user_AuthenticatedId, tostring(customDimensions[\"enduser.id\"])))\n| where isnotempty(uid)\n| where '{App}' == \"All\" or cloud_RoleName == '{App}'\n| summarize Users = dcount(uid) by bin(timestamp, 1d)\n| order by timestamp asc",
+        "size": 0,
+        "title": "Signed-in users per day",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "timechart"
+      },
+      "name": "active-users"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "union\n(requests\n | where isnotempty(user_AuthenticatedId) and name startswith \"GET /\"\n | extend path = tostring(parse_url(url).Path), uid = user_AuthenticatedId\n | where not(path matches regex @\"\\.[A-Za-z0-9]{2,5}$\") and path !startswith \"/_\" ),\n(dependencies\n | where tostring(customDimensions[\"user_journey.event\"]) == \"page\"\n | extend path = tostring(customDimensions[\"user_journey.path\"]), uid = coalesce(user_AuthenticatedId, tostring(customDimensions[\"enduser.id\"])))\n| where '{App}' == \"All\" or cloud_RoleName == '{App}'\n| summarize Views = count(), Users = dcount(uid) by Page = path\n| order by Views desc\n| take 25",
+        "size": 0,
+        "title": "Most viewed pages, signed-in users",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table"
+      },
+      "name": "top-pages",
+      "customWidth": "50"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "union requests, dependencies\n| where isnotempty(customDimensions[\"view.item\"])\n| where '{App}' == \"All\" or cloud_RoleName == '{App}'\n| extend uid = coalesce(user_AuthenticatedId, tostring(customDimensions[\"enduser.id\"]))\n| where isnotempty(uid)\n| summarize Views = count(), Users = dcount(uid), LastViewed = max(timestamp)\n    by Type = coalesce(tostring(customDimensions[\"view.type\"]), \"Item\"), Item = tostring(customDimensions[\"view.item\"])\n| order by Views desc\n| take 50",
+        "size": 0,
+        "title": "Items viewed (Journey.Viewed and JourneyView)",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "noDataMessage": "No items recorded. Call Journey.Viewed or add a JourneyView component to record them."
+      },
+      "name": "items-viewed",
+      "customWidth": "50"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let writeRequests = requests\n| where isnotempty(user_AuthenticatedId)\n| where name matches regex @\"^(POST|PUT|PATCH|DELETE) \" and name !has \"/user-journey/events\"\n| where '{App}' == \"All\" or cloud_RoleName == '{App}'\n| project operation_Id, name;\nlet userOps = union\n(requests | where isnotempty(user_AuthenticatedId) | project operation_Id),\n(dependencies | where type == \"InProc\" and (isnotempty(user_AuthenticatedId) or isnotempty(customDimensions[\"enduser.id\"])) | project operation_Id)\n| distinct operation_Id;\nlet writeCalls = dependencies\n| where type == \"HTTP\" and operation_Id in (userOps)\n| where name matches regex @\"^(POST|PUT|PATCH|DELETE) \" and name !has \"/user-journey/events\"\n| where '{App}' == \"All\" or cloud_RoleName == '{App}'\n| join kind=leftanti (writeRequests | project operation_Id) on operation_Id\n| project operation_Id, name;\nunion writeRequests, writeCalls\n| extend verb = tostring(split(name, \" \")[0]), resource = extract(@\"^\\w+ /?([^/ ]+)\", 1, name)\n| summarize Count = count() by Action = strcat(case(verb == \"POST\", \"Created \", verb == \"DELETE\", \"Deleted \", \"Updated \"), resource)\n| order by Count desc",
+        "size": 0,
+        "title": "Most common data changes, signed-in users",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table"
+      },
+      "name": "top-changes"
+    }
+  ],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

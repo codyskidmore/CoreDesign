@@ -10,7 +10,8 @@ Shared infrastructure, error result types, and utility extension methods for .NE
 - Microsoft.Extensions.Configuration.Json 10.x
 - Microsoft.Extensions.DependencyInjection 10.x
 - Microsoft.Extensions.Options 10.x
-- Aspire.Hosting.AppHost 13.x
+- Aspire.Hosting.AppHost 13.6.5 or later
+- MessagePack 3.1.x
 - Ulid 1.4.x
 
 ## What Is Included
@@ -33,7 +34,7 @@ A record that holds the database connection settings read from configuration:
 | Method | Target | Description |
 | --- | --- | --- |
 | `AddDatabaseConfiguration` | `IHostApplicationBuilder` | Binds the `DatabaseOptions` section from `appsettings.json` into the options system |
-| `AddAppSettings` | `IHostApplicationBuilder` | Loads `appsettings.json` and the environment-specific `appsettings.{Environment}.json` |
+| `AddAppSettings` | `IHostApplicationBuilder` | Loads `appsettings.json` and `appsettings.{name}.json` from the app's output folder; the name is chosen as described under Setup |
 | `AddAppSettings` | `IDistributedApplicationBuilder` | Same as above, for use in Aspire AppHost projects |
 
 **Error result records**
@@ -60,6 +61,15 @@ Each record carries a single `string Message` property.
 | `DeepClone<T>(options?)` | Deep-clones an object via JSON round-trip; returns `null` if the source is `null` |
 
 Note: `DeepClone` requires the type to be serializable by `System.Text.Json`. Types with non-default constructors may need a `[JsonConstructor]` attribute.
+
+**`IpAddressExtensionMethods`**
+
+| Method | Description |
+| --- | --- |
+| `IsPrivate()` | True for 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 and IPv6 unique local addresses (fc00::/7) |
+| `IsInternal()` | True for private, loopback and link-local addresses, for example to exempt internal callers from rate limiting |
+
+Both recognize IPv4 addresses in IPv6 form. Behind a reverse proxy, check the address after `UseForwardedHeaders` runs.
 
 **`StringExtensionMethods`**
 
@@ -114,6 +124,14 @@ Call both extension methods during startup to load settings and bind database op
 builder.AddAppSettings();
 builder.AddDatabaseConfiguration();
 ```
+
+`AddAppSettings` picks `appsettings.{name}.json` from `AppSettingsOptions.SettingsName`, then the `AppSettings:Name` configuration value, then the environment name. Use it to name settings files after deployment environments while the local environment stays `Development`:
+
+```csharp
+builder.AddAppSettings(o => o.SettingsName = builder.Environment.IsDevelopment() ? "LOCAL" : null);
+```
+
+The file loaded is logged at startup. User secrets, environment variables and command-line arguments override values in these files, as in any .NET app.
 
 Then resolve `DatabaseOptions` wherever needed:
 
