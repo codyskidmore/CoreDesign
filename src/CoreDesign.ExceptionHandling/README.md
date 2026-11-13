@@ -25,6 +25,8 @@ app.UseExceptionHandler();
 
 With nothing else configured, every unhandled exception produces a generic RFC 7807 500 response. In `Development`, the response `detail` includes the exception; in every other environment it is omitted.
 
+The one exception is ASP.NET Core's own `BadHttpRequestException`, which carries the status code the request deserves. Minimal APIs throw it in `Development` when a route, query or body value cannot be bound (for example `/forecasts/not-a-ulid` for a `Ulid id` parameter), and Kestrel throws it for problems such as an oversized request body. An unmapped `BadHttpRequestException` keeps its own status code (typically 400) instead of becoming a 500, with its message in `detail` only in `Development`. A `[ProblemMapping]` for it, or for a subtype, still takes precedence.
+
 ## Mapping your own exceptions
 
 Apply `[ProblemMapping]` directly to an exception type you own:

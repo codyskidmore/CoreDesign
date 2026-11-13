@@ -51,6 +51,59 @@ public class CoreDesignExceptionHandlerTests
     }
 
     [Fact]
+    public async Task BindingFailure_Development_Returns400NotGeneric500()
+    {
+        var (client, app) = await TestHost.StartAsync(new GeneratedProblemDetailsMapperStandIn(), environmentName: "Development");
+        await using var _ = app;
+
+        var response = await client.GetAsync("/bind/not-a-number");
+        var body = await response.Content.ReadFromJsonAsync<ProblemDetailsDto>(JsonOptions);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(400, body!.Status);
+        Assert.Equal("Bad Request", body.Title);
+        Assert.Contains("not-a-number", body.Detail);
+    }
+
+    [Fact]
+    public async Task UnmappedBadHttpRequestException_Production_KeepsItsStatusCodeWithNoDetail()
+    {
+        var (client, app) = await TestHost.StartAsync(new GeneratedProblemDetailsMapperStandIn(), environmentName: "Production");
+        await using var _ = app;
+
+        var response = await client.GetAsync("/throw/too-large");
+        var body = await response.Content.ReadFromJsonAsync<ProblemDetailsDto>(JsonOptions);
+
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
+        Assert.Equal("Payload Too Large", body!.Title);
+        Assert.Null(body.Detail);
+    }
+
+    [Fact]
+    public async Task UnmappedBadHttpRequestException_ZeroConfig_KeepsItsStatusCode()
+    {
+        var (client, app) = await TestHost.StartAsync(mapper: null);
+        await using var _ = app;
+
+        var response = await client.GetAsync("/throw/too-large");
+
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task MappedBadHttpRequestException_ExplicitMappingWins()
+    {
+        var (client, app) = await TestHost.StartAsync(new GeneratedProblemDetailsMapperStandIn());
+        await using var _ = app;
+
+        var response = await client.GetAsync("/throw/bad-mapped");
+        var body = await response.Content.ReadFromJsonAsync<ProblemDetailsDto>(JsonOptions);
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal("Mapped bad request", body!.Title);
+    }
+
+    [Fact]
     public async Task ZeroConfig_NoMapperRegistered_StillReturns500ForAnyException()
     {
         var (client, app) = await TestHost.StartAsync(mapper: null);

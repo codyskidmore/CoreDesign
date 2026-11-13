@@ -1,5 +1,29 @@
 # Release Notes
 
+## CoreDesign 10.0.1
+
+A patch release for the .NET 10 line with two bug fixes and a source generator dependency update. Every CoreDesign package moves to 10.0.1 together. There are no API changes.
+
+### Fixes
+
+- **CoreDesign.Logging: `DecorateWithLogging()` no longer crashes on open generic registrations.** A generic `[LoggingDecorator]` interface registered as an open generic, such as `AddScoped(typeof(IRepository<>), typeof(Repository<>))`, made `DecorateWithLogging()` throw an `ArgumentException` at startup. Open generic registrations are now decorated: the implementation moves to a keyed slot and the generated decorator takes its place with the same lifetime. Only one open generic implementation per interface can be decorated; a second one throws an `InvalidOperationException` that names the interface. Generated decorators for generic interfaces now take their inner instance with `[FromKeyedServices]`, which needs no change in your code.
+- **CoreDesign.ExceptionHandling: binding failures return 400 instead of 500.** An unmapped `BadHttpRequestException` (thrown by minimal APIs in `Development` when a route, query or body value cannot be bound, and by Kestrel for problems such as an oversized body) now keeps its own status code instead of becoming a generic 500. Its message appears in `detail` only in `Development`. A `[ProblemMapping]` for it still takes precedence.
+
+### Dependency Updates
+
+- The CoreDesign.Logging and CoreDesign.ExceptionHandling source generators build against `Microsoft.CodeAnalysis.CSharp` 5.9.0 (from 5.3.0). Consumers need a .NET SDK whose compiler is Roslyn 5.9 or later, such as 10.0.404.
+
+### Sample
+
+- The Sample application now references the CoreDesign 10.0.1 packages instead of the 1.x packages, so it runs against the current release.
+- Sample dependencies are updated to match: ASP.NET Core, EF Core and `Microsoft.Extensions.*` 10.0.15, Aspire 13.6.5, OpenTelemetry 1.21.0, Scalar 2.21.0 and `Microsoft.Identity.Web` 4.18.0. `Sample.Identity.Api` pins `Microsoft.OpenApi` to 2.13.0 (from 2.7.5), which `Microsoft.AspNetCore.OpenApi` 10.0.15 requires.
+
+### Upgrading from 10.0.0
+
+Change every CoreDesign package reference to `10.0.1` and make sure your build uses a .NET SDK with Roslyn 5.9 or later (SDK 10.0.404 includes it; run `dotnet --version` to check yours). With an older SDK the compiler reports warning CS9057 and the source generators do not run, so `DecorateWithLogging()` and `AddGeneratedProblemMappings()` go missing. No code changes are needed.
+
+---
+
 ## CoreDesign 10.0.0 (.NET 10 Release)
 
 The .NET 10 line of CoreDesign moves to the version scheme CoreDesign 11 introduced: every package shares one version number, and the major version matches the .NET version it targets. CoreDesign 10.x targets .NET 10; CoreDesign 11.x targets .NET 11. This release replaces the 1.x packages, backports the CoreDesign 11 features that .NET 10 supports, updates dependencies and fixes known vulnerabilities.

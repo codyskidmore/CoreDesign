@@ -4,7 +4,7 @@
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <PackageId>CoreDesign.UserJourney.Blazor</PackageId>
-        <VersionPrefix>10.0.0</VersionPrefix>
+        <VersionPrefix>10.0.1</VersionPrefix>
         <Description>Blazor Server support for CoreDesign.UserJourney. Links Blazor clicks and in-app navigation, which travel over the SignalR circuit instead of HTTP, to the signed-in user, and adds a JourneyView component for recording which item a page showed.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.UserJourney.Blazor</PackageProjectUrl>

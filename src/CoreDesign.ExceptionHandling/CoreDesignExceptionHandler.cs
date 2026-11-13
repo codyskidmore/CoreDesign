@@ -11,8 +11,10 @@ namespace CoreDesign.ExceptionHandling;
 /// <summary>
 /// The single catch point for unhandled exceptions escaping the request pipeline. Resolves the
 /// exception to an RFC 7807 response via the registered <see cref="IProblemDetailsMapper"/> (the
-/// generated mapping table, or <see cref="NullProblemDetailsMapper"/> when nothing is mapped) and
-/// falls back to a generic 500. Register with <c>AddCoreDesignExceptionHandling()</c>.
+/// generated mapping table, or <see cref="NullProblemDetailsMapper"/> when nothing is mapped).
+/// An unmapped <see cref="BadHttpRequestException"/> (for example a route value that cannot be
+/// bound) keeps the status code it carries, typically 400. Everything else falls back to a
+/// generic 500. Register with <c>AddCoreDesignExceptionHandling()</c>.
 /// </summary>
 public sealed class CoreDesignExceptionHandler(
     IProblemDetailsMapper mapper,
@@ -24,11 +26,17 @@ public sealed class CoreDesignExceptionHandler(
     {
         var mapped = mapper.TryMap(exception, out var result)
             ? result
-            : new ProblemMappingResult(
-                StatusCodes.Status500InternalServerError,
-                "An unexpected error occurred",
-                environment.IsDevelopment() ? exception.ToString() : null,
-                null);
+            : exception is BadHttpRequestException badRequest
+                ? new ProblemMappingResult(
+                    badRequest.StatusCode,
+                    null,
+                    environment.IsDevelopment() ? badRequest.Message : null,
+                    null)
+                : new ProblemMappingResult(
+                    StatusCodes.Status500InternalServerError,
+                    "An unexpected error occurred",
+                    environment.IsDevelopment() ? exception.ToString() : null,
+                    null);
 
         logger.LogError(exception, "Unhandled exception mapped to {StatusCode}", mapped.StatusCode);
 

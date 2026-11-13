@@ -6,7 +6,7 @@
         <Nullable>enable</Nullable>
         <LangVersion>default</LangVersion>
         <PackageId>CoreDesign.Data</PackageId>
-        <VersionPrefix>10.0.0</VersionPrefix>
+        <VersionPrefix>10.0.1</VersionPrefix>
         <Description>A generic, reusable Entity Framework Core data access layer providing base entity infrastructure and repository abstractions for .NET projects.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/codyskidmore/CoreDesign/tree/main/src/CoreDesign.Data</PackageProjectUrl>

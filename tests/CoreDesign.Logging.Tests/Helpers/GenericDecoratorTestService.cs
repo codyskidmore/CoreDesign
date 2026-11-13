@@ -13,7 +13,8 @@ public class GenericDecoratorTestService<T> : IGenericDecoratorTestService<T> wh
 }
 
 // Hand-written decorator matching the generator's output pattern for a generic interface.
-// The class declaration, constraint clause, and interface references all carry <T>.
+// The class declaration, constraint clause, and interface references all carry <T>, and the inner
+// parameter carries [FromKeyedServices] so the decorator can replace an open generic registration.
 public sealed class GenericDecoratorTestServiceLoggingDecorator<T> : IGenericDecoratorTestService<T>
     where T : class
 {
@@ -21,7 +22,8 @@ public sealed class GenericDecoratorTestServiceLoggingDecorator<T> : IGenericDec
     private readonly ILogger _logger;
 
     public GenericDecoratorTestServiceLoggingDecorator(
-        IGenericDecoratorTestService<T> inner, ILoggerFactory loggerFactory)
+        [FromKeyedServices(LoggingDecoratorRegistration.InnerServiceKey)] IGenericDecoratorTestService<T> inner,
+        ILoggerFactory loggerFactory)
     {
         _inner = inner;
         _logger = loggerFactory.CreateLogger(

@@ -10,6 +10,7 @@ namespace CoreDesign.ExceptionHandling.Tests.Helpers;
 //   [ProblemMapping(404, Title = "Not found")]                                  EntityNotFoundException
 //   [ProblemMapping(500, Title = "Secret", IncludeMessage = false)]             SecretException
 //   [ProblemMapping(422, Title = "Exact only", MatchDerived = false)]           ExactOnlyException
+//   [ProblemMapping(422, Title = "Mapped bad request")]                         MappedBadHttpRequestException
 //
 // Cases are ordered most-derived first (EntityNotFoundException before its base DomainException),
 // exactly as ProblemMappingGenerator orders by inheritance depth.
@@ -19,6 +20,9 @@ public sealed class GeneratedProblemDetailsMapperStandIn : IProblemDetailsMapper
     {
         switch (exception)
         {
+            case MappedBadHttpRequestException e:
+                result = new ProblemMappingResult(422, "Mapped bad request", e.Message, null);
+                return true;
             case EntityNotFoundException e:
                 result = new ProblemMappingResult(404, "Not found", e.Message, null);
                 return true;
