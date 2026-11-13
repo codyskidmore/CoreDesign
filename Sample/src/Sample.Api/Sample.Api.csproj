@@ -12,26 +12,26 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.4.6" />
-        <PackageReference Include="CoreDesign.Data" Version="1.2.0" />
-        <PackageReference Include="CoreDesign.ExceptionHandling" Version="1.0.0" />
-        <PackageReference Include="CoreDesign.Identity.Client" Version="1.0.11" />
-        <PackageReference Include="CoreDesign.Logging" Version="1.2.4" />
-        <PackageReference Include="CoreDesign.Shared" Version="1.0.5" />
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.10" />
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
+        <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.6.5" />
+        <PackageReference Include="CoreDesign.Data" Version="10.0.1" />
+        <PackageReference Include="CoreDesign.ExceptionHandling" Version="10.0.1" />
+        <PackageReference Include="CoreDesign.Identity.Client" Version="10.0.1" />
+        <PackageReference Include="CoreDesign.Logging" Version="10.0.1" />
+        <PackageReference Include="CoreDesign.Shared" Version="10.0.1" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.15" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.15" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.15" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.15">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.10">
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.15">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="OneOf" Version="3.0.271" />
-        <PackageReference Include="Scalar.AspNetCore" Version="2.16.15" />
-        <PackageReference Include="Scalar.AspNetCore.Microsoft" Version="2.16.15" />
+        <PackageReference Include="Scalar.AspNetCore" Version="2.21.0" />
+        <PackageReference Include="Scalar.AspNetCore.Microsoft" Version="2.21.0" />
         <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
         <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
         <PackageReference Include="Serilog.Enrichers.OpenTelemetry" Version="1.0.1" />

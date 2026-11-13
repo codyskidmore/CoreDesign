@@ -35,7 +35,7 @@ public interface IRepository<T> where T : class
 }
 ```
 
-The generator produces `RepositoryLoggingDecorator<T> : IRepository<T> where T : class`. Registration in `DecorateWithLogging()` uses the open-generic form so all concrete registrations of the interface are covered by a single call.
+The generator produces `RepositoryLoggingDecorator<T> : IRepository<T> where T : class`. Registration in `DecorateWithLogging()` uses the open-generic form so all registrations of the interface are covered by a single call. Closed registrations such as `AddScoped<IRepository<Order>, OrderRepository>()` are wrapped individually. An open generic registration such as `AddScoped(typeof(IRepository<>), typeof(Repository<>))` is also decorated: `DecorateWithLogging()` moves the implementation to a keyed slot and registers the open generic decorator in its place with the same lifetime, so every closed form resolved from it is logged. Only one open generic implementation per interface can be decorated; a second one makes `DecorateWithLogging()` throw an `InvalidOperationException` explaining the conflict, so register additional implementations with closed types.
 
 ### Register
 

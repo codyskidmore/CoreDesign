@@ -223,7 +223,14 @@ public sealed class LoggingDecoratorGenerator : IIncrementalGenerator
         sb.AppendLine("    private readonly " + ifaceRef + " _inner;");
         sb.AppendLine("    private readonly ILogger _logger;");
         sb.AppendLine();
-        sb.AppendLine("    public " + info.DecoratorName + "(" + ifaceRef + " inner, ILoggerFactory loggerFactory)");
+        // A generic decorator can replace an open generic registration, where the original
+        // implementation moves to a keyed slot (see LoggingDecoratorRegistration.Decorate).
+        // Closed registrations construct the decorator through ActivatorUtilities with the inner
+        // instance passed explicitly, which takes precedence over the attribute.
+        var innerAttribute = info.IsGeneric
+            ? "[global::Microsoft.Extensions.DependencyInjection.FromKeyedServices(global::CoreDesign.Logging.LoggingDecoratorRegistration.InnerServiceKey)] "
+            : "";
+        sb.AppendLine("    public " + info.DecoratorName + "(" + innerAttribute + ifaceRef + " inner, ILoggerFactory loggerFactory)");
         sb.AppendLine("    {");
         sb.AppendLine("        _inner = inner;");
         sb.AppendLine("        _logger = loggerFactory.CreateLogger(\"" + info.LoggerCategory + "\");");

@@ -30,6 +30,10 @@ public static class TestHost
 
         app.MapGet("/throw/{name}", (string name) => Throw(name));
 
+        // Binding failure: minimal APIs throw BadHttpRequestException for an unparseable route
+        // value when RouteHandlerOptions.ThrowOnBadRequest is on (the Development default).
+        app.MapGet("/bind/{id}", (int id) => Results.Ok(id));
+
         await app.StartAsync();
         return (app.GetTestClient(), app);
     }
@@ -41,6 +45,8 @@ public static class TestHost
         "secret"    => throw new SecretException("shh"),
         "exact"     => throw new ExactOnlyException("exact"),
         "exact-sub" => throw new ExactOnlySubException("sub"),
+        "too-large" => throw new BadHttpRequestException("Request body too large.", StatusCodes.Status413PayloadTooLarge),
+        "bad-mapped" => throw new MappedBadHttpRequestException("mapped bad request"),
         _           => throw new InvalidOperationException("boom")
     };
 }

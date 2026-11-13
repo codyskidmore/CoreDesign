@@ -9,6 +9,13 @@ namespace CoreDesign.Logging;
 public static class LoggingDecoratorRegistration
 {
     /// <summary>
+    /// The service key under which an open generic implementation is re-registered when its
+    /// interface is decorated. Generated decorators for generic interfaces receive their inner
+    /// instance through <c>[FromKeyedServices(InnerServiceKey)]</c>.
+    /// </summary>
+    public const string InnerServiceKey = "CoreDesign.Logging.DecoratedInner";
+
+    /// <summary>
     /// Wraps the last registered <typeparamref name="TService"/> with <typeparamref name="TDecorator"/>.
     /// The decorator receives the original implementation as its first constructor argument.
     /// </summary>
@@ -39,17 +46,48 @@ public static class LoggingDecoratorRegistration
     }
 
     /// <summary>
-    /// Wraps every closed-generic registration of <paramref name="serviceType"/> with the
-    /// corresponding closed form of <paramref name="decoratorType"/>.
+    /// Wraps every registration of the generic <paramref name="serviceType"/> with the
+    /// corresponding form of <paramref name="decoratorType"/>.
     /// Both types must be open generic (e.g. <c>typeof(IRepository&lt;&gt;)</c>).
+    ///
+    /// Closed registrations (<c>AddScoped&lt;IRepository&lt;Order&gt;, OrderRepository&gt;()</c>) are
+    /// wrapped individually. An open generic registration
+    /// (<c>AddScoped(typeof(IRepository&lt;&gt;), typeof(Repository&lt;&gt;))</c>) is moved to the
+    /// keyed slot <see cref="InnerServiceKey"/> and replaced by an open generic registration of
+    /// <paramref name="decoratorType"/> with the same lifetime, so every closed form resolved from
+    /// it is decorated. Because the keyed slot holds a single implementation, at most one open
+    /// generic registration per interface can be decorated.
     /// </summary>
     public static IServiceCollection Decorate(IServiceCollection services, Type serviceType, Type decoratorType)
     {
+        var openRegistrationFound = false;
+
         for (var i = 0; i < services.Count; i++)
         {
             var descriptor = services[i];
             if (descriptor.IsKeyedService) continue;
-            if (!descriptor.ServiceType.IsGenericType) continue;
+
+            if (descriptor.ServiceType == serviceType)
+            {
+                // Already decorated by an earlier call; decorating again would make the
+                // decorator resolve itself from the keyed slot.
+                if (descriptor.ImplementationType == decoratorType) continue;
+
+                if (openRegistrationFound)
+                    throw new InvalidOperationException(
+                        $"More than one open generic registration of {serviceType.FullName} was found. " +
+                        "DecorateWithLogging() can decorate only one open generic implementation per interface. " +
+                        "Register the additional implementations with closed types instead.");
+
+                openRegistrationFound = true;
+                services[i] = ServiceDescriptor.DescribeKeyed(
+                    serviceType, InnerServiceKey, descriptor.ImplementationType!, descriptor.Lifetime);
+                services.Insert(i + 1, ServiceDescriptor.Describe(serviceType, decoratorType, descriptor.Lifetime));
+                i++;
+                continue;
+            }
+
+            if (!descriptor.ServiceType.IsConstructedGenericType) continue;
             if (descriptor.ServiceType.GetGenericTypeDefinition() != serviceType) continue;
 
             var typeArgs        = descriptor.ServiceType.GenericTypeArguments;

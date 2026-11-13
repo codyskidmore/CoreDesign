@@ -66,7 +66,7 @@ Full details: [src/CoreDesign.Logging/README.md](src/CoreDesign.Logging/README.m
 
 `src/CoreDesign.ExceptionHandling/`
 
-Global unhandled exception handling for ASP.NET Core. A Roslyn source generator produces a compile-time dispatch table from exception types marked with `[ProblemMapping]`, mapping them to RFC 7807 `ProblemDetails` responses. Works with zero configuration (a generic 500 for every exception) and layers in per-exception status codes as mappings are added.
+Global unhandled exception handling for ASP.NET Core. A Roslyn source generator produces a compile-time dispatch table from exception types marked with `[ProblemMapping]`, mapping them to RFC 7807 `ProblemDetails` responses. Works with zero configuration (a generic 500 for every exception, except that ASP.NET Core's `BadHttpRequestException` keeps its own 4xx status) and layers in per-exception status codes as mappings are added.
 
 ```csharp
 [ProblemMapping(404, Title = "Resource not found")]
