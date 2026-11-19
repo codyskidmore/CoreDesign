@@ -9,6 +9,17 @@
 - **Docs: sampling.** `UseAzureMonitor()` and `UseAzureMonitorExporter()` default to `TracesPerSecond = 5`, which overrides `SamplingRatio`. The docs now set `TracesPerSecond = null` as well as `SamplingRatio = 1.0F`; following the old docs still dropped traces above 5 per second.
 - **Docs: duplicate requests on App Service.** A troubleshooting entry for App Service's built-in Application Insights agent, which records every request a second time without the user.
 
+- **Workbook: Clicks without a name.** A new report lists browser clicks recorded as `(unnamed ...)`, grouped by page, so missed `data-journey` names can be found and fixed.
+
+### @coredesign.dev/user-journey
+
+- **`autoClickNames`** (opt-in): clicks on buttons, links and other clickable elements without `data-journey` are recorded instead of dropped. They are named from `data-testid`, `aria-label`, `name` or `id` (or a list you choose), or recorded as `(unnamed button)`, `(unnamed link)` and so on. Element text is never used. An explicit `data-journey` always wins, so existing names do not change.
+- **`warnUnnamed`**: a development-time console warning the first time each unnamed element is clicked.
+- **`data-journey-ignore`** (`ignoreAttribute`): leaves an element or area out of auto-naming, warnings and the test helper.
+- **`@coredesign.dev/user-journey/testing`**: `assertJourneyNames(container)` fails a test when a clickable element has no journey name; `findUnnamedClickables(container)` returns them.
+
+With every option at its default, the package records exactly what it did before.
+
 Reported by the TMS team.
 
 ## CoreDesign 11.0.1 (.NET 11 Release)

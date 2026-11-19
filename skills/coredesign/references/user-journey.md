@@ -103,6 +103,32 @@ useJourneyPage(`/products/${product.id}`, { type: 'Product', name: product.name 
 <button data-journey="add-to-cart">Add to cart</button>
 ```
 
+Clicks on elements without `data-journey` are dropped unless the tracker is told otherwise, so set up all three of these in every new React app:
+
+```tsx
+<UserJourneyProvider options={{
+  endpoint, getAccessToken,
+  autoClickNames: true,                 // record unnamed clicks: data-testid, aria-label, name, id, else "(unnamed button)"
+  warnUnnamed: import.meta.env.DEV,     // console warning the first time each unnamed element is clicked
+}}>
+```
+
+```tsx
+import { assertJourneyNames } from '@coredesign.dev/user-journey/testing'
+
+it('names every clickable element', () => {
+  const { container } = render(<OrdersPage />)
+  assertJourneyNames(container)         // throws, listing clickable elements without data-journey
+})
+```
+
+- An explicit `data-journey` (on the element or an ancestor) always wins over auto names.
+- Element text is never used. Only list attributes in `autoClickNames` whose values never hold personal data; a templated `aria-label` such as "Delete Jane's order" is recorded as written.
+- `data-journey-ignore` leaves an element or area out of auto-naming, warnings and `assertJourneyNames`.
+- A `<div onClick>` cannot be detected (React handles events at the root); give it `role="button"`.
+- When writing a shared `Button` component, make a `journey` prop required and render it as `data-journey`, so TypeScript rejects unnamed buttons.
+- The workbook's **Clicks without a name** report lists `(unnamed ...)` clicks by page.
+
 If the API is on another origin, add the app's origin to the API's CORS policy. Without React, use `createUserJourney({ endpoint, getAccessToken })`, then `start()`, `page(path)` and `click(name)`. Nothing is sent while `getAccessToken` returns no token. For apps without a router, pass `getPath` so clicks record the current page instead of `/`.
 
 ## 5. Recording what a page showed

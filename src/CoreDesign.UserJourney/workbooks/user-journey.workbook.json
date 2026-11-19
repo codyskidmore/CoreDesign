@@ -169,6 +169,21 @@
         "visualization": "table"
       },
       "name": "top-changes"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Clicks the browser package recorded without a data-journey name (autoClickNames on, and no usable\n// attribute). Each row is an element to name, or to mark with data-journey-ignore.\ndependencies\n| where tostring(customDimensions[\"user_journey.event\"]) == \"click\"\n| extend target = tostring(customDimensions[\"user_journey.target\"])\n| where target startswith \"(unnamed \"\n| where '{App}' == \"All\" or cloud_RoleName == '{App}'\n| summarize Clicks = count(), Users = dcount(coalesce(user_AuthenticatedId, tostring(customDimensions[\"enduser.id\"]))), LastClicked = max(timestamp)\n    by Page = tostring(customDimensions[\"user_journey.path\"]), Element = target\n| order by Clicks desc\n| take 50",
+        "size": 0,
+        "title": "Clicks without a name (browser apps)",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "noDataMessage": "No unnamed clicks. They are recorded only when the browser package's autoClickNames option is on."
+      },
+      "name": "unnamed-clicks"
     }
   ],
   "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
