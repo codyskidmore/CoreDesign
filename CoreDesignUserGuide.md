@@ -1024,6 +1024,14 @@ useJourneyPage(location.pathname)
 
 `Sample.React` shows the complete setup, including the Vite proxy to the API.
 
+A click on an element without `data-journey` is not recorded unless the tracker is told otherwise. Three options close that gap:
+
+- `autoClickNames: true` records clicks on unnamed buttons, links and button-like elements, named from `data-testid`, `aria-label`, `name` or `id`, or as `(unnamed button)` when none is present. Element text is never used.
+- `warnUnnamed: import.meta.env.DEV` logs a console warning the first time each unnamed element is clicked.
+- `assertJourneyNames(container)` from `@coredesign.dev/user-journey/testing` fails a test when a clickable element has no name, so a redesigned screen cannot drop tracking unnoticed.
+
+`data-journey-ignore` leaves an element or area out of all three. The workbook's **Clicks without a name** report lists unnamed clicks by page. The package README covers the details, including a shared `Button` component that makes the name a required prop.
+
 ### The workbook
 
 `CoreDesign.UserJourney` ships `workbooks/user-journey.workbook.json`. In the Azure portal open the Application Insights resource, then **Workbooks**, **New**, the **Advanced Editor** (`</>`), choose **Gallery Template**, paste the file, **Apply** and **Save**. It shows a per-user timeline, signed-in users per day, most viewed pages, items viewed and the most common data changes, with an App picker for resources shared by several apps.
