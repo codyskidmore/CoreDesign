@@ -1,5 +1,16 @@
 # Release Notes
 
+## Unreleased
+
+### CoreDesign.UserJourney
+
+- **Workbook: API calls no longer show as page views in single-page apps.** The timeline and "Most viewed pages" counted every signed-in `GET /...` request as a page view. In a React, Angular or Vue app those requests are API calls. A new **Page views** picker defaults to **Auto**: an app that receives browser page events gets its page views from those events only, and other apps (Blazor, MVC, Razor Pages) count their GET requests as before. **GET requests and browser events** restores the previous behaviour.
+- **Workbook: clearer data change labels.** Requests are labelled with the whole route template minus its parameters (`POST /orders/{id}/items` is now "Created orders/items" instead of "Created orders"). Outgoing calls with no matching request keep the first path segment, since their names contain real IDs. Saved copies of the workbook keep the old labels until they are replaced with the new file.
+- **Docs: sampling.** `UseAzureMonitor()` and `UseAzureMonitorExporter()` default to `TracesPerSecond = 5`, which overrides `SamplingRatio`. The docs now set `TracesPerSecond = null` as well as `SamplingRatio = 1.0F`; following the old docs still dropped traces above 5 per second.
+- **Docs: duplicate requests on App Service.** A troubleshooting entry for App Service's built-in Application Insights agent, which records every request a second time without the user.
+
+Reported by the TMS team.
+
 ## CoreDesign 11.0.1 (.NET 11 Release)
 
 Every CoreDesign package now targets .NET 11 and C# 15. This release adds first-class support for C# 15 union types, a new user journey package family for following what each signed-in user views and does, and more control over configuration. Applications on .NET 10, or that want to keep their code unchanged, can stay on the previous versions: they target .NET 10 and also run on the .NET 11 runtime.

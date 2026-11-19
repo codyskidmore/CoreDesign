@@ -982,7 +982,7 @@ app.UseUserJourney();
 app.MapUserJourneyEvents();                   // only when a browser app sends events
 ```
 
-With Application Insights, keep every trace so timelines have no gaps: `UseAzureMonitor(o => o.SamplingRatio = 1.0F)`.
+With Application Insights, keep every trace so timelines have no gaps. `UseAzureMonitor()` and `UseAzureMonitorExporter()` both default to rate-limited sampling at 5 traces per second, which takes precedence over `SamplingRatio`, so set both: `UseAzureMonitor(o => { o.TracesPerSecond = null; o.SamplingRatio = 1.0F; })`.
 
 ### What is recorded
 
@@ -1027,6 +1027,10 @@ useJourneyPage(location.pathname)
 ### The workbook
 
 `CoreDesign.UserJourney` ships `workbooks/user-journey.workbook.json`. In the Azure portal open the Application Insights resource, then **Workbooks**, **New**, the **Advanced Editor** (`</>`), choose **Gallery Template**, paste the file, **Apply** and **Save**. It shows a per-user timeline, signed-in users per day, most viewed pages, items viewed and the most common data changes, with an App picker for resources shared by several apps.
+
+The **Page views** picker decides what counts as a page view. On **Auto** (the default), an app whose browser front end sends page events gets its page views from those events only, because its GET requests are API calls; Blazor, MVC and Razor Pages apps count their GET requests. **Browser events only** never counts GET requests, and **GET requests and browser events** counts both. Data changes are labelled with the route template minus its parameters, so `POST /orders/{id}/items` shows as "Created orders/items".
+
+If the App picker lists an app twice, once under its App Service name, and those requests have no user, App Service's built-in Application Insights agent is recording every request a second time. Pick the OpenTelemetry service name, or remove the `ApplicationInsightsAgent_EXTENSION_VERSION` app setting while keeping `APPLICATIONINSIGHTS_CONNECTION_STRING`.
 
 ### Privacy
 
