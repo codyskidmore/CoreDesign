@@ -35,11 +35,17 @@ app.UseUserJourney();
 app.MapUserJourneyEvents();
 ```
 
-For Application Insights, keep every trace so timelines have no gaps:
+For Application Insights, keep every trace so timelines have no gaps. `UseAzureMonitor()` and `UseAzureMonitorExporter()` both default to rate-limited sampling at 5 traces per second, and that setting takes precedence over `SamplingRatio`, so clear it:
 
 ```csharp
-builder.Services.AddOpenTelemetry().UseAzureMonitor(o => o.SamplingRatio = 1.0F);
+builder.Services.AddOpenTelemetry().UseAzureMonitor(o =>
+{
+    o.TracesPerSecond = null;   // the default (5) overrides SamplingRatio
+    o.SamplingRatio = 1.0F;
+});
 ```
+
+`UseAzureMonitorExporter()` takes the same two settings.
 
 ## What gets recorded
 
@@ -98,6 +104,12 @@ Each event is recorded on the `CoreDesign.UserJourney` ActivitySource as a child
 ## The workbook
 
 The package includes `workbooks/user-journey.workbook.json`, also in the CoreDesign repository. In the Azure portal, open your Application Insights resource, then **Workbooks**, **New**, **Advanced Editor** (the `</>` button), choose **Gallery Template**, paste the file, **Apply**, and **Save**. It shows a timeline per user, signed-in users per day, most viewed pages, items viewed and the most common data changes, with an App picker for multi-app resources.
+
+**Page views** decides what counts as a page view. On **Auto** (the default), an app that receives browser page events from `@coredesign.dev/user-journey` gets its page views from those events only, because its GET requests are API calls; Blazor, MVC and Razor Pages apps count their GET requests. **Browser events only** never counts GET requests. **GET requests and browser events** counts both, as earlier versions did; choose it for an app that serves its own pages and also uses the npm package on some screens.
+
+Data changes are labelled with the route template minus its parameters: `POST /orders/{id}/items` shows as "Created orders/items". Outgoing calls that have no matching request in the resource keep only the first path segment, because their names contain real IDs.
+
+If the App picker lists an app twice, once under its App Service name, and those requests have no user, App Service's built-in Application Insights agent is recording every request a second time. Pick the OpenTelemetry service name, or remove the `ApplicationInsightsAgent_EXTENSION_VERSION` app setting. Keep `APPLICATIONINSIGHTS_CONNECTION_STRING`, which the OpenTelemetry exporter uses.
 
 ## Feedback
 

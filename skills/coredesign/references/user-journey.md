@@ -35,15 +35,18 @@ app.UseUserJourney();
 app.MapUserJourneyEvents();   // only if a browser app sends page views and clicks
 ```
 
-With Application Insights, keep every trace so timelines have no gaps:
+With Application Insights, keep every trace so timelines have no gaps. `UseAzureMonitor()` and `UseAzureMonitorExporter()` both default to rate-limited sampling at 5 traces per second (`TracesPerSecond = 5`), which takes precedence over `SamplingRatio`. Setting `SamplingRatio = 1.0F` alone still drops traces; clear `TracesPerSecond` too:
 
 ```csharp
 builder.Services.AddOpenTelemetry().UseAzureMonitor(o =>
 {
     o.ConnectionString = connectionString;
+    o.TracesPerSecond = null;   // the default (5) overrides SamplingRatio
     o.SamplingRatio = 1.0F;
 });
 ```
+
+`UseAzureMonitorExporter()` takes the same two settings.
 
 Data changes need no code: POST, PUT, PATCH and DELETE requests to the API, and outgoing calls from a Blazor app, share the trace with the user's page or click.
 
@@ -147,6 +150,10 @@ Tags: `enduser.id` (Application Insights shows it as `user_AuthenticatedId`), `u
 
 The package ships `workbooks/user-journey.workbook.json`. Import it in the Azure portal: Application Insights resource, Workbooks, New, Advanced Editor (`</>`), Gallery Template, paste, Apply, Save. It has a per-user timeline, signed-in users per day, most viewed pages, items viewed and common data changes, with an App picker for shared resources.
 
+The **Page views** picker decides what counts as a page view. **Auto** (default): an app that receives browser page events gets its page views from those events only, because its GET requests are API calls; apps without browser events (Blazor, MVC, Razor Pages) count their GET requests. **Browser events only** never counts GET requests. **GET requests and browser events** counts both; use it for an app that serves its own pages and also uses the npm package on some screens. The decision is per app, so one resource can hold a Blazor app and a React app's API.
+
+Data changes are labelled with the request's route template minus its parameters (`POST /orders/{id}/items` is "Created orders/items"). Outgoing calls with no matching request in the resource keep only the first path segment, because their names contain real IDs.
+
 ## 8. Troubleshooting
 
 | Symptom | Cause |
@@ -155,5 +162,7 @@ The package ships `workbooks/user-journey.workbook.json`. Import it in the Azure
 | Blazor clicks have no user | `AddUserJourneyBlazor()` registered after the service defaults or Azure Monitor |
 | Browser events return 401 | No or expired access token; the endpoint requires a signed-in user |
 | Browser events return 400 | Unknown `kind`, a path not starting with `/`, a click without `target`, or more than `MaxBrowserEventsPerBatch` events |
-| Gaps in a user's timeline | Sampling; set `SamplingRatio = 1.0F` for Application Insights |
+| Gaps in a user's timeline | Sampling; the Azure Monitor default `TracesPerSecond = 5` overrides `SamplingRatio`. Set `TracesPerSecond = null` and `SamplingRatio = 1.0F` |
+| The App picker shows the app twice, once under the App Service name, and those requests have no user | App Service's Application Insights agent is on and records every request again. Pick the OpenTelemetry service name, or remove the `ApplicationInsightsAgent_EXTENSION_VERSION` app setting (keep `APPLICATIONINSIGHTS_CONNECTION_STRING`) |
+| A single-page app's API calls appear as "Viewed page" | The **Page views** picker is set to **GET requests and browser events**; use **Auto** |
 | Health probes fill the telemetry | The probe path is not in `ExcludedPaths` |
